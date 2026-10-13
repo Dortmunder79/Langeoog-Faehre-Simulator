@@ -928,12 +928,14 @@ input[type="range"]::-moz-range-thumb {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  width: min(100%, 50vw);
 }
 .cx-keys {
   grid-area: k;
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1.3fr) repeat(2, minmax(0, 1fr));
   gap: 5px;
+  width: min(100%, 300px);
 }
 .cx-lever {
   grid-area: v;
@@ -1294,7 +1296,7 @@ input[type="range"]::-moz-range-thumb {
   top: auto;
   bottom: 268px;
 }
-/* Querformat: gilt, wenn das Gerät quer liegt oder die Ansicht per Knopf gedreht ist */
+/* Querformat: gilt, wenn das Gerät quer liegt */
 .app.land .top {
   padding-block: 4px 14px;
 }
@@ -1331,15 +1333,16 @@ input[type="range"]::-moz-range-thumb {
   position: absolute;
   left: 10px;
   bottom: 8px;
-  width: min(290px, 35%);
+  width: min(270px, 30%);
   border-radius: 12px;
   padding: 2px 0;
   background: linear-gradient(to top, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0));
 }
 .app.land .cx-keys {
   position: absolute;
-  left: calc(min(290px, 35%) + 22px);
-  right: 138px;
+  left: calc(min(270px, 30%) + 22px);
+  right: auto;
+  width: 300px;
   bottom: 8px;
 }
 .app.land .cx-lever {
@@ -1438,7 +1441,6 @@ input {
     </div>
     <div class="clock" id="clock" aria-label="Uhrzeit">10:15</div>
     <button class="icon-btn" id="tsBtn" aria-label="Zeitraffer">4×</button>
-    <button class="icon-btn" id="rotBtn" aria-label="Querformat">Quer</button>
     <button class="icon-btn" id="soundBtn" aria-pressed="true">Ton</button>
     <button class="icon-btn" id="pauseBtn">Pause</button>
   </header>
@@ -1543,7 +1545,6 @@ input {
     </div>
     <div class="cx-keys">
       <button class="btn primary cx-key go" id="dockBtn" disabled>Festmachen</button>
-      <button class="btn cx-key" id="midBtn">Ruder 0</button>
       <button class="btn cx-key" id="hornBtn">Typhon</button>
       <button class="btn cx-key red" id="stopBtn">Stopp</button>
     </div>
@@ -3627,7 +3628,6 @@ input {
       if (e.key === "ArrowLeft" || e.key === "ArrowRight") setBow(0);
     },
   });
-  $("midBtn").onclick = () => setRudder(0);
   $("stopBtn").onclick = () => setThrottle(0);
   // Tastatur am Rechner: W/S Fahrhebel, A/D Ruder, Q/E Bugstrahl
   document.addEventListener("keydown", (e) => {
@@ -3694,7 +3694,17 @@ input {
       out.frequency.value = 420;
       out.Q.value = 0.5;
       master.connect(out);
-      out.connect(c.destination);
+      const comp = c.createDynamicsCompressor();
+      comp.threshold.value = -20;
+      comp.knee.value = 12;
+      comp.ratio.value = 3.5;
+      comp.attack.value = 0.02;
+      comp.release.value = 0.25;
+      const mkup = c.createGain();
+      mkup.gain.value = 1.7;
+      out.connect(comp);
+      comp.connect(mkup);
+      mkup.connect(c.destination);
       const nb = c.createBuffer(1, c.sampleRate * 3, c.sampleRate);
       const d = nb.getChannelData(0);
       let b = 0;
@@ -3777,15 +3787,7 @@ input {
     const c = AU.c,
       t = c.currentTime;
     const live = soundOn && phase === "run";
-    const vol = live
-      ? pane === "aussen"
-        ? 0.5
-        : pane === "karte"
-          ? 0.38
-          : pane === "nock"
-            ? 0.58
-            : 0.64
-      : 0;
+    const vol = live ? (pane === "aussen" ? 0.85 : pane === "karte" ? 0.6 : pane === "nock" ? 0.95 : 1.0) : 0;
     AU.master.gain.setTargetAtTime(vol, t, 0.3);
     if (!live) return;
     const load = Math.abs(S.eng),
@@ -3925,10 +3927,7 @@ input {
     }
     updatePause();
   };
-  $("rotBtn").onclick = () => {
-    ROT = ROT === 0 ? 90 : ROT === 90 ? -90 : 0;
-    applyRot();
-  };
+
   $("soundBtn").onclick = () => {
     audioInit();
     soundOn = !soundOn;
@@ -7617,10 +7616,95 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           for (let i = 1; i < len / 1.6; i++)
             mesh(new T.BoxGeometry(0.12, 1.6, 0.25), TEALD, g, -len / 2 + i * 1.6, -0.1, sd * 2.9);
         });
-        g.position.set(cx, 4.7, -7.6);
-        g.rotation.z = 0.03;
+        g.position.set(cx, 3.48, -7.6);
+        g.rotation.z = -Math.atan(2.44 / len);
         scene.add(g);
-        mesh(tbox(8, ISL_TOP + 2.4, 9, 2), CAP, null, 75, (ISL_TOP + 2.4) / 2 - 0.3, -7.6);
+        // Gepäckplatz am Ende der Rampe: gepflasterte Fläche mit Gepäckcontainern, Schlepper und Lichtmast
+        flat(46, 42, PAVE, 96, 6);
+        {
+          const c = document.createElement("canvas");
+          c.width = 128;
+          c.height = 128;
+          const x = c.getContext("2d");
+          for (let i = 0; i < 32; i++) {
+            x.fillStyle = i % 2 ? "#d8d8d8" : "#ffffff";
+            x.fillRect(i * 4, 0, 4, 128);
+          }
+          x.fillStyle = "rgba(0,0,0,.18)";
+          x.fillRect(0, 0, 128, 6);
+          x.fillRect(0, 122, 128, 6);
+          x.fillStyle = "#ffffff";
+          x.fillRect(40, 46, 48, 22);
+          x.fillStyle = "#1b3b6f";
+          x.font = "bold 15px Arial";
+          x.textAlign = "center";
+          x.fillText("LANGEOOG", 64, 62);
+          const tx = new T.CanvasTexture(c);
+          tx.encoding = T.sRGBEncoding;
+          const geo = new T.BoxGeometry(2.4, 2.2, 2.0);
+          geo.translate(0, 1.1 + 0.15, 0);
+          const R4 = rng(77);
+          const list = [];
+          for (let x = 80; x <= 112; x += 3.0)
+            for (const n of [-8, -5.4, 13, 15.6, 20.5, 23.1]) {
+              if (R4() < 0.22) continue;
+              list.push([x + (R4() - 0.5) * 0.3, n + (R4() - 0.5) * 0.3, (R4() - 0.5) * 0.06]);
+            }
+          const im = new T.InstancedMesh(
+            geo,
+            std(0xffffff, { map: tx, roughness: 0.6, metalness: 0.2 }),
+            list.length,
+          );
+          const o = new T.Object3D(),
+            col = new T.Color();
+          const CC = [0x2f7a46, 0x358a50, 0x2a6a3e, 0x2a5f9a, 0x2a9fb4];
+          list.forEach((p, i) => {
+            o.position.set(p[0], ISL_TOP, -p[1]);
+            o.rotation.set(0, p[2], 0);
+            o.updateMatrix();
+            im.setMatrixAt(i, o.matrix);
+            col.set(CC[(R4() * CC.length) | 0]).convertSRGBToLinear();
+            im.setColorAt(i, col);
+          });
+          im.castShadow = true;
+          im.receiveShadow = true;
+          scene.add(im);
+          // Fahrgestelle unter den Containern
+          const wg = new T.BoxGeometry(2.2, 0.3, 1.8);
+          wg.translate(0, 0.15, 0);
+          const iw = new T.InstancedMesh(wg, std(0x2a2c2e, { roughness: 0.7 }), list.length);
+          list.forEach((p, i) => {
+            o.position.set(p[0], ISL_TOP, -p[1]);
+            o.rotation.set(0, p[2], 0);
+            o.updateMatrix();
+            iw.setMatrixAt(i, o.matrix);
+          });
+          scene.add(iw);
+        }
+        {
+          const t = new T.Group();
+          const Y = std(0xe8b923, { roughness: 0.5 });
+          mesh(new T.BoxGeometry(3.2, 1.1, 1.8), Y, t, 0, 0.9, 0);
+          mesh(new T.BoxGeometry(1.4, 1.3, 1.6), GLS, t, -0.6, 2.1, 0);
+          mesh(new T.BoxGeometry(1.5, 0.08, 1.7), Y, t, -0.6, 2.8, 0);
+          [
+            [-1, 0.95],
+            [-1, -0.95],
+            [1, 0.95],
+            [1, -0.95],
+          ].forEach(([a, b]) => {
+            const w = mesh(new T.CylinderGeometry(0.45, 0.45, 0.35, 12), std(0x1c1c1c), t, a, 0.45, b);
+            w.rotation.x = Math.PI / 2;
+          });
+          t.position.set(84, ISL_TOP, -4.5);
+          t.rotation.y = 0.3;
+          scene.add(t);
+        }
+        {
+          const LM = std(0x9aa3a8, { metalness: 0.6, roughness: 0.4 });
+          mesh(new T.CylinderGeometry(0.12, 0.18, 12, 8), LM, null, 118, ISL_TOP + 6, -5);
+          mesh(new T.BoxGeometry(1.6, 0.3, 0.6), LM, null, 118, ISL_TOP + 12, -5);
+        }
         const tg = new T.Group();
         mesh(new T.BoxGeometry(13.5, 0.35, 5.2), STEEL2, tg, 0, 0, 0);
         mesh(new T.BoxGeometry(13.5, 0.05, 4.9), RDECK, tg, 0, 0.2, 0);
@@ -9524,7 +9608,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       drag.y = e.clientY;
       const dx = ROT === 90 ? rdy : ROT === -90 ? -rdy : rdx,
         dy = ROT === 90 ? -rdx : ROT === -90 ? rdx : rdy;
-      const mk = e.pointerType === "mouse" ? -1 : 1;
+      const mk = -1;
       if (pane === "bruecke") {
         LOOK.yaw = Math.max(-2.8, Math.min(2.8, LOOK.yaw + mk * dx * 0.006));
         LOOK.pitch = Math.max(-0.7, Math.min(0.5, LOOK.pitch + mk * dy * 0.004));
