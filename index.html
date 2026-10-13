@@ -722,6 +722,12 @@ input[type="range"]::-moz-range-thumb {
   gap: 5px;
   min-width: 0;
 }
+.choice.wide {
+  grid-column: 1/-1;
+}
+.choice.wide .seg button {
+  font-size: 13px;
+}
 .choice > span {
   font-size: 11px;
   font-weight: 600;
@@ -897,62 +903,396 @@ input[type="range"]::-moz-range-thumb {
   bottom: auto;
   top: 44%;
 }
+/* Steuerstand: transparent über dem Bild. Fahrhebel senkrecht, Ruder und Bugstrahl waagerecht */
 .controls {
   left: 0;
   right: 0;
   bottom: 0;
-  padding: 22px 12px 10px;
-  gap: 4px;
+  padding: 8px 10px 10px;
   display: grid;
+  grid-template-columns: minmax(0, 1fr) 112px;
+  grid-template-areas: "l v" "k v";
+  column-gap: 10px;
+  row-gap: 6px;
+  align-items: end;
   color: #f2f6f7;
-  background: linear-gradient(to top, rgba(6, 12, 16, 0.6) 60%, rgba(6, 12, 16, 0));
-  --line: rgba(255, 255, 255, 0.32);
-  --fg: #ffffff;
-  --surface: #f4f6f7;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0));
+  pointer-events: none;
 }
-.sliders {
-  display: grid;
+.controls > * {
+  pointer-events: auto;
+}
+.cx-left {
+  grid-area: l;
+  display: flex;
+  flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
-.controls .ctl-head label {
-  color: rgba(242, 246, 247, 0.78);
-}
-.controls .ctl-head output {
-  font-size: 14px;
-  color: #fff;
-}
-.controls .tick {
-  color: rgba(242, 246, 247, 0.6);
-  margin-top: -7px;
-}
-.controls input[type="range"] {
-  height: 32px;
-}
-.controls .btns {
-  grid-template-columns: repeat(3, 1fr);
+.cx-keys {
+  grid-area: k;
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) repeat(3, minmax(0, 1fr));
   gap: 5px;
-  margin-top: 2px;
 }
-.controls .btn {
+.cx-lever {
+  grid-area: v;
+}
+.cx-lbl {
+  font: 700 11px var(--font-display);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #eef4f6;
+}
+.cx-val {
+  font: 700 17px/1 var(--font-display);
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+}
+.cx-green {
+  color: #8ff0b8;
+}
+.cx-orange {
+  color: #ffb070;
+}
+.cx-ctl,
+.cx-lever {
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  outline: none;
+}
+.cx-ctl:focus-visible,
+.cx-lever:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+.cx-ctl {
+  padding: 0 2px;
+}
+.cx-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0 4px;
+}
+.cx-lbl,
+.cx-val,
+.cx-ends,
+.cx-dir,
+.cx-tel,
+.cx-tl {
+  text-shadow:
+    0 1px 3px #000,
+    0 0 2px #000;
+}
+.cx-hs {
+  position: relative;
+  height: 36px;
+}
+.cx-track {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 50%;
+  height: 8px;
+  margin-top: -4px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.45);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.24);
+}
+.cx-track i {
+  position: absolute;
+  top: 2px;
+  height: 4px;
+  border-radius: 2px;
+}
+.cx-track .p {
+  left: 0;
+  right: 50%;
+  background: linear-gradient(90deg, #e0453c, rgba(224, 69, 60, 0.15));
+}
+.cx-track .s {
+  left: 50%;
+  right: 0;
+  background: linear-gradient(90deg, rgba(47, 179, 106, 0.15), #2fb36a);
+}
+.cx-notch {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: 18px;
+  margin: -9px 0 0 -1px;
+  background: #fff;
+  border-radius: 1px;
+  box-shadow: 0 0 2px #000;
+}
+.cx-ticks {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 50%;
+}
+.cx-ticks i {
+  position: absolute;
+  top: 8px;
+  width: 1px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.75);
+  box-shadow: 0 0 1px #000;
+}
+.cx-rail {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  top: 50%;
+  height: 0;
+}
+.cx-knob {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 30px;
+  height: 38px;
+  margin: -19px 0 0 -15px;
+  border-radius: 9px;
+  background: linear-gradient(90deg, #151a1d, #2f393f 45%, #3b464d 55%, #20272c);
+  border: 1px solid #4b585f;
+  box-shadow:
+    0 5px 9px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+.cx-knob::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 50%;
+  width: 6px;
+  margin-left: -3px;
+  border-radius: 3px;
+  background: linear-gradient(#ffa25e, #e0621a);
+  box-shadow: 0 0 8px rgba(242, 122, 46, 0.5);
+}
+.cx-bow .cx-knob {
+  width: 34px;
   height: 34px;
-  font-size: 12.5px;
-  background: rgba(255, 255, 255, 0.14);
-  border-color: rgba(255, 255, 255, 0.26);
-  color: #fff;
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
+  margin: -17px 0 0 -17px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #4a565d, #1b2125 70%);
+  transition: left 0.18s ease-out;
 }
-.controls .btn.primary {
-  background: var(--accent);
-  border-color: transparent;
-  color: #fff;
+.cx-bow .cx-knob::before {
+  top: 50%;
+  bottom: auto;
+  height: 6px;
+  width: 16px;
+  margin: -3px 0 0 -8px;
 }
-.controls .btn.hold.on {
-  background: var(--accent);
-  color: #fff;
+.cx-bow.drag .cx-knob {
+  transition: none;
 }
-.controls .btn:disabled {
-  opacity: 0.45;
+.cx-ends {
+  display: flex;
+  justify-content: space-between;
+  font: 700 10px var(--font-display);
+  letter-spacing: 0.1em;
+  margin-top: -5px;
+  padding: 0 6px;
+}
+.cx-ends .pp {
+  color: #ff7a72;
+}
+.cx-ends .ss {
+  color: #5fe39a;
+}
+.cx-hintx {
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+/* Fahrhebel */
+.cx-lever {
+  height: 236px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 7px 6px 6px;
+  border-radius: 12px;
+  background: rgba(14, 19, 22, 0.38);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+.cx-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  margin-bottom: 2px;
+}
+.cx-tel {
+  font: 600 10px var(--font-body);
+  color: rgba(242, 246, 247, 0.8);
+  white-space: nowrap;
+}
+.cx-dir {
+  font: 700 10px var(--font-display);
+  letter-spacing: 0.12em;
+  color: #c8d3d8;
+  text-transform: uppercase;
+}
+.cx-lv {
+  position: relative;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+.cx-slot {
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  bottom: 6px;
+  width: 12px;
+  margin-left: -6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  box-shadow:
+    inset 0 1px 2px #000,
+    0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+.cx-scale {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: calc(50% - 22px);
+  width: 14px;
+}
+.cx-scale.r {
+  left: calc(50% + 8px);
+}
+.cx-tk {
+  position: absolute;
+  right: 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.55);
+  transform: translateY(-0.5px);
+}
+.cx-scale.r .cx-tk {
+  right: auto;
+  left: 0;
+}
+.cx-tk.big {
+  background: #fff;
+  height: 2px;
+}
+.cx-tl {
+  position: absolute;
+  right: calc(100% + 3px);
+  transform: translateY(-50%);
+  font: 700 9px var(--font-display);
+  color: #e6eef1;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+.cx-lv .cx-rail {
+  top: 6px;
+  bottom: 6px;
+  left: 50%;
+  right: auto;
+  width: 0;
+  height: auto;
+}
+.cx-handle {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 58px;
+  height: 28px;
+  margin-left: -29px;
+  transform: translateY(-50%);
+  border-radius: 9px;
+  background: linear-gradient(#3b464d, #20272c 55%, #151a1d);
+  border: 1px solid #4b585f;
+  box-shadow:
+    0 6px 10px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.cx-handle::before {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: 4px;
+  height: 7px;
+  border-radius: 4px;
+  background: linear-gradient(#ffa25e, #e0621a);
+  box-shadow: 0 0 8px rgba(242, 122, 46, 0.55);
+}
+.cx-handle::after {
+  content: "";
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 5px;
+  height: 2px;
+  border-radius: 1px;
+  background: repeating-linear-gradient(90deg, #57636a 0 2px, transparent 2px 5px);
+}
+/* Tasten */
+.controls .cx-key {
+  position: relative;
+  height: 34px;
+  padding: 6px 2px 0;
+  border-radius: 9px;
+  font: 700 10.5px var(--font-display);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  background: rgba(14, 19, 22, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  color: #fff;
+  text-shadow: 0 1px 2px #000;
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+.controls .cx-key::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 5px;
+  width: 16px;
+  height: 3px;
+  margin-left: -8px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.25);
+}
+.controls .cx-key.go {
+  background: rgba(242, 122, 46, 0.82);
+  border-color: rgba(255, 190, 140, 0.7);
+}
+.controls .cx-key.go::before {
+  background: #fff3e6;
+  box-shadow: 0 0 6px #fff;
+}
+.controls .cx-key.red {
+  background: rgba(196, 47, 54, 0.75);
+  border-color: rgba(255, 140, 135, 0.6);
+}
+.controls .cx-key.on::before {
+  background: #ffb070;
+  box-shadow: 0 0 6px #f27a2e;
+}
+.controls .cx-key:disabled {
+  opacity: 0.5;
+}
+.side-btns {
+  top: auto;
+  bottom: 268px;
 }
 /* Querformat: gilt, wenn das Gerät quer liegt oder die Ansicht per Knopf gedreht ist */
 .app.land .top {
@@ -982,17 +1322,40 @@ input[type="range"]::-moz-range-thumb {
   right: 132px;
 }
 .app.land .controls {
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  column-gap: 16px;
-  align-items: end;
-  padding: 16px 14px 8px;
+  inset: 0;
+  display: block;
+  padding: 0;
+  background: none;
 }
-.app.land .sliders {
-  grid-template-columns: 1fr 1fr;
-  column-gap: 14px;
+.app.land .cx-left {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  width: min(290px, 35%);
+  border-radius: 12px;
+  padding: 2px 0;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.22), rgba(0, 0, 0, 0));
 }
-.app.land .controls .btn {
-  height: 32px;
+.app.land .cx-keys {
+  position: absolute;
+  left: calc(min(290px, 35%) + 22px);
+  right: 138px;
+  bottom: 8px;
+}
+.app.land .cx-lever {
+  position: absolute;
+  right: 10px;
+  top: 46px;
+  bottom: 8px;
+  height: auto;
+  width: 112px;
+}
+.app.land .side-btns {
+  right: 136px;
+  bottom: 52px;
+}
+.app.land .hud-top {
+  right: 236px;
 }
 .app.rot {
   position: fixed;
@@ -1123,32 +1486,89 @@ input {
       <div class="sub" id="roDepthSub">Echolot, m</div>
     </div>
     <div class="ro" id="roTrainBox">
-      <div class="lbl">Inselbahn</div>
+      <div class="lbl" id="roTrainLbl">Inselbahn</div>
       <div class="val" id="roTrain">34 min</div>
-      <div class="sub">anlegen bis 10:59</div>
+      <div class="sub" id="roTrainSub">anlegen bis 10:59</div>
     </div>
   </div>
 
-  <div class="controls">
-    <div class="sliders">
-      <div class="sl">
-        <div class="ctl-head"><label for="thr">Fahrhebel</label><output id="thrOut">Stopp</output></div>
-        <input type="range" id="thr" min="-100" max="100" step="5" value="0" />
-        <div class="tick"><span>Zurück</span><span class="stop">Stopp</span><span>Voll voraus</span></div>
+  <div class="controls" aria-label="Steuerstand">
+    <div class="cx-left">
+      <div
+        class="cx-ctl"
+        id="rudCtl"
+        role="slider"
+        tabindex="0"
+        aria-label="Ruder"
+        aria-valuemin="-35"
+        aria-valuemax="35"
+        aria-valuenow="0"
+      >
+        <div class="cx-row">
+          <span class="cx-lbl">Ruder</span><output class="cx-val cx-green" id="rudOut">Mittschiffs</output>
+        </div>
+        <div class="cx-hs">
+          <div class="cx-track"><i class="p"></i><i class="s"></i></div>
+          <div class="cx-ticks" id="rudTicks"></div>
+          <div class="cx-notch"></div>
+          <div class="cx-rail"><div class="cx-knob"></div></div>
+        </div>
+        <div class="cx-ends">
+          <span class="pp">BB</span><span class="cx-hintx">2× tippen = 0</span><span class="ss">STB</span>
+        </div>
       </div>
-      <div class="sl">
-        <div class="ctl-head"><label for="rud">Ruder</label><output id="rudOut">Mittschiffs</output></div>
-        <input type="range" id="rud" min="-35" max="35" step="1" value="0" />
-        <div class="tick"><span>Backbord</span><span>0</span><span>Steuerbord</span></div>
+      <div
+        class="cx-ctl cx-bow"
+        id="bowCtl"
+        role="slider"
+        tabindex="0"
+        aria-label="Bugstrahlruder"
+        aria-valuemin="-100"
+        aria-valuemax="100"
+        aria-valuenow="0"
+      >
+        <div class="cx-row">
+          <span class="cx-lbl">Bugstrahl</span><output class="cx-val" id="bowOut">0</output>
+        </div>
+        <div class="cx-hs">
+          <div class="cx-track"></div>
+          <div class="cx-notch"></div>
+          <div class="cx-rail"><div class="cx-knob"></div></div>
+        </div>
+        <div class="cx-ends">
+          <span class="pp">◀ BB</span><span class="cx-hintx">loslassen = 0</span
+          ><span class="ss">STB ▶</span>
+        </div>
       </div>
     </div>
-    <div class="btns">
-      <button class="btn" id="midBtn">Ruder 0</button>
-      <button class="btn" id="stopBtn">Stopp</button>
-      <button class="btn" id="hornBtn">Typhon</button>
-      <button class="btn hold" id="bowL">◀ Bug</button>
-      <button class="btn hold" id="bowR">Bug ▶</button>
-      <button class="btn primary" id="dockBtn" disabled>Festmachen</button>
+    <div class="cx-keys">
+      <button class="btn primary cx-key go" id="dockBtn" disabled>Festmachen</button>
+      <button class="btn cx-key" id="midBtn">Ruder 0</button>
+      <button class="btn cx-key" id="hornBtn">Typhon</button>
+      <button class="btn cx-key red" id="stopBtn">Stopp</button>
+    </div>
+    <div
+      class="cx-lever"
+      id="thrCtl"
+      role="slider"
+      tabindex="0"
+      aria-label="Fahrhebel"
+      aria-valuemin="-100"
+      aria-valuemax="100"
+      aria-valuenow="0"
+    >
+      <div class="cx-head">
+        <span class="cx-lbl">Fahrhebel</span><output class="cx-val cx-orange" id="thrOut">0 %</output
+        ><span class="cx-tel" id="thrTel">Stopp</span>
+      </div>
+      <div class="cx-dir">Voraus</div>
+      <div class="cx-lv">
+        <div class="cx-scale" id="thrScaleL"></div>
+        <div class="cx-scale r" id="thrScaleR"></div>
+        <div class="cx-slot"></div>
+        <div class="cx-rail"><div class="cx-handle"></div></div>
+      </div>
+      <div class="cx-dir">Zurück</div>
     </div>
   </div>
 </div>
@@ -1164,7 +1584,7 @@ input {
       alt="Die Fähre Langeoog IV an der Laderampe in Bensersiel"
     />
     <div class="sheet-body">
-      <p class="eyebrow">Fahrplan · Bensersiel ab 10:15</p>
+      <p class="eyebrow" id="introEyebrow">Fahrplan · Bensersiel ab 10:15</p>
       <h1>Inselfähre Langeoog</h1>
       <div class="choices">
         <div class="choice">
@@ -1181,9 +1601,16 @@ input {
             ><button data-v="ebbe" aria-pressed="false">Ebbe</button>
           </div>
         </div>
+        <div class="choice wide">
+          <span>Richtung</span>
+          <div class="seg" data-key="dir">
+            <button data-v="BL" aria-pressed="true">Bensersiel → Langeoog</button
+            ><button data-v="LB" aria-pressed="false">Langeoog → Bensersiel</button>
+          </div>
+        </div>
       </div>
       <p class="envnote" id="envNote"></p>
-      <p>
+      <p id="introText">
         Die MS Langeoog IV liegt längsseits an der Kaje in Bensersiel, Bug nach Osten. Das Gepäck kommt über
         die Laderampe aufs Vorschiff, die Fahrgäste gehen über die seitliche Gangway an Bord. Sie fahren
         rückwärts nach Westen in den Vorhafen, drehen den Bug nach Norden, verlassen den Hafen mit höchstens 5
@@ -1198,8 +1625,9 @@ input {
           es frei.
         </li>
         <li>
-          <b>Fahrhebel</b> regelt die Maschine (links = zurück), <b>Ruder</b> lenkt. Das
-          <b>Bugstrahlruder</b> (gedrückt halten) dreht den Bug bei langsamer Fahrt.
+          <b>Fahrhebel</b> rechts regelt die Maschine: hoch = voraus, runter = zurück. Um die Null herum lässt
+          er sich besonders fein einstellen. <b>Ruder</b> lenkt (zweimal tippen = 0). Der
+          <b>Bugstrahl</b>-Regler dreht den Bug bei langsamer Fahrt und federt beim Loslassen auf 0 zurück.
         </li>
         <li>
           Vor Bensersiel markieren Pricken das Fahrwasser, dünne Stämme ohne Äste. Auf offener See zwischen
@@ -1207,7 +1635,10 @@ input {
           flach.
         </li>
         <li>In beiden Häfen gilt höchstens 5 kn.</li>
-        <li>Bei Gegenverkehr rechts halten und Typhon geben.</li>
+        <li>
+          Unterwegs begegnen Ihnen das Schwesterschiff Langeoog III, Kutter und Segelboote. Rechts halten,
+          langsame Schiffe an deren Backbordseite überholen, Segelbooten ausweichen und Typhon geben.
+        </li>
         <li>
           Im Steuerhaus und am Außensteuerstand auf der Nock wischen Sie zum Umschauen. Von der Nock sehen Sie
           beim Anlegen die Bordwand und die Kaje.
@@ -1250,7 +1681,7 @@ input {
       alt="Die Fähre Langeoog IV an der Laderampe in Bensersiel"
     />
     <div class="sheet-body">
-      <p class="eyebrow">Bahnhof Hafen · Abfahrt 11:05</p>
+      <p class="eyebrow" id="trainEyebrow">Bahnhof Hafen · Abfahrt 11:05</p>
       <h2 id="trainTitle">Inselbahn erreicht</h2>
       <p id="trainText"></p>
       <dl class="stats" id="scoreStats"></dl>
@@ -1293,11 +1724,44 @@ input {
     A = 0.09,
     D = 0.09 / 49,
     K = 0.4;
-  const T0 = 10 * 3600 + 15 * 60,
-    T_TRAIN = 11 * 3600 + 5 * 60,
-    UMSTIEG = 360,
+  // Fahrplan je Richtung: Abfahrt und Anschluss (Inselbahn in Langeoog, Bus in Bensersiel)
+  const ROUTES = {
+    BL: {
+      t0: 10 * 3600 + 15 * 60,
+      conn: 11 * 3600 + 5 * 60,
+      from: "Bensersiel",
+      to: "Langeoog",
+      conn1: "Inselbahn",
+      connAcc: "zur Inselbahn",
+      place: "Bahnsteig",
+      station: "Bahnhof Hafen",
+    },
+    LB: {
+      t0: 11 * 3600 + 30 * 60,
+      conn: 12 * 3600 + 20 * 60,
+      from: "Langeoog",
+      to: "Bensersiel",
+      conn1: "Bus",
+      connAcc: "zum Bus",
+      place: "Bussteig",
+      station: "Busbahnhof Bensersiel",
+    },
+  };
+  let T0 = ROUTES.BL.t0,
+    T_TRAIN = ROUTES.BL.conn,
+    T_LATEST = T_TRAIN - 360;
+  const UMSTIEG = 360;
+  const TRAIN_LG = 11 * 3600 + 5 * 60;
+  const RT = () => ROUTES[ENV.dir];
+  function setDir() {
+    T0 = RT().t0;
+    T_TRAIN = RT().conn;
     T_LATEST = T_TRAIN - UMSTIEG;
-  const BERTH = { x: -5268, y: 5530 };
+  }
+  const BERTH = { x: -5268, y: 5530 },
+    BERTH_BS = { x: -6, y: 7.6 };
+  const TGT = () =>
+    ENV.dir === "LB" ? { x: BERTH_BS.x, y: BERTH_BS.y, h: 90 } : { x: BERTH.x, y: BERTH.y, h: 0 };
   const LIMIT = 2.65;
   const TS_STEPS = [1, 2, 4, 8];
   let TS = 4;
@@ -1409,7 +1873,7 @@ input {
     if (d <= hw + 40) return -3.0 + ((top + 3.0) * (d - (hw - 5))) / 45;
     return top;
   }
-  const ENV = { weather: "gut", tide: "flut" };
+  const ENV = { weather: "gut", tide: "flut", dir: "BL" };
   let WAVE_MUL = 1;
   function waterLevel(t) {
     const p = Math.min(1, Math.max(0, (t - T0) / 2700));
@@ -1473,19 +1937,32 @@ input {
       [-80, 3150],
       [-95, 3150],
     ];
+  const DOLPH = [
+    [-5284, 5495],
+    [-5252, 5490],
+    [-5284, 5468],
+    [-5289, 5490],
+  ];
   const OBST = [
+    [],
     [
-      [-5311.5, 5500],
-      [-5296, 5500],
-      [-5296, 5560],
-      [-5311.5, 5560],
+      [-5254.9, 5510],
+      [-5253.5, 5510],
+      [-5253.5, 5560],
+      [-5254.9, 5560],
     ],
     [
-      [-5260.2, 5498],
-      [-5258.8, 5498],
-      [-5258.8, 5560],
-      [-5260.2, 5560],
+      [-5292, 5510],
+      [-5290.4, 5510],
+      [-5290.4, 5560],
+      [-5292, 5560],
     ],
+    ...DOLPH.map(([x, y]) => [
+      [x - 1.2, y - 1.4],
+      [x + 2.3, y - 1.4],
+      [x + 2.3, y + 1.4],
+      [x - 1.2, y + 1.4],
+    ]),
   ];
   const DEEP = [[-5345, -5230, 5470, 5560]];
   const LG_BASIN = [
@@ -1610,10 +2087,11 @@ input {
 
   // ---------- Zustand ----------
   function initState() {
+    const lb = ENV.dir === "LB";
     return {
-      x: -6,
-      y: 7.6,
-      h: 90,
+      x: lb ? BERTH.x : BERTH_BS.x,
+      y: lb ? BERTH.y : BERTH_BS.y,
+      h: lb ? 0 : 90,
       u: 0,
       r: 0,
       eng: 0,
@@ -1623,7 +2101,7 @@ input {
       bow: 0,
       moored: true,
       releaseT: 0,
-      s: 0,
+      s: lb ? L : 0,
       lat: 0,
       ukc: 3,
       grounded: false,
@@ -1636,7 +2114,7 @@ input {
       speeding: false,
       trail: [],
       trailAcc: 0,
-      kut: { st: 0, s: 0, off: -30, x: 0, y: 0, h: 180, dist: 9999 },
+      traf: makeTraffic(),
       hornBonus: false,
       flags: {},
       canDock: false,
@@ -1686,6 +2164,8 @@ input {
   function speakText(t) {
     return t
       .replace(/HOFFNUNG/g, "Hoffnung")
+      .replace(/GRETA/g, "Greta")
+      .replace(/Langeoog III/g, "Langeoog drei")
       .replace(/Langeoog IV/g, "Langeoog vier")
       .replace(/(\d+),(\d+) ?kn\b/g, "$1 Komma $2 Knoten")
       .replace(/(\d+) ?kn\b/g, "$1 Knoten")
@@ -1905,8 +2385,8 @@ input {
   }
 
   function hitName(x, y) {
-    if (OBST[0] && inPoly(x, y, OBST[0])) return "die Fähre am Nachbarliegeplatz";
-    if (OBST[1] && inPoly(x, y, OBST[1])) return "die Dalbenreihe der Gangway";
+    if (inPoly(x, y, OBST[1]) || inPoly(x, y, OBST[2])) return "die Dalbenreihe der Gangway";
+    if (OBST.slice(3).some((p) => inPoly(x, y, p))) return "einen Dalben vor dem Liegeplatz";
     if (LG_DAMS.some((d) => inPoly(x, y, d))) return "die Spundwand am Hafendamm Langeoog";
     if (inPoly(x, y, MOLE_E) || inPoly(x, y, MOLE_W)) return "den Steindamm am Außentief";
     if (inPoly(x, y, ISLAND))
@@ -1942,6 +2422,7 @@ input {
       S.u = 0;
       S.r = 0;
       S.t += dt;
+      stepTraffic(dt);
       return;
     }
     S.grounded = false;
@@ -2011,49 +2492,334 @@ input {
       S.trail.push([S.x - fx * 28, S.y - fy * 28, Math.abs(S.u)]);
       if (S.trail.length > 90) S.trail.shift();
     }
-    const k = S.kut;
-    if (k.st === 0 && S.s > 1100) {
-      k.st = 1;
-      k.s = Math.min(S.s + 2300, L - 800);
-      radio("Kanal 16: Kutter HOFFNUNG kommt Ihnen im Fahrwasser entgegen. Bitte rechts halten.");
-    }
-    if (k.st === 1) {
-      k.s -= 3.0 * dt;
-      const p = pointAt(k.s);
-      const near = Math.hypot(k.x - S.x, k.y - S.y) < 180;
-      const tgt = near && S.lat < -5 ? -50 : -30;
-      k.off += (tgt - k.off) * Math.min(1, dt / 8);
-      k.x = p.x + p.ty * k.off;
-      k.y = p.y - p.tx * k.off;
-      k.h = (Math.atan2(-p.tx, -p.ty) / RAD + 360) % 360;
-      k.dist = Math.hypot(k.x - S.x, k.y - S.y);
-      if (k.dist < 24) {
+    stepTraffic(dt);
+    {
+      const hv = trafficHit();
+      if (hv) {
         gameOver(
           "Zusammenstoß",
-          "Kollision mit dem Kutter HOFFNUNG. Bei Gegenverkehr im Fahrwasser gilt: rechts halten, Backbord an Backbord passieren.",
+          `Kollision mit ${hv.type === "sail" ? "einer Segelyacht" : hv.name} bei ${fmt1(Math.abs(S.u) * KN)} kn. Im Fahrwasser gilt: rechts halten, Begegnung Backbord an Backbord, langsamere Schiffe an deren Backbordseite überholen und Segelbooten rechtzeitig ausweichen.`,
+          true,
         );
         return;
       }
-      if (k.s < 200 || k.s < S.s - 700) k.st = 2;
     }
-    if (S.s > HARB_A + 30)
-      once("outA", () => radio("Hafengebiet Bensersiel verlassen. Fahrwasser bis Langeoog frei."));
-    if (S.s > HARB_B - 300)
-      once("inB", () =>
-        radio(
-          "Hafen Langeoog: Liegeplatz 2, Ostseite, ist frei. Bug voraus an die Laderampe, höchstens 5 kn im Hafen.",
-        ),
-      );
+    if (ENV.dir !== "LB") {
+      if (S.s > HARB_A + 30)
+        once("outA", () =>
+          radio("Hafengebiet Bensersiel verlassen. Achten Sie im Wattenmeer auf Kutter und Segelboote."),
+        );
+      if (S.s > HARB_B - 300)
+        once("inB", () =>
+          radio(
+            "Hafen Langeoog: Liegeplatz 2, Ostseite, ist frei. Bug voraus an die Laderampe, höchstens 5 kn im Hafen.",
+          ),
+        );
+    } else {
+      if (S.s < HARB_B - 30)
+        once("outB", () =>
+          radio("Hafengebiet Langeoog verlassen. Achten Sie im Wattenmeer auf Kutter und Segelboote."),
+        );
+      if (S.s < 3300)
+        once("inA", () =>
+          radio(
+            "Hafen Bensersiel: Liegeplatz an der Ostkaje ist frei. Durchs Außentief mit höchstens 5 kn, im Vorhafen Bug nach Osten drehen und längsseits an die Laderampe.",
+          ),
+        );
+    }
     if (ENV.weather === "schlecht" && S.s > HARB_A && S.s < HARB_B && Math.abs(S.u) > 3)
       S.comfort = Math.max(0, S.comfort - 0.012 * dt);
     if (S.t > T_LATEST - 300)
-      once("trainW", () => radio("Inselbahn Langeoog: Der Anschlusszug fährt pünktlich um 11:05."));
+      once("trainW", () =>
+        radio(
+          ENV.dir === "LB"
+            ? "Busbahnhof Bensersiel: Der Anschlussbus fährt pünktlich um 12:20."
+            : "Inselbahn Langeoog: Der Anschlusszug fährt pünktlich um 11:05.",
+        ),
+      );
+    const tg = TGT();
     S.canDock =
-      Math.hypot(S.x - BERTH.x, S.y - BERTH.y) < 14 &&
-      Math.abs(((S.h + 180) % 360) - 180) < 15 &&
-      Math.abs(S.u) < 0.55 &&
+      Math.hypot(S.x - tg.x, S.y - tg.y) < 22 &&
+      Math.abs(((S.h - tg.h + 540) % 360) - 180) < 22 &&
+      Math.abs(S.u) < 0.8 &&
       !S.grounded;
     if (S.canDock) once("dockable", () => radio("Im Liegeplatz. Maschine stopp, jetzt festmachen."));
+  }
+
+  // ---------- Schiffsverkehr: Schwesterschiff, Kutter, Segelboote ----------
+  // Wegpunkte entlang des Fahrwassers, um "off" Meter rechts der eigenen Fahrtrichtung versetzt
+  function fwPath(s0, s1, off, step = 60) {
+    const d = Math.sign(s1 - s0) || 1,
+      pts = [];
+    for (let s = s0; d > 0 ? s <= s1 : s >= s1; s += d * step) {
+      const p = pointAt(s);
+      pts.push([p.x + p.ty * d * off, p.y - p.tx * d * off]);
+    }
+    return pts;
+  }
+  function zigPath(s0, s1, amp, leg) {
+    const d = Math.sign(s1 - s0) || 1,
+      pts = [];
+    let k = 0;
+    for (let s = s0; d > 0 ? s <= s1 : s >= s1; s += d * leg, k++) {
+      const p = pointAt(s);
+      const o = (k % 2 ? 1 : -1) * amp;
+      pts.push([p.x + p.ty * o, p.y - p.tx * o]);
+    }
+    return pts;
+  }
+  const VT = {
+    ferry: {
+      len: 58,
+      beam: 12,
+      circ: [
+        [-21, 6.4],
+        [-7, 6.4],
+        [7, 6.4],
+        [21, 6.4],
+      ],
+      rate: 5,
+    },
+    kutter: {
+      len: 18,
+      beam: 5.6,
+      circ: [
+        [-4.5, 3.2],
+        [4.5, 3.2],
+      ],
+      rate: 12,
+    },
+    sail: {
+      len: 10,
+      beam: 3.2,
+      circ: [
+        [-2.5, 1.9],
+        [2.5, 1.9],
+      ],
+      rate: 18,
+    },
+  };
+  function mkVessel(o) {
+    const v = Object.assign(
+      { d: 0, v: 0, state: "go", x: 0, y: 0, h: 0, dist: 1e9, seen: false, heel: 0 },
+      o,
+    );
+    v.cum = [0];
+    for (let i = 1; i < v.path.length; i++)
+      v.cum.push(v.cum[i - 1] + Math.hypot(v.path[i][0] - v.path[i - 1][0], v.path[i][1] - v.path[i - 1][1]));
+    v.len = v.cum[v.cum.length - 1];
+    vesselPose(v, true);
+    return v;
+  }
+  function vesselPose(v, snap) {
+    let i = 1;
+    while (i < v.cum.length - 1 && v.cum[i] < v.d) i++;
+    const a = v.path[i - 1],
+      b = v.path[i];
+    const sl = v.cum[i] - v.cum[i - 1] || 1;
+    const f = Math.max(0, Math.min(1, (v.d - v.cum[i - 1]) / sl));
+    v.x = a[0] + (b[0] - a[0]) * f;
+    v.y = a[1] + (b[1] - a[1]) * f;
+    let th = Math.atan2(b[0] - a[0], b[1] - a[1]) / RAD;
+    if (b[2]) th += 180;
+    th = (th + 360) % 360;
+    v.rev = !!b[2];
+    if (snap || v.h === undefined) v.h = th;
+    return th;
+  }
+  function makeTraffic() {
+    const bl = ENV.dir !== "LB",
+      T = [];
+    // Schwesterschiff Langeoog III: bei Fahrt nach Langeoog legt es dort ab und kommt entgegen, sonst kommt es aus Bensersiel und legt am Liegeplatz 1 an
+    if (bl)
+      T.push(
+        mkVessel({
+          id: "l3",
+          name: "Langeoog III",
+          type: "ferry",
+          vmax: 5.6,
+          state: "wait",
+          startT: T0 + 240,
+          path: [[-5305, 5530], [-5305, 5470, 1], [-5305, 5425, 1], ...fwPath(L - 170, 330, 22)],
+          endState: "gone",
+        }),
+      );
+    else
+      T.push(
+        mkVessel({
+          id: "l3",
+          name: "Langeoog III",
+          type: "ferry",
+          vmax: 5.6,
+          path: [...fwPath(1300, L - 200, 22), [-5300, 5400], [-5305, 5460], [-5305, 5530]],
+          endState: "berth",
+        }),
+      );
+    // Kutter HOFFNUNG: kommt im Fahrwasser entgegen, sobald man unterwegs ist
+    T.push(
+      mkVessel({
+        id: "hoff",
+        name: "Kutter HOFFNUNG",
+        type: "kutter",
+        vmax: 3.0,
+        state: "pending",
+        color: 0,
+        path: [
+          [0, 0],
+          [1, 1],
+        ],
+        endState: "gone",
+      }),
+    );
+    // Kutter GRETA: langsam in gleicher Richtung voraus, biegt später zum Fangplatz ab
+    {
+      const a = bl ? 3700 : L - 3600,
+        b = bl ? 7300 : 3700,
+        e = pointAt(b + (bl ? 250 : -250));
+      T.push(
+        mkVessel({
+          id: "greta",
+          name: "Kutter GRETA",
+          type: "kutter",
+          vmax: 2.0,
+          color: 1,
+          path: [...fwPath(a, b, 26), [e.x + e.ty * (bl ? 1 : -1) * 200, e.y - e.tx * (bl ? 1 : -1) * 200]],
+          endState: "stop",
+        }),
+      );
+    }
+    // Segelboote im offenen Wattenmeer: zwei kreuzen das Fahrwasser, eines segelt daneben
+    T.push(
+      mkVessel({
+        id: "y1",
+        name: "die Segelyacht",
+        type: "sail",
+        vmax: 2.4,
+        path: zigPath(7500, 4300, 105, 420),
+        endState: "loop",
+      }),
+    );
+    T.push(
+      mkVessel({
+        id: "y2",
+        name: "die Segelyacht",
+        type: "sail",
+        vmax: 2.2,
+        path: zigPath(4500, 7700, 95, 520),
+        endState: "loop",
+      }),
+    );
+    T.push(
+      mkVessel({
+        id: "y3",
+        name: "die Segelyacht",
+        type: "sail",
+        vmax: 1.8,
+        path: fwPath(5200, 8100, -100, 120),
+        endState: "loop",
+      }),
+    );
+    return T;
+  }
+  const trafById = (id) => S.traf.find((v) => v.id === id);
+  function stepTraffic(dt) {
+    const bl = ENV.dir !== "LB";
+    for (const v of S.traf) {
+      if (v.state === "pending" && v.id === "hoff") {
+        const ok = bl ? S.s > 1100 : S.s < L - 1300;
+        if (!ok) continue;
+        const s0 = bl ? Math.min(S.s + 2300, L - 900) : Math.max(S.s - 2300, 700),
+          s1 = bl ? 250 : L - 300;
+        Object.assign(v, mkVessel({ path: fwPath(s0, s1, 30, 50) }), { state: "go" });
+        radio(`Kanal 16: Kutter HOFFNUNG kommt Ihnen im Fahrwasser entgegen. Bitte rechts halten.`);
+      }
+      if (v.state === "wait") {
+        if (S.t >= v.startT) {
+          v.state = "go";
+          radio(
+            "Langeoog III für Langeoog IV: Wir legen in Langeoog ab und kommen Ihnen im Fahrwasser entgegen. Begegnung Backbord an Backbord.",
+          );
+        }
+      }
+      if (v.state === "go") {
+        const pr = project(v.x, v.y);
+        const harb = v.type === "ferry" && (pr.s < HARB_A || pr.s > HARB_B);
+        const vt = v.rev ? 1.4 : harb ? 2.4 : v.vmax;
+        v.v += Math.max(-0.2 * dt, Math.min(0.12 * dt, vt - v.v));
+        v.d += v.v * dt;
+        if (v.d >= v.len) {
+          v.d = v.len;
+          if (v.endState === "loop") {
+            v.path.reverse();
+            mkVesselRe(v);
+          } else {
+            v.state = v.endState;
+            v.v = 0;
+          }
+        }
+        const th = vesselPose(v, false);
+        const dh = ((th - v.h + 540) % 360) - 180,
+          mr = VT[v.type].rate * dt;
+        v.h = (v.h + Math.max(-mr, Math.min(mr, dh)) + 360) % 360;
+      }
+      v.dist = Math.hypot(v.x - S.x, v.y - S.y);
+      if (v.id === "greta" && v.state === "go" && v.dist < 900 && !v.seen) {
+        v.seen = true;
+        radio(
+          "Kutter GRETA: Wir laufen langsam im Fahrwasser vor Ihnen. Überholen Sie uns an unserer Backbordseite.",
+        );
+      }
+      if (v.id === "l3" && ENV.dir === "LB" && v.dist < 1600 && !v.seen) {
+        v.seen = true;
+        radio(
+          "Langeoog III für Langeoog IV: Wir kommen Ihnen aus Bensersiel entgegen. Begegnung Backbord an Backbord.",
+        );
+      }
+    }
+  }
+  function mkVesselRe(v) {
+    v.cum = [0];
+    for (let i = 1; i < v.path.length; i++)
+      v.cum.push(v.cum[i - 1] + Math.hypot(v.path[i][0] - v.path[i - 1][0], v.path[i][1] - v.path[i - 1][1]));
+    v.len = v.cum[v.cum.length - 1];
+    v.d = 0;
+  }
+  // Zusammenstoß: Rumpf als Kreise entlang der Längsachse
+  function trafficHit() {
+    const own = VT.ferry.circ.map(([o, r]) => [
+      S.x + Math.sin(S.h * RAD) * o,
+      S.y + Math.cos(S.h * RAD) * o,
+      r,
+    ]);
+    for (const v of S.traf) {
+      if (v.state === "pending" || v.state === "gone" || v.dist > 80) continue;
+      const sh = Math.sin(v.h * RAD),
+        ch = Math.cos(v.h * RAD);
+      for (const [o, r] of VT[v.type].circ) {
+        const x = v.x + sh * o,
+          y = v.y + ch * o;
+        for (const c of own) if (Math.hypot(x - c[0], y - c[1]) < r + c[2]) return v;
+      }
+    }
+    return null;
+  }
+  function trafficAhead() {
+    let best = null;
+    const fx = Math.sin(S.h * RAD),
+      fy = Math.cos(S.h * RAD);
+    for (const v of S.traf) {
+      if (v.state === "pending" || v.state === "gone" || v.dist > 380) continue;
+      const rx = v.x - S.x,
+        ry = v.y - S.y;
+      const ahead = (rx * fx + ry * fy) / v.dist;
+      if (ahead < 0.35) continue;
+      if (!best || v.dist < best.dist) best = v;
+    }
+    if (!best) return null;
+    const same = Math.cos((best.h - S.h) * RAD) > 0.5;
+    if (best.type === "sail") return "Segelboot voraus: ausweichen";
+    if (same) return best.name.replace("Kutter", "Kutter") + " voraus: links überholen";
+    return "Gegenverkehr: rechts halten";
   }
 
   // ---------- Format ----------
@@ -2228,7 +2994,7 @@ input {
       ctx.stroke();
     }
     ctx.fillStyle = C.coast;
-    for (const p of [MOLE_E, MOLE_W, ...OBST, ...LG_DAMS]) {
+    for (const p of [MOLE_E, MOLE_W, ...OBST.filter((q) => q.length), ...LG_DAMS]) {
       polyPath(ctx, p);
       ctx.fill();
     }
@@ -2258,9 +3024,16 @@ input {
       ctx.stroke();
     }
     ctx.setLineDash([]);
-    ctx.strokeStyle = C.accent;
-    ctx.lineWidth = 2 / sc;
-    ctx.strokeRect(BERTH.x - 10, BERTH.y - 33, 20, 66);
+    {
+      const tg = TGT();
+      ctx.save();
+      ctx.translate(tg.x, tg.y);
+      ctx.rotate(-tg.h * RAD);
+      ctx.strokeStyle = C.accent;
+      ctx.lineWidth = 2 / sc;
+      ctx.strokeRect(-10, -33, 20, 66);
+      ctx.restore();
+    }
     const hx = Math.sin(hr),
       hy = Math.cos(hr);
     const tr = S.trail.concat([[S.x - hx * 29, S.y - hy * 29]]);
@@ -2285,15 +3058,16 @@ input {
       ctx.stroke();
       ctx.setLineDash([]);
     }
-    const k = S.kut;
-    if (k.st === 1) {
-      const kk = Math.max(1, 14 / (18 * sc));
+    for (const v of S.traf) {
+      if (v.state === "pending" || v.state === "gone") continue;
+      const vt = VT[v.type];
+      const kk = Math.max(1, (v.type === "ferry" ? 22 : 12) / (vt.len * sc));
       ctx.save();
-      ctx.translate(k.x, k.y);
-      ctx.rotate(-k.h * RAD);
+      ctx.translate(v.x, v.y);
+      ctx.rotate(-v.h * RAD);
       ctx.scale(kk, kk);
-      vesselPath(ctx, 18, 6);
-      ctx.fillStyle = C.kutter;
+      vesselPath(ctx, vt.len, vt.beam);
+      ctx.fillStyle = v.type === "ferry" ? C.ship : v.type === "sail" ? C.wake : C.kutter;
       ctx.fill();
       ctx.lineWidth = 1 / (sc * kk);
       ctx.strokeStyle = C.shipLine;
@@ -2402,7 +3176,8 @@ input {
       ctx.fillText("5 kn", x, y);
     }
     {
-      const [x, y] = w2s(BERTH.x + 30, BERTH.y);
+      const tg = TGT();
+      const [x, y] = w2s(tg.x + (tg.h ? 0 : 30), tg.y + (tg.h ? 24 : 0));
       ctx.font = '600 11px "Archivo",system-ui,sans-serif';
       ctx.fillStyle = C.accent;
       ctx.textAlign = "left";
@@ -2495,9 +3270,11 @@ input {
       const [a, c] = w2s(b.x, b.y);
       x.fillRect(a - 1.5, c - 1.5, 3, 3);
     }
-    if (S.kut.st === 1) {
-      const [a, c] = w2s(S.kut.x, S.kut.y);
-      x.fillRect(a - 3, c - 3, 6, 6);
+    for (const v of S.traf) {
+      if (v.state === "pending" || v.state === "gone") continue;
+      const [a, c] = w2s(v.x, v.y);
+      const q = v.type === "ferry" ? 4 : v.type === "kutter" ? 3 : 2;
+      x.fillRect(a - q, c - q, 2 * q, 2 * q);
     }
     for (const y of YACHTS) {
       const [a, c] = w2s(y.x, y.y);
@@ -2609,66 +3386,232 @@ input {
   const setT = (el, v) => {
     if (el.textContent !== v) el.textContent = v;
   };
-  function sliderFill(inp) {
-    const mn = +inp.min,
-      mx = +inp.max,
-      v = +inp.value;
-    const mid = ((0 - mn) / (mx - mn)) * 100,
-      pv = ((v - mn) / (mx - mn)) * 100;
-    inp.style.setProperty("--mid", mid + "%");
-    inp.style.setProperty("--fa", Math.min(mid, pv) + "%");
-    inp.style.setProperty("--fb", Math.max(mid, pv) + "%");
-  }
-  const thr = $("thr"),
-    rud = $("rud");
-  function syncControls() {
-    thr.value = S.throttle;
-    rud.value = S.rudder;
-    sliderFill(thr);
-    sliderFill(rud);
-    setT(els.thrOut, telegraph(S.throttle));
-    setT(els.rudOut, rudTxt(S.rudder));
-  }
-  thr.addEventListener("input", () => {
-    S.throttle = +thr.value;
-    sliderFill(thr);
-    setT(els.thrOut, telegraph(S.throttle));
-  });
-  rud.addEventListener("input", () => {
-    S.rudder = +rud.value;
-    sliderFill(rud);
-    setT(els.rudOut, rudTxt(S.rudder));
-  });
-  $("midBtn").onclick = () => {
-    S.rudder = 0;
-    syncControls();
+  // ---------- Steuerstand: Fahrhebel, Ruder, Bugstrahl ----------
+  // Fahrhebel: die Hälfte des Weges gehört dem Bereich 0–30 %, damit sich langsame Fahrt fein dosieren lässt
+  const lvPos = (v) => {
+    const s = Math.sign(v),
+      a = Math.abs(v) / 100;
+    return s * (a <= 0.3 ? (a / 0.3) * 0.5 : 0.5 + ((a - 0.3) / 0.7) * 0.5);
+  }; // Fahrstufe -> Hebelweg -1..1
+  const lvVal = (p) => {
+    const s = Math.sign(p),
+      a = Math.min(1, Math.abs(p));
+    if (a < 0.025) return 0;
+    return Math.round(s * (a <= 0.5 ? (a / 0.5) * 30 : 30 + ((a - 0.5) / 0.5) * 70));
   };
-  $("stopBtn").onclick = () => {
-    S.throttle = 0;
-    syncControls();
-  };
-  [
-    ["bowL", -1],
-    ["bowR", 1],
-  ].forEach(([id, v]) => {
-    const b = $(id);
-    const on = (e) => {
+  // Zeigerposition im Element als Anteil 0..1, auch wenn die App per Knopf um 90° gedreht ist
+  function localFrac(e, el, axis) {
+    const r = el.getBoundingClientRect();
+    let f;
+    if (!ROT) f = axis === "x" ? (e.clientX - r.left) / r.width : (e.clientY - r.top) / r.height;
+    else if (ROT === 90) f = axis === "x" ? (e.clientY - r.top) / r.height : (r.right - e.clientX) / r.width;
+    else f = axis === "x" ? (r.bottom - e.clientY) / r.height : (e.clientX - r.left) / r.width;
+    return Math.max(0, Math.min(1, f));
+  }
+  function mkCtl(el, rail, o) {
+    let drag = null,
+      lastTap = 0;
+    el.addEventListener("pointerdown", (e) => {
+      if (e.button > 0) return;
       e.preventDefault();
-      S.bow = v;
-      b.classList.add("on");
       try {
-        b.setPointerCapture(e.pointerId);
+        el.focus({ preventScroll: true });
+        el.setPointerCapture(e.pointerId);
       } catch (_) {}
+      const now = performance.now();
+      if (o.dbl && now - lastTap < 350) {
+        lastTap = 0;
+        o.dbl();
+        drag = null;
+        return;
+      }
+      const f = localFrac(e, rail, o.axis),
+        hf = o.frac();
+      drag = { id: e.pointerId, off: Math.abs(f - hf) < o.grab ? hf - f : 0, t: now, f0: f, moved: false };
+      el.classList.add("drag");
+      o.set(f + drag.off);
+    });
+    el.addEventListener("pointermove", (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      const f = localFrac(e, rail, o.axis);
+      if (Math.abs(f - drag.f0) > 0.02) drag.moved = true;
+      o.set(f + drag.off);
+    });
+    const end = (e) => {
+      if (!drag || (e && e.pointerId !== drag.id)) return;
+      if (!drag.moved && performance.now() - drag.t < 260) lastTap = performance.now();
+      drag = null;
+      el.classList.remove("drag");
+      if (o.release) o.release();
     };
-    const off = () => {
-      if (S.bow === v) S.bow = 0;
-      b.classList.remove("on");
-    };
-    b.addEventListener("pointerdown", on);
-    b.addEventListener("pointerup", off);
-    b.addEventListener("pointercancel", off);
-    b.addEventListener("lostpointercapture", off);
-    b.addEventListener("contextmenu", (e) => e.preventDefault());
+    el.addEventListener("pointerup", end);
+    el.addEventListener("pointercancel", end);
+    el.addEventListener("lostpointercapture", end);
+    el.addEventListener("contextmenu", (e) => e.preventDefault());
+    el.addEventListener("keydown", (e) => {
+      const k = o.key && o.key(e);
+      if (k) {
+        e.preventDefault();
+      }
+    });
+    el.addEventListener("keyup", (e) => {
+      if (o.keyup) o.keyup(e);
+    });
+  }
+  const CX = { thr: $("thrCtl"), rud: $("rudCtl"), bow: $("bowCtl") };
+  CX.thrH = CX.thr.querySelector(".cx-handle");
+  CX.rudK = CX.rud.querySelector(".cx-knob");
+  CX.bowK = CX.bow.querySelector(".cx-knob");
+  // Skala des Fahrhebels
+  {
+    const marks = [
+      [100, "Voll"],
+      [60, "Halb"],
+      [30, "Langs."],
+      [0, "0"],
+      [-30, "Langs."],
+      [-60, "Halb"],
+      [-100, "Voll"],
+    ];
+    let L = "",
+      R = "";
+    for (let v = -100; v <= 100; v += 5) {
+      if (Math.abs(v) > 30 && v % 10) continue;
+      const big = marks.some((m) => m[0] === v),
+        y = (1 - lvPos(v)) * 50,
+        w = big ? 12 : v % 10 === 0 ? 8 : 5;
+      const t = `<i class="cx-tk${big ? " big" : ""}" style="top:${y}%;width:${w}px"></i>`;
+      L += t;
+      R += t;
+    }
+    marks.forEach(([v, t]) => {
+      L += `<span class="cx-tl" style="top:${(1 - lvPos(v)) * 50}%">${t}</span>`;
+    });
+    $("thrScaleL").innerHTML = L;
+    $("thrScaleR").innerHTML = R;
+    let T2 = "";
+    for (let a = -30; a <= 30; a += 10) T2 += `<i style="left:${((a + 35) / 70) * 100}%"></i>`;
+    $("rudTicks").innerHTML = T2;
+  }
+  function setThrottle(v) {
+    v = Math.max(-100, Math.min(100, Math.round(v)));
+    if (v !== S.throttle) {
+      S.throttle = v;
+      syncControls();
+    }
+  }
+  function setRudder(v) {
+    v = Math.max(-35, Math.min(35, Math.round(v)));
+    if (v !== S.rudder) {
+      S.rudder = v;
+      syncControls();
+    }
+  }
+  function setBow(v) {
+    v = Math.max(-1, Math.min(1, Math.round(v * 20) / 20));
+    if (v !== S.bow) {
+      S.bow = v;
+      syncControls();
+    }
+  }
+  function syncControls() {
+    CX.thrH.style.top = (1 - lvPos(S.throttle)) * 50 + "%";
+    setT(els.thrOut, (S.throttle > 0 ? "+" : "") + S.throttle + " %");
+    setT($("thrTel"), telegraph(S.throttle));
+    CX.thr.setAttribute("aria-valuenow", S.throttle);
+    CX.rudK.style.left = ((S.rudder + 35) / 70) * 100 + "%";
+    setT(
+      els.rudOut,
+      S.rudder === 0 ? "Mittschiffs" : Math.abs(S.rudder) + "° " + (S.rudder < 0 ? "BB" : "Stb"),
+    );
+    els.rudOut.style.color = S.rudder < 0 ? "#ff9a94" : S.rudder > 0 ? "#8ff0b8" : "#fff";
+    CX.rud.setAttribute("aria-valuenow", S.rudder);
+    const b = Math.round(S.bow * 100);
+    CX.bowK.style.left = (S.bow + 1) * 50 + "%";
+    setT($("bowOut"), b === 0 ? "0" : b < 0 ? "◀ " + -b + " %" : b + " % ▶");
+    CX.bow.setAttribute("aria-valuenow", b);
+  }
+  mkCtl(CX.thr, CX.thr.querySelector(".cx-rail"), {
+    axis: "y",
+    grab: 0.1,
+    frac: () => (1 - lvPos(S.throttle)) / 2,
+    set: (f) => setThrottle(lvVal(1 - 2 * f)),
+    key: (e) => {
+      const st = e.shiftKey ? 10 : 1;
+      if (e.key === "ArrowUp") {
+        setThrottle(S.throttle + st);
+        return 1;
+      }
+      if (e.key === "ArrowDown") {
+        setThrottle(S.throttle - st);
+        return 1;
+      }
+      if (e.key === "0" || e.key === "Home") {
+        setThrottle(0);
+        return 1;
+      }
+    },
+  });
+  mkCtl(CX.rud, CX.rud.querySelector(".cx-rail"), {
+    axis: "x",
+    grab: 0.08,
+    frac: () => (S.rudder + 35) / 70,
+    set: (f) => setRudder(f * 70 - 35),
+    dbl: () => setRudder(0),
+    key: (e) => {
+      const st = e.shiftKey ? 5 : 1;
+      if (e.key === "ArrowLeft") {
+        setRudder(S.rudder - st);
+        return 1;
+      }
+      if (e.key === "ArrowRight") {
+        setRudder(S.rudder + st);
+        return 1;
+      }
+      if (e.key === "0" || e.key === "Home") {
+        setRudder(0);
+        return 1;
+      }
+    },
+  });
+  mkCtl(CX.bow, CX.bow.querySelector(".cx-rail"), {
+    axis: "x",
+    grab: 0.09,
+    frac: () => (S.bow + 1) / 2,
+    set: (f) => setBow(f * 2 - 1),
+    release: () => setBow(0),
+    key: (e) => {
+      if (e.key === "ArrowLeft") {
+        setBow(-1);
+        return 1;
+      }
+      if (e.key === "ArrowRight") {
+        setBow(1);
+        return 1;
+      }
+    },
+    keyup: (e) => {
+      if (e.key === "ArrowLeft" || e.key === "ArrowRight") setBow(0);
+    },
+  });
+  $("midBtn").onclick = () => setRudder(0);
+  $("stopBtn").onclick = () => setThrottle(0);
+  // Tastatur am Rechner: W/S Fahrhebel, A/D Ruder, Q/E Bugstrahl
+  document.addEventListener("keydown", (e) => {
+    if (phase !== "run" || (e.target.closest && e.target.closest("[role=slider],input,textarea"))) return;
+    const k = e.key.toLowerCase();
+    if (k === "w") setThrottle(S.throttle + (e.shiftKey ? 10 : 1));
+    else if (k === "s") setThrottle(S.throttle - (e.shiftKey ? 10 : 1));
+    else if (k === "a") setRudder(S.rudder - (e.shiftKey ? 5 : 1));
+    else if (k === "d") setRudder(S.rudder + (e.shiftKey ? 5 : 1));
+    else if (k === "q") setBow(-1);
+    else if (k === "e") setBow(1);
+    else return;
+    e.preventDefault();
+  });
+  document.addEventListener("keyup", (e) => {
+    const k = e.key.toLowerCase();
+    if (k === "q" || k === "e") setBow(0);
   });
   $("tsBtn").onclick = () => {
     TS = TS_STEPS[(TS_STEPS.indexOf(TS) + 1) % TS_STEPS.length];
@@ -2825,7 +3768,7 @@ input {
     AU.lg.gain.setTargetAtTime(0.16 + 0.14 * rpm, t, 0.4);
     AU.ng.gain.setTargetAtTime(0.06 + 0.22 * load, t, 0.4);
     AU.wg.gain.setTargetAtTime(Math.min(0.12, sp * 0.02) * (ENV.weather === "schlecht" ? 1.4 : 1), t, 0.5);
-    AU.tg.gain.setTargetAtTime(S.bow && !S.moored ? 0.14 : 0, t, 0.2);
+    AU.tg.gain.setTargetAtTime(S.moored ? 0 : 0.14 * Math.abs(S.bow), t, 0.2);
   }
   function crashSound() {
     try {
@@ -2885,12 +3828,17 @@ input {
   }
   $("hornBtn").onclick = () => {
     horn();
-    if (phase !== "run") return;
-    const k = S.kut;
-    if (k.st === 1 && k.dist < 600 && !S.hornBonus) {
-      S.hornBonus = true;
-      radio("Kutter HOFFNUNG: Verstanden, wir passieren Backbord an Backbord.");
-    }
+    if (phase !== "run" || S.hornBonus) return;
+    const v = S.traf.filter((q) => q.state === "go" && q.dist < 600).sort((a, b) => a.dist - b.dist)[0];
+    if (!v) return;
+    S.hornBonus = true;
+    radio(
+      v.type === "sail"
+        ? "Segelyacht: Verstanden, wir halten uns von Ihnen frei."
+        : v.type === "ferry"
+          ? "Langeoog III: Verstanden, Begegnung Backbord an Backbord. Gute Fahrt."
+          : `${v.name}: Verstanden, wir passieren Backbord an Backbord.`,
+    );
   };
 
   const NOCK = { yaw: -0.5, pitch: -0.28, side: 1 };
@@ -2965,6 +3913,7 @@ input {
     } catch (e) {}
   }
   function start() {
+    setDir();
     S = initState();
     phase = "run";
     syncControls();
@@ -2974,11 +3923,17 @@ input {
     NOCK.yaw = -0.5 * NOCK.side;
     NOCK.pitch = -0.28;
     updatePause();
+    const wx =
+      (ENV.weather === "schlecht" ? "Wind West 6, Böen 7. " : "") +
+      (ENV.tide === "ebbe" ? "Niedrigwasser, bleiben Sie im Fahrwasser. " : "");
     radio(
-      "Hafen Bensersiel: Fertig zum Ablegen. " +
-        (ENV.weather === "schlecht" ? "Wind West 6, Böen 7. " : "") +
-        (ENV.tide === "ebbe" ? "Niedrigwasser, bleiben Sie im Fahrwasser. " : "") +
-        "Erst Rampe und Gangway hoch, dann rückwärts in den Vorhafen, Bug nach Norden drehen, höchstens 5 kn bis zur Hafenausfahrt, dann 2,8 km Außentief zwischen den Dämmen.",
+      ENV.dir === "LB"
+        ? "Hafen Langeoog: Fertig zum Ablegen. " +
+            wx +
+            "Erst Rampe und Gangway hoch, dann rückwärts aus dem Liegeplatz, Bug nach Südosten drehen, höchstens 5 kn bis zur Hafenausfahrt, dann durchs Wattenmeer nach Bensersiel."
+        : "Hafen Bensersiel: Fertig zum Ablegen. " +
+            wx +
+            "Erst Rampe und Gangway hoch, dann rückwärts in den Vorhafen, Bug nach Norden drehen, höchstens 5 kn bis zur Hafenausfahrt, dann 2,8 km Außentief zwischen den Dämmen.",
       { silent: true },
     );
     applyEnv();
@@ -3008,6 +3963,10 @@ input {
           sg.querySelectorAll("button").forEach((x) =>
             x.setAttribute("aria-pressed", x === b ? "true" : "false"),
           );
+          if (sg.dataset.key === "dir" && phase === "intro") {
+            setDir();
+            S = initState();
+          }
           applyEnv();
         }),
     ),
@@ -3027,6 +3986,11 @@ input {
     const w = ENV.weather === "schlecht";
     WAVE_MUL = w ? 2.4 : 1;
     $("envNote").textContent = envText();
+    $("introEyebrow").textContent = "Fahrplan · " + RT().from + " ab " + fmtTime(RT().t0);
+    $("introText").textContent =
+      ENV.dir === "LB"
+        ? `Die MS Langeoog IV liegt im Inselhafen Langeoog am Liegeplatz 2, Bug zur Laderampe. Sie legen rückwärts ab, drehen im Hafenbecken, verlassen den Hafen mit höchstens 5 kn und fahren durchs Wattenmeer und das 2,8 km lange Außentief nach Bensersiel. Dort drehen Sie im Vorhafen den Bug nach Osten und legen längsseits an der Laderampe an. Der Bus nach Esens fährt um ${fmtTime(ROUTES.LB.conn)}, der Umstieg dauert 6 Minuten. Sie müssen also spätestens um ${fmtTime(ROUTES.LB.conn - UMSTIEG)} festmachen.`
+        : `Die MS Langeoog IV liegt längsseits an der Kaje in Bensersiel, Bug nach Osten. Das Gepäck kommt über die Laderampe aufs Vorschiff, die Fahrgäste gehen über die seitliche Gangway an Bord. Sie fahren rückwärts nach Westen in den Vorhafen, drehen den Bug nach Norden, verlassen den Hafen mit höchstens 5 kn, fahren durch das 2,8 km lange Außentief zwischen den Steindämmen und dann durchs Wattenmeer zum Inselhafen. Dort fährt die Inselbahn um 11:05 in den Ort. Der Umstieg dauert 6 Minuten, Sie müssen also spätestens um 10:59 festmachen.`;
     if (!G) return;
     const T = G.T,
       lin = (c) => new T.Color(c).convertSRGBToLinear();
@@ -3078,7 +4042,9 @@ input {
         setTimeout(() => {
           if (phase === "run")
             speak(
-              "Liebe Fahrgäste, die Langeoog vier legt jetzt nach Langeoog ab. Bitte bleiben Sie während des Ablegens auf Ihren Plätzen. Wir wünschen Ihnen eine angenehme Überfahrt.",
+              "Liebe Fahrgäste, die Langeoog vier legt jetzt nach " +
+                RT().to +
+                " ab. Bitte bleiben Sie während des Ablegens auf Ihren Plätzen. Wir wünschen Ihnen eine angenehme Überfahrt.",
               "pa",
             );
         }, gd + 300);
@@ -3090,7 +4056,8 @@ input {
     S.dockT = S.t;
     S.dockU = Math.abs(S.u);
     const dur = Math.round((S.t - T0) / 60);
-    $("dockEyebrow").textContent = "Hafen Langeoog · " + fmtTime(S.t);
+    $("dockEyebrow").textContent = "Hafen " + RT().to + " · " + fmtTime(S.t);
+    $("toTrain").textContent = "Umsteigen " + RT().connAcc;
     $("dockStats").innerHTML = [
       ["Fahrzeit", dur + " min"],
       ["Anlegen mit", fmt1(S.dockU * KN) + " kn"],
@@ -3115,7 +4082,7 @@ input {
     else if (S.dockU < 0.4) r.push(["Sanft angelegt", 50]);
     if (caught) {
       const spare = Math.max(0, Math.floor((T_LATEST - S.dockT) / 60));
-      r.push(["Inselbahn erreicht", 200]);
+      r.push([RT().conn1 + " erreicht", 200]);
       if (spare) r.push([`Zeitpuffer (${spare} min)`, spare * 10]);
     }
     if (S.hornBonus) r.push(["Schallsignal gegeben", 25]);
@@ -3126,11 +4093,17 @@ input {
     $("docked").hidden = true;
     const arr = S.dockT + UMSTIEG,
       caught = arr <= T_TRAIN;
-    $("trainTitle").textContent = caught ? "Inselbahn erreicht" : "Inselbahn verpasst";
+    $("trainTitle").textContent = RT().conn1 + (caught ? " erreicht" : " verpasst");
+    $("trainEyebrow").textContent = RT().station + " · Abfahrt " + fmtTime(T_TRAIN);
     $("trainImg").classList.toggle("grey", !caught);
-    $("trainText").textContent = caught
-      ? `Ihre Fahrgäste stehen um ${fmtTime(arr)} am Bahnsteig. Die Inselbahn bringt sie um 11:05 in den Ort.`
-      : `Ihre Fahrgäste kommen erst um ${fmtTime(arr)} zum Bahnsteig. Die Bahn ist um 11:05 ohne sie losgefahren, die nächste fährt in einer halben Stunde.`;
+    $("trainText").textContent =
+      ENV.dir === "LB"
+        ? caught
+          ? `Ihre Fahrgäste stehen um ${fmtTime(arr)} am Bussteig. Der Bus bringt sie um ${fmtTime(T_TRAIN)} nach Esens zum Bahnhof.`
+          : `Ihre Fahrgäste kommen erst um ${fmtTime(arr)} zum Bussteig. Der Bus ist um ${fmtTime(T_TRAIN)} ohne sie abgefahren, der nächste fährt in einer Stunde.`
+        : caught
+          ? `Ihre Fahrgäste stehen um ${fmtTime(arr)} am Bahnsteig. Die Inselbahn bringt sie um 11:05 in den Ort.`
+          : `Ihre Fahrgäste kommen erst um ${fmtTime(arr)} zum Bahnsteig. Die Bahn ist um 11:05 ohne sie losgefahren, die nächste fährt in einer halben Stunde.`;
     const rows = scoreRows(caught);
     const total = Math.max(
       0,
@@ -3162,7 +4135,7 @@ input {
     const kn = Math.abs(S.u) * KN;
     setT(els.speed, (S.u < -0.05 ? "−" : "") + fmt1(kn));
     setT(els.hdg, pad(Math.round(S.h) % 360, 3) + "°");
-    const rest = Math.max(0, L - S.s);
+    const rest = Math.max(0, ENV.dir === "LB" ? S.s : L - S.s);
     setT(els.rest, (rest >= 1000 ? fmt1(rest / 1000) + " km" : Math.round(rest) + " m") + " bis Anleger");
     setT(els.depth, S.ukc < 0 ? "Grund" : fmt1(S.ukc));
     setT(
@@ -3171,6 +4144,8 @@ input {
     );
     els.depthBox.dataset.state = S.ukc < 0 ? "crit" : S.ukc < 0.8 ? "warn" : "";
     const left = Math.ceil((T_LATEST - S.t) / 60);
+    setT($("roTrainLbl"), RT().conn1);
+    setT($("roTrainSub"), "anlegen bis " + fmtTime(T_LATEST));
     if (phase === "docked" || phase === "train") {
       setT(els.train, "fest");
       els.trainBox.dataset.state = "";
@@ -3198,11 +4173,17 @@ input {
               : ["ok", "Am Liegeplatz: „Rampe hoch“ macht das Schiff frei"];
       else if (S.grounded) a = ["crit", "Auf Grund: zurück ins Fahrwasser"];
       else if (S.canDock) a = ["ok", "Liegeplatz erreicht: festmachen"];
-      else if (S.kut.st === 1 && S.kut.dist < 160) a = ["warn", "Gegenverkehr: rechts halten"];
+      else if (trafficAhead()) a = ["warn", trafficAhead()];
       else if (S.ukc < 0.6) a = ["warn", "Wenig Wasser unter dem Kiel"];
       else if (S.speeding) a = ["warn", "Hafengebiet: höchstens 5 kn"];
-      else if (S.s < 60 && S.throttle > 0 && Math.abs(S.u) < 0.5 && Math.hypot(S.x + 6, S.y - 7.6) < 8)
-        a = ["warn", "Vor dem Bug ist die Kaje: Fahrhebel nach links, rückwärts ablegen"];
+      else if (
+        S.throttle > 0 &&
+        Math.abs(S.u) < 0.5 &&
+        (ENV.dir === "LB"
+          ? Math.hypot(S.x - BERTH.x, S.y - BERTH.y)
+          : Math.hypot(S.x - BERTH_BS.x, S.y - BERTH_BS.y)) < 8
+      )
+        a = ["warn", "Vor dem Bug ist die Kaje: Fahrhebel nach unten, rückwärts ablegen"];
     }
     if (a) {
       els.alert.hidden = false;
@@ -5375,6 +6356,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       [-1, 1].forEach((sd) => {
         const m = mesh(new T.PlaneGeometry(5.6, 0.7), nm, tilt, sd * 6.05, 2.95, -16.5);
         m.rotation.y = (sd * Math.PI) / 2;
+        m.name = "nameSide";
       });
       const st = mesh(
         new T.PlaneGeometry(4.2, 1.05),
@@ -5384,6 +6366,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         1.45,
         29.03,
       );
+      st.name = "nameStern";
     }
     // ===== Brücke innen (Steuerhaus s 8–15, Boden 7,42, Decke 10,68) =====
     const interior = new T.Group();
@@ -5956,9 +6939,17 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       });
       return k;
     };
-    const kutter = makeKutter(0x2c5f8c);
-    scene.add(kutter);
-    kutter.visible = false;
+    const TRAF3D = {};
+    [
+      ["hoff", 0x2c5f8c],
+      ["greta", 0x8a2f28],
+    ].forEach(([id, c]) => {
+      const k = makeKutter(c);
+      k.visible = false;
+      scene.add(k);
+      TRAF3D[id] = k;
+    });
+    const kutter = TRAF3D.hoff;
     // Segelboote
     const yachtObjs = YACHTS.map((y) => {
       const g = new T.Group();
@@ -5977,6 +6968,32 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       } else g.rotation.z = 0.12;
       scene.add(g);
       return g;
+    });
+    // Segelboote im Verkehr: Rumpf in einer Krängungsgruppe, Groß und Fock
+    [
+      ["y1", 0xf4f4f0],
+      ["y2", 0x1f3f6a],
+      ["y3", 0xf4f4f0],
+    ].forEach(([id, hc]) => {
+      const g = new T.Group(),
+        hg = new T.Group();
+      g.add(hg);
+      exHull(hullShape(10, 3.2, 0.45), 1.4, std(hc, { roughness: 0.4 }), -0.4, hg);
+      mesh(new T.BoxGeometry(1.8, 0.8, 3.4), std(0xe8e8e4), hg, 0, 1.4, -0.5);
+      mesh(new T.CylinderGeometry(0.07, 0.09, 13, 6), std(0xcfcfcf, { metalness: 0.6 }), hg, 0, 7.4, -0.8);
+      const SM = std(0xf7f5ef, { side: T.DoubleSide, roughness: 0.7 });
+      const tri = (pts) => {
+        const geo = new T.BufferGeometry();
+        geo.setAttribute("position", new T.Float32BufferAttribute(pts, 3));
+        geo.computeVertexNormals();
+        return mesh(geo, SM, hg);
+      };
+      const m1 = tri([0, 1.6, -0.8, 0, 13.4, -0.8, 0, 1.6, 3.6]),
+        m2 = tri([0, 2, -1.0, 0, 12.5, -1.0, 0, 1.4, -4.8]);
+      g.userData = { hg, sails: [m1, m2] };
+      g.visible = false;
+      scene.add(g);
+      TRAF3D[id] = g;
     });
     // Möwen
     const gulls = [];
@@ -6236,7 +7253,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         t.encoding = T.sRGBEncoding;
         return std(0xffffff, { map: t, side: T.DoubleSide });
       })();
-      const towerAt = (x, n, rot) => {
+      const pedTower = (x, n, rot) => {
         const g = new T.Group();
         [-1.9, 1.9].forEach((o) => {
           mesh(new T.BoxGeometry(1.25, 9, 1.25), TEAL2, g, o, 8.5, 0);
@@ -6282,7 +7299,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         scene.add(g);
         return g;
       };
-      towerAt(10.5, -4.2);
+      pedTower(10.5, -4.2);
       {
         mesh(new T.BoxGeometry(2.2, 0.3, 3.6), TEAL2, null, 10.5, 4.45, -(-0.9));
         const piv = new T.Group();
@@ -6304,6 +7321,127 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         scene.add(piv);
         DYN.ped = piv;
       }
+      // Hubportal der Laderampe (nach Foto): zwei türkise Rundstützen links und rechts der Klappe, oben weiße Bühne mit Geländer,
+      // Schaltschränke an den Innenseiten, Hydraulikstangen bis zur Klappe. Rampenachse = lokales x (Land +x), quer = lokales z
+      const RG_WHITE = std(0xe9edee, { roughness: 0.45, metalness: 0.25 }),
+        RG_GREY = std(0xbcc4c8, { roughness: 0.55, metalness: 0.35 }),
+        RG_BASE = std(0x2e3530, { roughness: 0.8 }),
+        RDECK = std(0x2b2d30, { roughness: 0.95 });
+      const mergeN = (list) => {
+        const gs = list.map((g) => (g.index ? g.toNonIndexed() : g));
+        let n = 0;
+        gs.forEach((g) => (n += g.attributes.position.count));
+        const P = new Float32Array(n * 3),
+          N = new Float32Array(n * 3);
+        let o = 0;
+        gs.forEach((g) => {
+          P.set(g.attributes.position.array, o);
+          N.set(g.attributes.normal.array, o);
+          o += g.attributes.position.array.length;
+        });
+        const m = new T.BufferGeometry();
+        m.setAttribute("position", new T.BufferAttribute(P, 3));
+        m.setAttribute("normal", new T.BufferAttribute(N, 3));
+        return m;
+      };
+      const towerAt = (x, n, rot) => {
+        const g = new T.Group();
+        const W = 3.75,
+          TY = 17.4;
+        const B = new Map();
+        const add = (mat, geo, px, py, pz) => {
+          geo.translate(px, py, pz);
+          if (!B.has(mat)) B.set(mat, []);
+          B.get(mat).push(geo);
+        };
+        [-1, 1].forEach((sd) => {
+          const z = sd * W;
+          add(RG_BASE, new T.CylinderGeometry(0.7, 0.74, 3.2, 20), 0, -0.6, z);
+          add(TEAL2, new T.CylinderGeometry(0.64, 0.64, TY - 3.4, 24), 0, 1 + (TY - 3.4) / 2, z);
+          add(RG_GREY, new T.CylinderGeometry(0.74, 0.74, 0.28, 24), 0, TY - 2.35, z);
+          add(RG_WHITE, new T.CylinderGeometry(0.5, 0.5, 1.9, 16), 0, TY - 1.25, z);
+          add(RG_WHITE, new T.BoxGeometry(1.5, 3.4, 0.45), 0, 7.6, z - sd * 0.9);
+          add(RG_GREY, new T.BoxGeometry(1.56, 0.12, 0.5), 0, 9.35, z - sd * 0.9);
+          [-0.55, 0.55].forEach((ox) => {
+            add(
+              RG_WHITE,
+              new T.CylinderGeometry(0.09, 0.09, TY - 5.0, 8),
+              ox,
+              5.0 + (TY - 5.0) / 2 - 0.6,
+              z - sd * 1.3,
+            );
+            add(RG_GREY, new T.CylinderGeometry(0.2, 0.2, 3.2, 10), ox, TY - 2.6, z - sd * 1.3);
+          });
+        });
+        // Steigleiter mit Rückenschutz an der linken Stütze
+        {
+          const z = -W - 0.9;
+          [-0.3, 0.3].forEach((ox) =>
+            add(RG_GREY, new T.BoxGeometry(0.05, TY - 4, 0.05), 0.9 + ox, 4 + (TY - 4) / 2 - 0.4, z),
+          );
+          for (let y = 4.4; y < TY - 0.6; y += 0.6)
+            add(RG_GREY, new T.BoxGeometry(0.6, 0.04, 0.04), 0.9, y, z);
+          for (let y = 7; y < TY - 0.6; y += 1.5)
+            add(RG_GREY, new T.TorusGeometry(0.42, 0.025, 4, 10, Math.PI), 0.9, y, z - 0.05);
+        }
+        // Bühne mit Unterzug und Geländer
+        const PL = 4.8,
+          PW = 2 * W + 3.2;
+        add(RG_GREY, new T.BoxGeometry(3.4, 1.0, PW - 0.8), 0, TY - 0.75, 0);
+        add(RG_WHITE, new T.BoxGeometry(PL, 0.42, PW), 0, TY, 0);
+        add(RG_WHITE, new T.BoxGeometry(PL + 0.1, 0.22, PW + 0.1), 0, TY - 0.25, 0);
+        const RY = TY + 0.21;
+        [
+          [PL / 2, 0, "z"],
+          [-PL / 2, 0, "z"],
+          [0, PW / 2, "x"],
+          [0, -PW / 2, "x"],
+        ].forEach(([a, b, ax]) => {
+          [1.1, 0.55].forEach((h) =>
+            add(
+              RG_WHITE,
+              ax === "x" ? new T.BoxGeometry(PL, 0.06, 0.06) : new T.BoxGeometry(0.06, 0.06, PW),
+              a,
+              RY + h,
+              b,
+            ),
+          );
+          const L0 = ax === "x" ? PL : PW,
+            k = Math.round(L0 / 1.2);
+          for (let i = 0; i <= k; i++) {
+            const t = -L0 / 2 + (i * L0) / k;
+            add(
+              RG_WHITE,
+              new T.BoxGeometry(0.06, 1.1, 0.06),
+              ax === "x" ? t : a,
+              RY + 0.55,
+              ax === "x" ? b : t,
+            );
+          }
+        });
+        // Scheinwerfer und Kameras an den Ecken
+        [-1, 1].forEach((sd) => {
+          add(
+            RG_GREY,
+            new T.CylinderGeometry(0.05, 0.05, 1.6, 6),
+            -PL / 2 + 0.4,
+            RY + 0.8,
+            sd * (PW / 2 - 0.3),
+          );
+          add(RG_WHITE, new T.BoxGeometry(0.7, 0.35, 0.35), -PL / 2 + 0.4, RY + 1.7, sd * (PW / 2 - 0.3));
+          add(RG_GREY, new T.BoxGeometry(0.9, 0.6, 0.7), 1.2, RY + 0.3, sd * (W - 0.2));
+        });
+        B.forEach((list, mat) => {
+          const m = new T.Mesh(mergeN(list), mat);
+          m.castShadow = true;
+          m.receiveShadow = true;
+          g.add(m);
+        });
+        g.position.set(x, 0, -n);
+        g.rotation.y = rot || 0;
+        scene.add(g);
+        return g;
+      };
       // --- Ladebrücke: türkiser Kastenträger mit Schriftzug, vom Turm zur Ostkaje
       const rampTex = (() => {
         const c = document.createElement("canvas");
@@ -6340,7 +7478,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         return t;
       })();
       const RAMPS = std(0xffffff, { map: rampTex, roughness: 0.45, metalness: 0.2 });
-      towerAt(30, 7.6);
+      towerAt(29.2, 7.6);
       {
         const x1 = 33,
           x2 = 72,
@@ -6358,17 +7496,26 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           );
         });
         mesh(new T.BoxGeometry(len, 0.3, 6.4), STEEL2, g, 0, -0.75, 0);
-        mesh(new T.BoxGeometry(len, 0.08, 6.0), std(0x7c8084, { roughness: 0.8 }), g, 0, -0.55, 0);
+        mesh(new T.BoxGeometry(len, 0.08, 6.0), RDECK, g, 0, -0.55, 0);
+        [-1, 1].forEach((sd) => {
+          const r = mesh(new T.CylinderGeometry(0.07, 0.07, len, 8), RG_WHITE, g, 0, 0.55, sd * 2.95);
+          r.rotation.z = Math.PI / 2;
+          for (let i = 1; i < len / 1.6; i++)
+            mesh(new T.BoxGeometry(0.12, 1.6, 0.25), TEALD, g, -len / 2 + i * 1.6, -0.1, sd * 2.9);
+        });
         g.position.set(cx, 4.7, -7.6);
         g.rotation.z = 0.03;
         scene.add(g);
         mesh(tbox(8, ISL_TOP + 2.4, 9, 2), CAP, null, 75, (ISL_TOP + 2.4) / 2 - 0.3, -7.6);
         const tg = new T.Group();
         mesh(new T.BoxGeometry(13.5, 0.35, 5.2), STEEL2, tg, 0, 0, 0);
-        mesh(new T.BoxGeometry(13.5, 0.05, 4.9), std(0x7c8084, { roughness: 0.85 }), tg, 0, 0.2, 0);
-        [-2.5, 2.5].forEach((o) => {
-          mesh(new T.BoxGeometry(13.5, 0.8, 0.12), TEAL2, tg, 0, 0.55, o);
-          mesh(new T.BoxGeometry(13.5, 0.05, 0.05), RAILB, tg, 0, 1.15, o);
+        mesh(new T.BoxGeometry(13.5, 0.05, 4.9), RDECK, tg, 0, 0.2, 0);
+        [-2.45, 2.45].forEach((o) => {
+          mesh(new T.BoxGeometry(13.5, 1.0, 0.3), TEAL2, tg, 0, 0.65, o);
+          const r = mesh(new T.CylinderGeometry(0.06, 0.06, 13.5, 8), RG_WHITE, tg, 0, 1.2, o * 0.96);
+          r.rotation.z = Math.PI / 2;
+          for (let i = 1; i < 9; i++)
+            mesh(new T.BoxGeometry(0.1, 0.9, 0.12), TEALD, tg, -6.75 + i * 1.5, 0.6, o * 0.93);
         });
         mesh(new T.BoxGeometry(1.2, 0.12, 5), STEEL2, tg, -7.2, -0.15, 0);
         const pivB = new T.Group();
@@ -7112,17 +8259,20 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         });
         // Liegeplätze: Bug-Laderampe (türkis) und seitliche Gangway (blau) je Liegeplatz
         const berth = (bx, key) => {
-          towerAt(bx, 5567, Math.PI / 2);
+          towerAt(bx, 5565.2, Math.PI / 2);
           const pivB = new T.Group();
           pivB.position.set(bx, 4.15, -5567);
           const tg = new T.Group();
           tg.position.z = 6.75;
           pivB.add(tg);
           mesh(new T.BoxGeometry(5.2, 0.35, 13.5), STEEL2, tg, 0, 0, 0);
-          mesh(new T.BoxGeometry(4.9, 0.05, 13.5), std(0x7c8084, { roughness: 0.85 }), tg, 0, 0.2, 0);
-          [-2.5, 2.5].forEach((o) => {
-            mesh(new T.BoxGeometry(0.12, 0.8, 13.5), TEAL2, tg, o, 0.55, 0);
-            mesh(new T.BoxGeometry(0.05, 0.05, 13.5), RAILB, tg, o, 1.15, 0);
+          mesh(new T.BoxGeometry(4.9, 0.05, 13.5), RDECK, tg, 0, 0.2, 0);
+          [-2.45, 2.45].forEach((o) => {
+            mesh(new T.BoxGeometry(0.3, 1.0, 13.5), TEAL2, tg, o, 0.65, 0);
+            const r = mesh(new T.CylinderGeometry(0.06, 0.06, 13.5, 8), RG_WHITE, tg, o * 0.96, 1.2, 0);
+            r.rotation.x = Math.PI / 2;
+            for (let i = 1; i < 9; i++)
+              mesh(new T.BoxGeometry(0.12, 0.9, 0.1), TEALD, tg, o * 0.93, 0.6, -6.75 + i * 1.5);
           });
           scene.add(pivB);
           const wx = bx + 6.8;
@@ -7157,11 +8307,11 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           scene.add(piv);
           // Dalbenreihe an der Gangway, Dalben vor dem Liegeplatz
           const L4 = [];
-          for (let n = 5500; n <= 5556; n += 8) L4.push([wx + 1.7, n, 2.6]);
+          for (let n = 5512; n <= 5556; n += 8) L4.push([wx + 7, n, 2.6]);
           [
-            [bx - 8.5, 5495],
-            [bx + 9, 5492],
-            [bx - 8.5, 5470],
+            [bx - 16, 5495],
+            [bx + 16, 5490],
+            [bx - 16, 5468],
           ].forEach(([x, n]) => {
             L4.push([x, n, 3], [x + 1.1, n + 0.6, 2.8], [x + 1.1, n - 0.6, 2.7]);
           });
@@ -7178,9 +8328,16 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
             if (o.name === "interior" || o.name === "bowfoam" || o.isCamera) rm.push(o);
           });
           rm.forEach((o) => o.parent && o.parent.remove(o));
+          const n3 = nameTex(["LANGEOOG III"]),
+            n3s = nameTex(["LANGEOOG III", "LANGEOOG"]);
+          f2.traverse((o) => {
+            if (o.name === "nameSide") o.material = n3;
+            if (o.name === "nameStern") o.material = n3s;
+          });
           f2.position.set(-5305, 0, -5530);
           f2.rotation.y = 0;
           floatG.add(f2);
+          TRAF3D.l3 = f2;
         }
         // Bahnhof: zwei Gleise, Bahnsteig mit Dach, Gepäckzug mit grünen Containern
         {
@@ -7965,6 +9122,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       wakeGeo,
       bow,
       kutter,
+      TRAF3D,
       yachtObjs,
       gulls,
       cars,
@@ -8061,11 +9219,27 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     }
     g.wakeGeo.attributes.position.needsUpdate = true;
     g.wakeGeo.attributes.aA.needsUpdate = true;
-    const k = S.kut;
-    g.kutter.visible = k.st === 1;
-    if (k.st === 1) {
-      g.kutter.position.set(k.x, waveH(k.x, -k.y, tR) * 0.5 + dy, -k.y);
-      g.kutter.rotation.set(Math.sin(tR * 1.3) * 0.03, -k.h * RAD, Math.sin(tR * 1.1) * 0.05);
+    for (const v of S.traf) {
+      const o = g.TRAF3D[v.id];
+      if (!o) continue;
+      const vis = v.state !== "pending" && v.state !== "gone";
+      o.visible = vis;
+      if (!vis) continue;
+      if (v.type === "ferry") {
+        o.position.set(v.x, v.dist < 3000 ? waveH(v.x, -v.y, tR) * 0.25 : 0, -v.y);
+        o.rotation.set(0, -v.h * RAD, 0);
+        continue;
+      }
+      o.position.set(v.x, waveH(v.x, -v.y, tR) * 0.5 + dy, -v.y);
+      if (v.type === "sail") {
+        o.rotation.set(0, -v.h * RAD, 0);
+        const hg = o.userData.hg;
+        const tack = Math.sin((v.h - 250) * RAD) > 0 ? 1 : -1;
+        hg.rotation.z += (0.16 * tack - hg.rotation.z) * Math.min(1, dtR * 0.5);
+        o.userData.sails.forEach(
+          (m, i) => (m.rotation.y += (-tack * (i ? 0.18 : 0.45) - m.rotation.y) * Math.min(1, dtR * 0.5)),
+        );
+      } else o.rotation.set(Math.sin(tR * 1.3 + v.x) * 0.03, -v.h * RAD, Math.sin(tR * 1.1) * 0.05);
     }
     YACHTS.forEach((y, i) => {
       if (y.v) {
@@ -8076,7 +9250,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       o.position.set(y.x, y.v ? waveH(y.x, -y.y, tR) * 0.5 + dy : Math.max(dy, -0.95), -y.y);
       o.rotation.y = -y.h * RAD;
     });
-    const dep = Math.max(0, S.t - T_TRAIN) * 6;
+    const dep = ENV.dir === "LB" ? 0 : Math.max(0, S.t - TRAIN_LG) * 6;
     g.cars.forEach((c) => {
       const p = g.railAt(75 + dep + c.off);
       c.g.position.set(p.x, ISL_TOP + 0.15, -p.n);
@@ -8124,7 +9298,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       cam = g.camC;
     }
     {
-      const atB = S.moored && !(S.releaseT > 0);
+      const fin = phase === "docked" || phase === "train";
+      const atB = ENV.dir === "LB" ? fin : S.moored && !(S.releaseT > 0);
       const hv = heave + dy;
       if (DYN.bow) {
         const tgt = atB ? Math.asin(Math.max(-0.4, Math.min(0.4, (4.15 - (2.75 + hv)) / 13.5))) : -0.42;
@@ -8136,10 +9311,13 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       }
     }
     {
+      const fin = phase === "docked" || phase === "train";
       const nearL =
-        phase === "docked" ||
-        phase === "train" ||
-        (phase === "run" && Math.hypot(S.x - BERTH.x, S.y - BERTH.y) < 6 && Math.abs(S.u) < 0.4);
+        ENV.dir === "LB"
+          ? S.moored && !(S.releaseT > 0)
+          : fin || (phase === "run" && Math.hypot(S.x - BERTH.x, S.y - BERTH.y) < 6 && Math.abs(S.u) < 0.4);
+      const l3 = trafById("l3");
+      const l3b = !!l3 && (l3.state === "wait" || l3.state === "berth");
       const upd = (o, low, hb) => {
         if (!o) return;
         const tb = low ? Math.asin(Math.max(-0.4, Math.min(0.4, (4.15 - (2.75 + hb)) / 13.5))) : -0.42;
@@ -8147,7 +9325,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         const tp = low ? Math.asin(Math.max(-0.3, Math.min(0.4, (4.6 - (0.8 + hb)) / 30.5))) : -0.08;
         o.ped.rotation.x += (tp - o.ped.rotation.x) * Math.min(1, dtR * 0.45);
       };
-      upd(LGDYN.a, true, dy);
+      upd(LGDYN.a, l3b, dy);
       upd(LGDYN.b, nearL, heave + dy);
     }
     cam.updateMatrixWorld(true);
@@ -8257,6 +9435,19 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         step(h);
         sim -= h;
       }
+    }
+    // Nach dem Festmachen holen Leinen und Winden das Schiff sanft an den Liegeplatz
+    if (phase === "docked" || phase === "train") {
+      const k = Math.min(1, dtR * 0.6),
+        tg = TGT();
+      S.u = 0;
+      S.r = 0;
+      S.x += (tg.x - S.x) * k;
+      S.y += (tg.y - S.y) * k;
+      const dh = ((tg.h - S.h + 540) % 360) - 180;
+      S.h = (S.h + dh * k + 360) % 360;
+      S.throttle = 0;
+      S.bow = 0;
     }
     if (pane === "karte") {
       const c = $("chart");
