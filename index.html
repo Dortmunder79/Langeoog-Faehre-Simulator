@@ -726,6 +726,73 @@ input[type="range"]::-moz-range-thumb {
 .choice.wide {
   grid-column: 1/-1;
 }
+.seg.seg3 {
+  grid-template-columns: 1.25fr 1fr 1fr;
+}
+.seg.seg3 button {
+  font-size: 12.5px;
+}
+.app.railmode .cx-left {
+  display: none;
+}
+#cutUI {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+.cut-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 12vh;
+  background: #000;
+}
+.cut-bar.top {
+  top: 0;
+}
+.cut-bar.bot {
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 16px;
+}
+#cutCap {
+  margin: 0;
+  color: #f2f2f0;
+  font: 600 15px var(--font-body);
+  text-shadow: 0 1px 2px #000;
+}
+#cutSkip {
+  pointer-events: auto;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font: 600 13px var(--font-body);
+  white-space: nowrap;
+}
+#cutFade {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+}
+.app.cut .controls,
+.app.cut .readouts,
+.app.cut .tabs,
+.app.cut .top,
+.app.cut .hud-top,
+.app.cut .side-btns {
+  display: none !important;
+}
+.app.railmode #sideBtn {
+  display: none;
+}
 .choice.wide .seg button {
   font-size: 13px;
 }
@@ -1610,6 +1677,14 @@ input {
           </div>
         </div>
         <div class="choice wide">
+          <span>Fahrt</span>
+          <div class="seg seg3" data-key="mode">
+            <button data-v="beide" aria-pressed="true">Fähre + Inselbahn</button
+            ><button data-v="schiff" aria-pressed="false">Nur Fähre</button
+            ><button data-v="bahn" aria-pressed="false">Nur Inselbahn</button>
+          </div>
+        </div>
+        <div class="choice wide">
           <span>Richtung</span>
           <div class="seg" data-key="dir">
             <button data-v="BL" aria-pressed="true">Bensersiel → Langeoog</button
@@ -1651,10 +1726,15 @@ input {
           Im Steuerhaus und am Außensteuerstand auf der Nock wischen Sie zum Umschauen. Von der Nock sehen Sie
           beim Anlegen die Bordwand und die Kaje.
         </li>
+        <li>
+          <b>Inselbahn:</b> Erst nach dem Pfiff des Zugführers losfahren. Fahrschalter nach oben = Fahrt, nach
+          unten = Bremse. Vor jeder Pfeiftafel (P) pfeifen, höchstens 25 km/h, an der Deichscharte 10 km/h. An
+          der gelben Haltetafel (H) anhalten.
+        </li>
         <li>Oben rechts stellen Sie den Zeitraffer ein.</li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">Version 14.10.2026 · Steuerstand ohne „Quer“ und „Ruder 0“</p>
+      <p class="ver">Version 15.10.2026 · Inselbahn mit Lokführer-Modus und Filmszene beim Umsteigen</p>
     </div>
   </div>
 </div>
@@ -1696,6 +1776,34 @@ input {
       <dl class="stats" id="scoreStats"></dl>
       <div class="rank"><b id="rankName">Kapitän</b><span id="bestText"></span></div>
       <button class="btn primary" id="againBtn">Neue Überfahrt</button>
+    </div>
+  </div>
+</div>
+
+<div id="cutUI" hidden>
+  <div class="cut-bar top"></div>
+  <div class="cut-bar bot">
+    <p id="cutCap"></p>
+    <button id="cutSkip">Überspringen ›</button>
+  </div>
+  <div id="cutFade"></div>
+</div>
+
+<div class="overlay" id="railArr" hidden>
+  <div class="sheet">
+    <img
+      src="titel.webp"
+      width="920"
+      height="537"
+      loading="lazy"
+      decoding="async"
+      alt="Die Inselbahn Langeoog"
+    />
+    <div class="sheet-body">
+      <p class="eyebrow">Inselbahn Langeoog</p>
+      <h2 id="railArrTitle">Angekommen</h2>
+      <p id="railArrText"></p>
+      <button class="btn primary" id="railArrBtn">Weiter</button>
     </div>
   </div>
 </div>
@@ -1882,7 +1990,7 @@ input {
     if (d <= hw + 40) return -3.0 + ((top + 3.0) * (d - (hw - 5))) / 45;
     return top;
   }
-  const ENV = { weather: "gut", tide: "flut", dir: "BL" };
+  const ENV = { weather: "gut", tide: "flut", dir: "BL", mode: "beide" };
   let WAVE_MUL = 1;
   function waterLevel(t) {
     const p = Math.min(1, Math.max(0, (t - T0) / 2700));
@@ -2032,14 +2140,90 @@ input {
     [-8900, 7100],
   ];
   const LAND = [MAINLAND, MOLE_E, MOLE_W, ISLAND, ...LG_DAMS];
-  const RAIL = [
-    [-5320, 5590],
-    [-5320, 5760],
-    [-5150, 6000],
-    [-4600, 6350],
-    [-3900, 6750],
-    [-3150, 6950],
+  // Inselbahn Langeoog (Meterspur, 2,6 km): Hafenbahnhof → kurzer Bogen nach Nordwesten → durch die Deichscharte →
+  // fast gerade nach Norden durch die Weiden → leichter Knick → Nordnordwest in den Inselbahnhof am Ortsrand
+  const RAIL_CP = [
+    [-5320, 5575],
+    [-5320, 5735],
+    [-5333, 5800],
+    [-5366, 5866],
+    [-5395, 5925],
+    [-5372, 6300],
+    [-5345, 6700],
+    [-5336, 6950],
+    [-5420, 7350],
+    [-5520, 7720],
+    [-5575, 7900],
+    [-5612, 8040],
+    [-5631, 8112],
   ];
+  const RAIL = (() => {
+    let p = RAIL_CP.map((q) => q.slice());
+    for (let k = 0; k < 3; k++) {
+      const o = [p[0]];
+      for (let i = 0; i < p.length - 1; i++) {
+        const a = p[i],
+          b = p[i + 1];
+        if (i > 0) o.push([a[0] * 0.75 + b[0] * 0.25, a[1] * 0.75 + b[1] * 0.25]);
+        if (i < p.length - 2) o.push([a[0] * 0.25 + b[0] * 0.75, a[1] * 0.25 + b[1] * 0.75]);
+      }
+      o.push(p[p.length - 1]);
+      p = o;
+    }
+    return p;
+  })();
+  const RAILD = [0];
+  for (let i = 1; i < RAIL.length; i++)
+    RAILD.push(RAILD[i - 1] + Math.hypot(RAIL[i][0] - RAIL[i - 1][0], RAIL[i][1] - RAIL[i - 1][1]));
+  const RAIL_L = RAILD[RAILD.length - 1];
+  function railPt(d) {
+    d = Math.max(0, Math.min(RAIL_L, d));
+    let i = 1;
+    while (i < RAILD.length - 1 && RAILD[i] < d) i++;
+    const a = RAIL[i - 1],
+      b = RAIL[i],
+      sl = RAILD[i] - RAILD[i - 1] || 1,
+      f = (d - RAILD[i - 1]) / sl;
+    const tx = (b[0] - a[0]) / sl,
+      ty = (b[1] - a[1]) / sl;
+    return {
+      x: a[0] + (b[0] - a[0]) * f,
+      y: a[1] + (b[1] - a[1]) * f,
+      tx,
+      ty,
+      h: (Math.atan2(tx, ty) / RAD + 360) % 360,
+    };
+  }
+  const DEICH = [
+    [-7600, 5885],
+    [-6600, 5905],
+    [-5395, 5925],
+    [-4700, 5915],
+    [-4250, 5870],
+  ];
+  const RF = (() => {
+    let dD = 0;
+    for (let d = 0; d < 600; d += 1) {
+      if (railPt(d).y >= 5925) {
+        dD = d;
+        break;
+      }
+    }
+    return {
+      deich: dD,
+      bue: [
+        { d: dD + 95, name: "Deichweg" },
+        { d: 1350, name: "Feldweg" },
+        { d: RAIL_L - 330, name: "Ortsrand" },
+      ],
+      hStop: 6,
+      tStop: RAIL_L - 6,
+      platH: [0, 128],
+      platT: [RAIL_L - 158, RAIL_L - 4],
+      pfeif: 170,
+    };
+  })();
+  const TOWN = { x: -6020, y: 8090, rx: 640, ry: 330, wt: [-6290, 8290] };
   function inPoly(x, y, p) {
     let c = false;
     for (let i = 0, j = p.length - 1; i < p.length; j = i++) {
@@ -2087,11 +2271,11 @@ input {
   }
   const LABELS = [
     { x: 240, y: -420, t: "BENSERSIEL", k: "place" },
-    { x: -3300, y: 7600, t: "LANGEOOG", k: "island" },
+    { x: -4300, y: 7700, t: "LANGEOOG", k: "island" },
     { x: -5120, y: 5800, t: "Hafen", k: "small" },
     { x: -2600, y: 1100, t: "Wattenmeer", k: "water" },
     { x: -1700, y: 4300, t: "Wattenmeer", k: "water" },
-    { x: -3900, y: 6650, t: "Inselbahn", k: "rail" },
+    { x: -5180, y: 6900, t: "Inselbahn", k: "rail" },
   ];
 
   // ---------- Zustand ----------
@@ -2406,7 +2590,9 @@ input {
     if (y < 0) return "die Kaje am Kutterhafen Bensersiel";
     return "die Steinböschung in Bensersiel";
   }
+  let RETRY_RAIL = null;
   function gameOver(title, text, crash) {
+    RETRY_RAIL = isRail() ? LASTRAIL : null;
     speechStop();
     if (crash) crashSound();
     phase = "over";
@@ -2863,6 +3049,496 @@ input {
     if (best.type === "sail") return "Segelboot voraus: ausweichen";
     if (same) return best.name.replace("Kutter", "Kutter") + " voraus: links überholen";
     return "Gegenverkehr: rechts halten";
+  }
+
+  // ---------- Inselbahn: Fahrt als Lokführer ----------
+  // Strecke 2,6 km Meterspur, höchstens 25 km/h; vor Bahnübergängen und der Deichscharte pfeifen; Abfahrt erst nach dem Pfiff des Zugführers
+  const TRAIN_LEN = 125.3,
+    RAIL_SCHED = {
+      BL: { dep: 11 * 3600 + 5 * 60, run: 8 * 60 },
+      LB: { dep: 11 * 3600 + 10 * 60, run: 8 * 60 },
+    };
+  let RS = null;
+  function railLimit(d) {
+    if (Math.abs(d - RF.deich) < 40) return 10;
+    if (d < 170 || d > RAIL_L - 190) return 15;
+    return 25;
+  }
+  function initRail(o) {
+    const dir = o.dir,
+      L = RAIL_L;
+    const cr = [
+      { d: RF.deich, name: "Deichscharte", kind: "deich" },
+      ...RF.bue.map((b) => ({ d: b.d, name: "Bahnübergang " + b.name, kind: "bue" })),
+    ].map((c) =>
+      Object.assign(c, { board: c.d - dir * RF.pfeif, whistled: false, passed: false, msg: false }),
+    );
+    return {
+      dir,
+      d: dir > 0 ? RF.hStop + TRAIN_LEN : RF.tStop - TRAIN_LEN,
+      target: dir > 0 ? RF.tStop : RF.hStop,
+      v: 0,
+      lev: 0,
+      emerg: false,
+      t: o.t,
+      depT: o.depT,
+      arrT: o.depT + RAIL_SCHED[dir > 0 ? "BL" : "LB"].run,
+      departOK: false,
+      moved: false,
+      cross: cr,
+      over: 0,
+      hardBrake: 0,
+      falseStart: false,
+      stillT: 0,
+      done: false,
+      maxV: 0,
+      horn: 0,
+      clack: 0,
+      arrived: false,
+      stopErr: 0,
+      warnT: 0,
+      startDelay: Math.max(0, o.depT - RAIL_SCHED[dir > 0 ? "BL" : "LB"].dep),
+    };
+  }
+  function railStation() {
+    return RS.dir > 0 ? "Inselbahnhof" : "Hafenbahnhof";
+  }
+  function stepRail(dt) {
+    const r = RS;
+    if (!r || r.done) return;
+    r.t += dt;
+    S.t = r.t;
+    if (!r.departOK && r.t >= r.depT) {
+      r.departOK = true;
+      trillWhistle();
+      radio("Zugführer: Alle eingestiegen, Türen zu. Abfahrt!", { silent: true });
+      setTimeout(() => {
+        if (phase === "rail") speak("Bitte einsteigen, Türen schließen. Abfahrt!", "pa");
+      }, 300);
+    }
+    const thr = Math.max(0, r.lev) / 100,
+      brk = r.emerg ? 1.25 : Math.max(0, -r.lev) / 100;
+    if (!r.departOK) {
+      if (thr > 0.05 && !r.falseStart) {
+        r.falseStart = true;
+      }
+      r.v = 0;
+      return;
+    }
+    const acc = thr * 0.42 * Math.max(0, 1 - r.v / 9.6),
+      dec = brk * 1.05 + 0.025 + 0.0016 * r.v * r.v;
+    const before = r.v;
+    r.v = Math.max(0, r.v + (acc - (r.v > 0 || acc <= 0 ? dec : 0)) * dt);
+    if (r.v > 0.05) r.moved = true;
+    const a = (r.v - before) / Math.max(dt, 1e-3);
+    if (a < -0.95 && r.v > 1) r.hardBrake += dt;
+    r.maxV = Math.max(r.maxV, r.v);
+    const dOld = r.d;
+    r.d += r.dir * r.v * dt;
+    if (r.v * 3.6 > railLimit(r.d) + 2) r.over += dt;
+    // Pfeiftafeln und Bahnübergänge
+    for (const c of r.cross) {
+      const past = (x) => r.dir * (r.d - x) >= 0;
+      if (!c.passed && past(c.d)) {
+        c.passed = true;
+        if (!c.whistled)
+          radio(
+            `Fahrdienstleiter: ${c.kind === "deich" ? "An der" : "Am"} ${c.name} wurde nicht gepfiffen. Vor jeder Pfeiftafel das Signal geben!`,
+            { silent: true },
+          );
+      }
+    }
+    // Prellbock
+    const end = r.dir > 0 ? RAIL_L - 0.5 : 0.5;
+    if (r.dir * (r.d - end) > 0) {
+      const kmh = r.v * 3.6;
+      r.d = end;
+      if (kmh > 4) {
+        railCrash(kmh);
+        return;
+      }
+      r.v = 0;
+      r.bumped = true;
+    }
+    // Halten am Bahnsteig
+    const err = r.dir * (r.d - r.target);
+    if (r.moved && r.v < 0.04 && Math.abs(err) < 14 && (brk > 0.05 || r.lev <= 0)) {
+      r.stillT += dt;
+      if (r.stillT > 1.2 && !r.arrived) {
+        r.arrived = true;
+        r.stopErr = err;
+        r.arrT_act = r.t;
+        railArrived();
+      }
+    } else r.stillT = 0;
+    // Fahrgeräusch: Schienenstöße
+    if (Math.floor(dOld / 12.5) !== Math.floor(r.d / 12.5)) r.clack = 1;
+  }
+  function railWhistle() {
+    if (!RS) return;
+    lokPfeife();
+    for (const c of RS.cross) {
+      const inWin = RS.dir * (RS.d - c.board) >= -15 && !c.passed;
+      if (inWin) c.whistled = true;
+    }
+  }
+  function railHorn() {
+    lokHupe();
+    if (RS) RS.horn++;
+  }
+  function railNext() {
+    const r = RS;
+    if (!r) return null;
+    let best = null;
+    for (const c of r.cross) {
+      if (c.passed) continue;
+      const toBoard = r.dir * (c.board - r.d),
+        toC = r.dir * (c.d - r.d);
+      if (toBoard > 0) {
+        if (!best || toBoard < best.dist) best = { dist: toBoard, txt: "Pfeiftafel", sub: c.name };
+      } else if (!best || toC < best.dist)
+        best = { dist: toC, txt: c.whistled ? c.name : "Jetzt pfeifen!", sub: c.name, now: !c.whistled };
+    }
+    const toStop = r.dir * (r.target - r.d);
+    if (!best || toStop < best.dist) best = { dist: toStop, txt: "Haltetafel", sub: railStation() };
+    return best;
+  }
+  function railRows() {
+    const r = RS,
+      rows = [["Grundwert Inselbahn", 500]];
+    const late = Math.round(((r.arrT_act || r.t) - r.arrT) / 60);
+    if (late <= 0) rows.push(["Pünktlich angekommen", 100]);
+    else rows.push([`Verspätung (${late} min)`, -25 * late]);
+    const e = Math.abs(r.stopErr);
+    rows.push(
+      e < 1
+        ? ["Punktgenau an der Haltetafel", 100]
+        : e < 3
+          ? ["Genau gehalten (" + fmt1(e) + " m)", 60]
+          : e < 7
+            ? ["Gehalten (" + fmt1(e) + " m daneben)", 20]
+            : ["Weit neben der Haltetafel (" + Math.round(e) + " m)", -40],
+    );
+    const ok = r.cross.filter((c) => c.whistled).length,
+      miss = r.cross.length - ok;
+    if (ok) rows.push([`Rechtzeitig gepfiffen (${ok}×)`, 25 * ok]);
+    if (miss) rows.push([`Pfeifen vergessen (${miss}×)`, -80 * miss]);
+    const ov = Math.min(200, Math.round(r.over * 3));
+    if (ov) rows.push(["Zu schnell gefahren", -ov]);
+    if (r.hardBrake > 0.6) rows.push(["Harte Bremsungen", -Math.min(120, Math.round(r.hardBrake * 25))]);
+    if (r.falseStart) rows.push(["Losgefahren vor dem Abfahrtspfiff", -60]);
+    if (r.bumped) rows.push(["Prellbock berührt", -80]);
+    return rows;
+  }
+  function railCrash(kmh) {
+    gameOver(
+      "Prellbock gerammt",
+      `Die Inselbahn ist mit ${Math.round(kmh)} km/h auf den Prellbock im ${railStation()} gefahren. Vor dem Bahnsteig rechtzeitig bremsen und an der gelben Haltetafel mit dem H anhalten.`,
+      true,
+    );
+  }
+  // Töne: Trillerpfeife des Zugführers, Pfeife und Hupe der Lok
+  function tone(fs, dur, vol, type, trill) {
+    try {
+      if (!actx || !soundOn) return;
+      const c = actx,
+        t = c.currentTime;
+      const g = c.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(vol, t + 0.03);
+      g.gain.setValueAtTime(vol, t + dur - 0.08);
+      g.gain.linearRampToValueAtTime(0, t + dur);
+      g.connect(c.destination);
+      fs.forEach((f) => {
+        const o = c.createOscillator();
+        o.type = type || "square";
+        o.frequency.value = f;
+        if (trill) {
+          const l = c.createOscillator(),
+            lg = c.createGain();
+          l.frequency.value = trill;
+          lg.gain.value = f * 0.06;
+          l.connect(lg);
+          lg.connect(o.frequency);
+          l.start(t);
+          l.stop(t + dur);
+        }
+        const bp = c.createBiquadFilter();
+        bp.type = "bandpass";
+        bp.frequency.value = f;
+        bp.Q.value = 2;
+        o.connect(bp);
+        bp.connect(g);
+        o.start(t);
+        o.stop(t + dur);
+      });
+    } catch (e) {}
+  }
+  function trillWhistle() {
+    tone([2900], 1.4, 0.22, "sine", 28);
+    setTimeout(() => tone([2900], 0.5, 0.22, "sine", 28), 1600);
+  }
+  function lokPfeife() {
+    tone([1180, 1490], 1.1, 0.28, "sawtooth");
+  }
+  function lokHupe() {
+    tone([311, 392], 0.7, 0.32, "square");
+  }
+
+  // ---------- Filmszene beim Umsteigen: Kapitän ↔ Lokführer ----------
+  let CS = null;
+  function playCut(kind, done) {
+    if (!G) {
+      done();
+      return;
+    }
+    phase = "cut";
+    CS = { kind, done, t: 0, shot: 0, st: 0, shots: buildShots(kind), fade: 0, legPh: 0, morphed: false };
+    for (const id of ["docked", "train", "railArr"]) $(id).hidden = true;
+    document.querySelector(".app").classList.add("cut");
+    $("cutUI").hidden = false;
+    G.fig.g.visible = true;
+    setOutfit(kind === "s2b" ? "kapitaen" : "lokfuehrer");
+    G.pax.forEach((p) => (p.g.visible = true));
+    startShot();
+  }
+  function endCut() {
+    if (!CS) return;
+    const d = CS.done;
+    CS = null;
+    document.querySelector(".app").classList.remove("cut");
+    $("cutUI").hidden = true;
+    $("cutFade").style.opacity = 0;
+    if (G) {
+      G.fig.g.visible = false;
+      G.pax.forEach((p) => (p.g.visible = false));
+    }
+    d();
+  }
+  $("cutSkip").onclick = () => endCut();
+  function setOutfit(o) {
+    if (!G) return;
+    const f = G.fig;
+    f.cap.visible = o === "kapitaen";
+    f.capL.visible = o !== "kapitaen";
+    f.vest.visible = o !== "kapitaen";
+    f.cuffs.forEach((c) => (c.visible = o === "kapitaen"));
+    f.torso.material = o === "kapitaen" ? f.M.navy : f.M.shirt;
+    f.arms.forEach((a) => (a.material = o === "kapitaen" ? f.M.navy : f.M.shirt));
+    f.outfit = o;
+  }
+  function startShot() {
+    const sh = CS.shots[CS.shot];
+    CS.st = 0;
+    $("cutCap").textContent = sh.cap || "";
+    // Wegstrecke vorbereiten
+    sh.cum = [0];
+    for (let i = 1; i < sh.path.length; i++)
+      sh.cum.push(sh.cum[i - 1] + sh.path[i].distanceTo(sh.path[i - 1]));
+    sh.len = sh.cum[sh.cum.length - 1];
+  }
+  function figAt(sh, u) {
+    const d = u * sh.len;
+    let i = 1;
+    while (i < sh.cum.length - 1 && sh.cum[i] < d) i++;
+    const a = sh.path[i - 1],
+      b = sh.path[i];
+    const f = Math.max(0, Math.min(1, (d - sh.cum[i - 1]) / (sh.cum[i] - sh.cum[i - 1] || 1)));
+    return { p: a.clone().lerp(b, f), dir: Math.atan2(b.x - a.x, b.z - a.z) };
+  }
+  function stepCut(dt) {
+    if (!CS) return;
+    const sh = CS.shots[CS.shot];
+    CS.st += dt;
+    S.t += (dt * UMSTIEG) / CS.shots.reduce((a, b) => a + b.dur, 0);
+    if (RS) RS.t = S.t;
+    if (CS.st >= sh.dur) {
+      CS.shot++;
+      if (CS.shot >= CS.shots.length) {
+        endCut();
+        return;
+      }
+      startShot();
+      return;
+    }
+    const f = G.fig;
+    const walkT = sh.dur - (sh.wait || 0);
+    let u =
+      sh.waitAt !== undefined
+        ? CS.st < sh.waitAt
+          ? CS.st / walkT
+          : CS.st < sh.waitAt + sh.wait
+            ? sh.waitAt / walkT
+            : (CS.st - sh.wait) / walkT
+        : CS.st / walkT;
+    u = Math.min(1, u);
+    const q = figAt(sh, u);
+    f.g.position.copy(q.p);
+    const moving = !(sh.waitAt !== undefined && CS.st >= sh.waitAt && CS.st < sh.waitAt + sh.wait) && u < 1;
+    let yaw = q.dir;
+    if (sh.morph !== undefined) {
+      const m = CS.st - sh.morph;
+      if (m > -0.6 && m < 1.2) {
+        yaw += Math.max(0, Math.min(1, (m + 0.6) / 1.8)) * Math.PI * 2;
+      }
+      if (m > 0 && !CS.morphed) {
+        CS.morphed = true;
+        setOutfit(f.outfit === "kapitaen" ? "lokfuehrer" : "kapitaen");
+      }
+      const k = Math.max(0, 1 - Math.abs(m) / 0.7);
+      G.flash.visible = k > 0;
+      G.flash.position.copy(q.p).add(new G.T.Vector3(0, 1.0, 0));
+      G.flash.scale.setScalar(0.4 + k * 2.2);
+      G.flash.material.opacity = k * 0.85;
+    } else G.flash.visible = false;
+    f.g.rotation.y +=
+      (((yaw - f.g.rotation.y + Math.PI * 3) % (Math.PI * 2)) - Math.PI) * Math.min(1, dt * 10);
+    const spd = moving ? sh.len / walkT : 0;
+    CS.legPh += dt * spd * 3.4;
+    const sw = moving ? Math.sin(CS.legPh) * 0.55 : 0;
+    f.legL.rotation.x = sw;
+    f.legR.rotation.x = -sw;
+    f.armL.rotation.x = -sw * 0.8;
+    f.armR.rotation.x = sw * 0.8;
+    // Fahrgäste
+    G.pax.forEach((p, i) => {
+      if (!sh.pax) {
+        p.g.visible = false;
+        return;
+      }
+      p.g.visible = true;
+      const s0 = sh.pax(i, CS.st);
+      p.g.position.copy(s0.p);
+      p.g.rotation.y = s0.dir;
+      const w = Math.sin(CS.st * 6 + i) * 0.45;
+      p.legL.rotation.x = w;
+      p.legR.rotation.x = -w;
+      p.armL.rotation.x = -w * 0.7;
+      p.armR.rotation.x = w * 0.7;
+    });
+    const fd = sh.fadeOut ? Math.max(0, (CS.st - (sh.dur - sh.fadeOut)) / sh.fadeOut) : 0,
+      fi = CS.st < 0.35 ? 1 - CS.st / 0.35 : 0;
+    $("cutFade").style.opacity = Math.max(fd, CS.shot === 0 ? fi : fi * 0.6);
+  }
+  function cutCamera(g, tR) {
+    const sh = CS.shots[CS.shot];
+    const f = g.fig.g.position;
+    const c = sh.cam(f, CS.st / sh.dur);
+    g.camC.position.copy(c.pos);
+    g.camC.lookAt(c.look);
+    return g.camC;
+  }
+  function buildShots(kind) {
+    const V = (x, y, n) => new G.T.Vector3(x, y, -n);
+    const dy = tideDy(S.t);
+    const Y0 = ISL_TOP,
+      YP = ISL_TOP + 0.6;
+    // Lok-Tür am Bahnsteig aus der aktuellen Zugstellung
+    placeTrain(G);
+    G.TRAIN.lokA.updateMatrixWorld(true);
+    const side = TRAINPOS.dir > 0 ? 1 : -1;
+    const doorOut = G.TRAIN.lokA.localToWorld(new G.T.Vector3(-1.47, 1.6, side * 2.2)),
+      doorIn = G.TRAIN.lokA.localToWorld(new G.T.Vector3(-1.47, 1.13, side * 0.95)),
+      cabIn = G.TRAIN.lokA.localToWorld(new G.T.Vector3(-1.95, 1.13, side * 0.2));
+    doorOut.y = YP;
+    const nD = -doorOut.z;
+    const shipDoor = V(-5262.4, dy + 1.0, 5531),
+      gwEnd = V(-5261.2, dy + 0.95, 5531),
+      gwMid = V(-5261.2, dy + 2.6, 5543),
+      gwTop = V(-5261.2, 4.7, 5559.5),
+      stairB = V(-5261.2, Y0, 5571.5),
+      quay = V(-5268, Y0, 5578),
+      platS = V(-5303, Y0, 5584),
+      platE = V(-5315.4, YP, 5590);
+    const lerpCam = (a, b) => (f, u) => ({
+      pos: a.clone().lerp(b, u),
+      look: f.clone().add(new G.T.Vector3(0, 1.1, 0)),
+    });
+    const pax = (i, t) => ({
+      p: V(-5314.6 - Math.min(1.6, t * 0.22 + (i % 3) * 0.3), YP, nD - 24 + i * 2.1),
+      dir: -Math.PI / 2,
+    });
+    const s2b = [
+      {
+        dur: 5.5,
+        path: [shipDoor, gwEnd, gwMid, V(-5261.2, 4.2, 5553)],
+        cap: "Fahrgäste und Gepäck sind von Bord. Der Kapitän geht an Land …",
+        cam: (f, u) => ({
+          pos: f.clone().add(new G.T.Vector3(4.2 - u * 1.2, 2.6, 6.5 - u * 1.5)),
+          look: f.clone().add(new G.T.Vector3(-0.3, 1.3, -2)),
+        }),
+      },
+      {
+        dur: 6.2,
+        path: [gwTop, V(-5261.2, 4.6, 5561), stairB, quay],
+        morph: 4.6,
+        waitAt: 4.3,
+        wait: 1.3,
+        cap: "… und wird zum Lokführer der Inselbahn.",
+        cam: (f, u) => ({
+          pos: V(-5267.5 + u * 1.5, 3.2, 5585.5 - u * 1.5),
+          look: f.clone().add(new G.T.Vector3(0, 1.0, 0)),
+        }),
+      },
+      {
+        dur: 6.5,
+        path: [V(-5315.6, YP, nD - 22), V(-5315.8, YP, nD - 1.5), doorOut],
+        cap: "Über den Bahnsteig zur Lok",
+        pax: (i, t) => pax(i, t),
+        cam: (f, u) => ({
+          pos: f.clone().add(new G.T.Vector3(3.2, 2.1, 7.5)),
+          look: f.clone().add(new G.T.Vector3(-0.6, 1.2, -6)),
+        }),
+      },
+      {
+        dur: 3.6,
+        path: [doorOut, doorIn, cabIn],
+        fadeOut: 0.9,
+        cap: "Einsteigen und los geht’s!",
+        cam: (f, u) => ({ pos: V(-5311.5, 3.2, nD + 8), look: V(-5319.5, 3.0, nD) }),
+      },
+    ];
+    if (kind === "s2b") return s2b;
+    // Rückweg: Lokführer steigt aus, geht zur Gangway, wird zum Kapitän und geht an Bord
+    return [
+      {
+        dur: 3.4,
+        path: [cabIn, doorIn, doorOut],
+        cap: "Die Inselbahn ist am Hafen. Der Lokführer steigt aus …",
+        cam: (f, u) => ({ pos: V(-5311.5, 3.2, nD - 8), look: V(-5319.5, 3.0, nD) }),
+      },
+      {
+        dur: 6.0,
+        path: [doorOut, V(-5315.6, YP, nD - 4), platE, platS],
+        cap: "… geht über den Bahnsteig zur Fähre …",
+        cam: (f, u) => ({
+          pos: f.clone().add(new G.T.Vector3(3.0, 2.0, -7)),
+          look: f.clone().add(new G.T.Vector3(0, 1.2, 6)),
+        }),
+      },
+      {
+        dur: 6.6,
+        path: [platS, quay, stairB, V(-5261.2, 4.6, 5561), gwTop],
+        morph: 2.0,
+        waitAt: 1.6,
+        wait: 1.3,
+        cap: "… und wird wieder zum Kapitän.",
+        cam: (f, u) => ({
+          pos: V(-5272 - u * 2, 3.3, 5585),
+          look: f.clone().add(new G.T.Vector3(0, 1.0, 0)),
+        }),
+      },
+      {
+        dur: 5.4,
+        path: [V(-5261.2, 4.2, 5553), gwMid, gwEnd, shipDoor],
+        fadeOut: 0.9,
+        cap: "An Bord der Langeoog IV",
+        cam: (f, u) => ({
+          pos: f.clone().add(new G.T.Vector3(4.2, 2.6, -6.5)),
+          look: f.clone().add(new G.T.Vector3(-0.3, 1.2, 2)),
+        }),
+      },
+    ];
   }
 
   // ---------- Format ----------
@@ -3559,8 +4235,23 @@ input {
   }
   function syncControls() {
     CX.thrH.style.top = (1 - lvPos(S.throttle)) * 50 + "%";
-    setT(els.thrOut, (S.throttle > 0 ? "+" : "") + S.throttle + " %");
-    setT($("thrTel"), telegraph(S.throttle));
+    if (isRail()) {
+      if (RS && S.throttle > -100) RS.emerg = false;
+      setT(els.thrOut, S.throttle === 0 ? "0" : Math.abs(S.throttle) + " %");
+      setT(
+        $("thrTel"),
+        S.throttle > 0
+          ? "Fahrt"
+          : S.throttle < 0
+            ? S.throttle <= -100
+              ? "Vollbremsung"
+              : "Bremse"
+            : "Leerlauf",
+      );
+    } else {
+      setT(els.thrOut, (S.throttle > 0 ? "+" : "") + S.throttle + " %");
+      setT($("thrTel"), telegraph(S.throttle));
+    }
     CX.thr.setAttribute("aria-valuenow", S.throttle);
     CX.rudK.style.left = ((S.rudder + 35) / 70) * 100 + "%";
     setT(
@@ -3637,10 +4328,21 @@ input {
       if (e.key === "ArrowLeft" || e.key === "ArrowRight") setBow(0);
     },
   });
-  $("stopBtn").onclick = () => setThrottle(0);
+  $("stopBtn").onclick = () => {
+    if (isRail()) {
+      setThrottle(-100);
+      if (RS) RS.emerg = true;
+      return;
+    }
+    setThrottle(0);
+  };
   // Tastatur am Rechner: W/S Fahrhebel, A/D Ruder, Q/E Bugstrahl
   document.addEventListener("keydown", (e) => {
-    if (phase !== "run" || (e.target.closest && e.target.closest("[role=slider],input,textarea"))) return;
+    if (
+      (phase !== "run" && phase !== "rail") ||
+      (e.target.closest && e.target.closest("[role=slider],input,textarea"))
+    )
+      return;
     const k = e.key.toLowerCase();
     if (k === "w") setThrottle(S.throttle + (e.shiftKey ? 10 : 1));
     else if (k === "s") setThrottle(S.throttle - (e.shiftKey ? 10 : 1));
@@ -3795,12 +4497,34 @@ input {
     if (!AU) return;
     const c = AU.c,
       t = c.currentTime;
-    const live = soundOn && phase === "run";
-    const vol = live ? (pane === "aussen" ? 0.85 : pane === "karte" ? 0.6 : pane === "nock" ? 0.95 : 1.0) : 0;
+    const rail = phase === "rail" && RS;
+    const live = soundOn && (phase === "run" || rail);
+    const vol = live
+      ? rail
+        ? pane === "lok"
+          ? 1.0
+          : pane === "wagen"
+            ? 0.55
+            : 0.75
+        : pane === "aussen"
+          ? 0.85
+          : pane === "karte"
+            ? 0.6
+            : pane === "nock"
+              ? 0.95
+              : 1.0
+      : 0;
     AU.master.gain.setTargetAtTime(vol, t, 0.3);
     if (!live) return;
-    const load = Math.abs(S.eng),
-      sp = Math.abs(S.u);
+    if (rail) {
+      RS._eng = (RS._eng || 0) + (Math.max(0, RS.lev) / 100 - (RS._eng || 0)) * 0.05;
+      if (RS.clack) {
+        RS.clack = 0;
+        railClack(Math.min(1, RS.v / 6));
+      }
+    }
+    const load = rail ? RS._eng : Math.abs(S.eng),
+      sp = rail ? RS.v * 1.4 : Math.abs(S.u);
     const rpm = 0.15 + 0.85 * Math.min(1, load * 0.9 + sp / 16);
     const f = 23 + rpm * 24;
     AU.o1.frequency.setTargetAtTime(f, t, 0.5);
@@ -3811,8 +4535,36 @@ input {
     AU.lp.frequency.setTargetAtTime(95 + rpm * 170, t, 0.4);
     AU.lg.gain.setTargetAtTime(0.16 + 0.14 * rpm, t, 0.4);
     AU.ng.gain.setTargetAtTime(0.06 + 0.22 * load, t, 0.4);
-    AU.wg.gain.setTargetAtTime(Math.min(0.12, sp * 0.02) * (ENV.weather === "schlecht" ? 1.4 : 1), t, 0.5);
-    AU.tg.gain.setTargetAtTime(S.moored ? 0 : 0.14 * Math.abs(S.bow), t, 0.2);
+    AU.wg.gain.setTargetAtTime(
+      rail ? 0 : Math.min(0.12, sp * 0.02) * (ENV.weather === "schlecht" ? 1.4 : 1),
+      t,
+      0.5,
+    );
+    AU.tg.gain.setTargetAtTime(rail || S.moored ? 0 : 0.14 * Math.abs(S.bow), t, 0.2);
+  }
+  function railClack(k) {
+    try {
+      if (!actx || !soundOn || k < 0.05) return;
+      const c = actx,
+        t = c.currentTime;
+      [0, 0.11].forEach((o) => {
+        const n = c.createBufferSource();
+        const b = c.createBuffer(1, c.sampleRate * 0.05, c.sampleRate);
+        const d = b.getChannelData(0);
+        for (let i = 0; i < d.length; i++)
+          d[i] = (Math.random() * 2 - 1) * Math.exp(-i / (c.sampleRate * 0.008));
+        n.buffer = b;
+        const f = c.createBiquadFilter();
+        f.type = "bandpass";
+        f.frequency.value = 900;
+        const g = c.createGain();
+        g.gain.value = 0.25 * k * (pane === "wagen" ? 1.2 : pane === "lok" ? 0.6 : 0.9);
+        n.connect(f);
+        f.connect(g);
+        g.connect(c.destination);
+        n.start(t + o);
+      });
+    } catch (e) {}
   }
   function crashSound() {
     try {
@@ -3871,6 +4623,10 @@ input {
     } catch (e) {}
   }
   $("hornBtn").onclick = () => {
+    if (isRail()) {
+      railHorn();
+      return;
+    }
     horn();
     if (phase !== "run" || S.hornBonus) return;
     const v = S.traf.filter((q) => q.state === "go" && q.dist < 600).sort((a, b) => a.dist - b.dist)[0];
@@ -3888,6 +4644,11 @@ input {
   const NOCK = { yaw: -0.5, pitch: -0.28, side: 1 };
   const LOOK = { yaw: 0, pitch: -0.07 },
     ORBIT = { yaw: 150, pitch: 0.22, dist: 100 };
+  const LOOKR = {
+    lok: { yaw: 0, pitch: -0.12 },
+    fenster: { yaw: 0, pitch: -0.05 },
+    wagen: { yaw: 0, pitch: -0.08 },
+  };
   $("zin").onclick = () => {
     if (pane === "karte") zoom = Math.min(2, zoom * 1.4);
     else ORBIT.dist = Math.max(40, ORBIT.dist / 1.3);
@@ -3897,6 +4658,11 @@ input {
     else ORBIT.dist = Math.min(400, ORBIT.dist * 1.3);
   };
   $("aheadBtn").onclick = () => {
+    if (LOOKR[pane]) {
+      LOOKR[pane].yaw = 0;
+      LOOKR[pane].pitch = pane === "lok" ? (G && G.size[0] < G.size[1] ? -0.02 : -0.12) : -0.06;
+      return;
+    }
     if (pane === "nock") {
       NOCK.yaw = -0.5 * NOCK.side;
       NOCK.pitch = -0.28;
@@ -3917,7 +4683,7 @@ input {
       .forEach((x) => x.setAttribute("aria-selected", x.dataset.pane === p ? "true" : "false"));
     $("pane-karte").hidden = p !== "karte";
     $("pane-3d").hidden = p === "karte";
-    const fp = p === "bruecke" || p === "nock";
+    const fp = p === "bruecke" || p === "nock" || !!LOOKR[p];
     $("aheadBtn").hidden = !fp;
     $("sideBtn").hidden = p !== "nock";
     $("zin").hidden = $("zout").hidden = fp;
@@ -3933,6 +4699,10 @@ input {
       phase = "paused";
     } else if (phase === "paused") {
       phase = "run";
+    } else if (phase === "rail") {
+      phase = "rpaused";
+    } else if (phase === "rpaused") {
+      phase = "rail";
     }
     updatePause();
   };
@@ -3945,20 +4715,23 @@ input {
     else unlockSpeech();
   };
   function updatePause() {
-    $("pausedLayer").hidden = phase !== "paused";
-    $("pauseBtn").textContent = phase === "paused" ? "Weiter" : "Pause";
+    const p = phase === "paused" || phase === "rpaused";
+    $("pausedLayer").hidden = !p;
+    $("pauseBtn").textContent = p ? "Weiter" : "Pause";
   }
   function wake() {
     try {
       navigator.wakeLock && navigator.wakeLock.request("screen").catch(() => {});
     } catch (e) {}
   }
-  function start() {
+  function start(o) {
     setDir();
+    if (o && o.t0) T0 = o.t0;
     S = initState();
     phase = "run";
+    setRailUI(false);
     syncControls();
-    for (const id of ["intro", "docked", "train", "over"]) $(id).hidden = true;
+    for (const id of ["intro", "docked", "train", "over", "railArr"]) $(id).hidden = true;
     LOOK.yaw = 0;
     LOOK.pitch = -0.07;
     NOCK.yaw = -0.5 * NOCK.side;
@@ -4026,7 +4799,20 @@ input {
   function applyEnv() {
     const w = ENV.weather === "schlecht";
     WAVE_MUL = w ? 2.4 : 1;
-    $("envNote").textContent = envText();
+    $("envNote").textContent =
+      envText() +
+      " " +
+      {
+        beide:
+          ENV.dir === "LB"
+            ? "Sie fahren zuerst die Inselbahn vom Ort zum Hafen und steigen dann als Kapitän auf die Fähre um."
+            : "Nach dem Anlegen steigen Sie als Lokführer auf die Inselbahn um und fahren die Gäste in den Ort.",
+        schiff: "Nur die Überfahrt mit der Fähre.",
+        bahn:
+          ENV.dir === "LB"
+            ? "Nur die Inselbahn vom Ort zum Hafen."
+            : "Nur die Inselbahn vom Hafen in den Ort.",
+      }[ENV.mode];
     $("introEyebrow").textContent = "Fahrplan · " + RT().from + " ab " + fmtTime(RT().t0);
     $("introText").textContent =
       ENV.dir === "LB"
@@ -4063,17 +4849,25 @@ input {
   $("startBtn").onclick = () => {
     audioInit();
     unlockSpeech();
-    start();
+    beginGame();
   };
   $("retryBtn").onclick = () => {
     audioInit();
     unlockSpeech();
-    start();
+    if (RETRY_RAIL) {
+      startRail(RETRY_RAIL);
+      return;
+    }
+    beginGame();
   };
   $("againBtn").onclick = showIntro;
   $("overBtn").onclick = showIntro;
 
   els.dock.onclick = () => {
+    if (isRail()) {
+      railWhistle();
+      return;
+    }
     if (phase === "run" && S.moored) {
       if (!(S.releaseT > 0)) {
         S.releaseT = 10.5;
@@ -4130,48 +4924,255 @@ input {
     return r;
   }
   $("toTrain").onclick = () => {
-    phase = "train";
     $("docked").hidden = true;
     const arr = S.dockT + UMSTIEG,
       caught = arr <= T_TRAIN;
-    $("trainTitle").textContent = RT().conn1 + (caught ? " erreicht" : " verpasst");
-    $("trainEyebrow").textContent = RT().station + " · Abfahrt " + fmtTime(T_TRAIN);
-    $("trainImg").classList.toggle("grey", !caught);
-    $("trainText").textContent =
+    if (ENV.mode === "beide" && ENV.dir === "BL") {
+      const rows = scoreRows(caught).filter((r) => !/Inselbahn erreicht|Zeitpuffer/.test(r[0]));
+      rows[0] = ["Grundwert Fähre", 1000];
+      if (caught) rows.push(["Anschluss an die Inselbahn", 100]);
+      else
+        rows.push([
+          `Inselbahn musste warten (${Math.ceil((arr - T_TRAIN) / 60)} min)`,
+          -Math.min(200, Math.ceil((arr - T_TRAIN) / 60) * 20),
+        ]);
+      PREV = { rows, label: "Fähre" };
+      phase = "cutwait";
+      const dep = Math.max(RAIL_SCHED.BL.dep, arr);
+      playCut("s2b", () => startRail({ dir: 1, t: arr, depT: dep }));
+      return;
+    }
+    const rows = scoreRows(caught);
+    if (PREV.rows) rows[0] = ["Grundwert Fähre", 1000];
+    showFinal(
+      (PREV.rows || []).concat(rows),
+      RT().conn1 + (caught ? " erreicht" : " verpasst"),
+      RT().station + " · Abfahrt " + fmtTime(T_TRAIN),
       ENV.dir === "LB"
         ? caught
           ? `Ihre Fahrgäste stehen um ${fmtTime(arr)} am Bussteig. Der Bus bringt sie um ${fmtTime(T_TRAIN)} nach Esens zum Bahnhof.`
           : `Ihre Fahrgäste kommen erst um ${fmtTime(arr)} zum Bussteig. Der Bus ist um ${fmtTime(T_TRAIN)} ohne sie abgefahren, der nächste fährt in einer Stunde.`
         : caught
           ? `Ihre Fahrgäste stehen um ${fmtTime(arr)} am Bahnsteig. Die Inselbahn bringt sie um 11:05 in den Ort.`
-          : `Ihre Fahrgäste kommen erst um ${fmtTime(arr)} zum Bahnsteig. Die Bahn ist um 11:05 ohne sie losgefahren, die nächste fährt in einer halben Stunde.`;
-    const rows = scoreRows(caught);
+          : `Ihre Fahrgäste kommen erst um ${fmtTime(arr)} zum Bahnsteig. Die Bahn ist um 11:05 ohne sie losgefahren, die nächste fährt in einer halben Stunde.`,
+    );
+    $("trainImg").classList.toggle("grey", !caught);
+  };
+
+  // ---------- Ablauf: Fähre, Inselbahn oder beides ----------
+  const isRail = () => phase === "rail" || phase === "railEnd" || phase === "rpaused";
+  let PREV = { rows: null, label: "" }; // Wertung des ersten Abschnitts bei „Fähre + Inselbahn“
+  let TRAINPOS = { d: RF.hStop + TRAIN_LEN, dir: 1, idle: true };
+  const TAB_SHIP = [
+      ["bruecke", "Brücke"],
+      ["nock", "Außenstand"],
+      ["aussen", "Außen"],
+      ["karte", "Karte"],
+    ],
+    TAB_RAIL = [
+      ["lok", "Führerstand"],
+      ["fenster", "Fenster"],
+      ["wagen", "Wagen"],
+      ["aussen", "Außen"],
+    ];
+  function setRailUI(on) {
+    document.querySelector(".app").classList.toggle("railmode", on);
+    document.querySelectorAll(".tab").forEach((b, i) => {
+      const t = (on ? TAB_RAIL : TAB_SHIP)[i];
+      b.dataset.pane = t[0];
+      b.textContent = t[1];
+    });
+    setT($("hornBtn"), on ? "Hupe" : "Typhon");
+    setT($("stopBtn"), on ? "Notbremse" : "Stopp");
+    const dirs = document.querySelectorAll(".cx-dir");
+    dirs[0].textContent = on ? "Fahrt" : "Voraus";
+    dirs[1].textContent = on ? "Bremse" : "Zurück";
+    document.querySelector(".cx-head .cx-lbl").textContent = on ? "Fahrschalter" : "Fahrhebel";
+    const lbls = ["Fahrt", "Erlaubt", "Bis Halt", "Ankunft"],
+      ship = ["Fahrt", "Kurs", "Unter Kiel", "Inselbahn"];
+    document
+      .querySelectorAll(".readouts .ro .lbl")
+      .forEach((l, i) => (l.textContent = (on ? lbls : ship)[i]));
+    document.querySelector(".ship-name").textContent = on ? "Inselbahn" : "MS Langeoog IV";
+    document.querySelector(".route").textContent = on
+      ? RS && RS.dir < 0
+        ? "Inselbahnhof → Hafen"
+        : "Hafen → Inselbahnhof"
+      : ENV.dir === "LB"
+        ? "Langeoog → Bensersiel"
+        : "Bensersiel → Langeoog";
+    setT($("aheadBtn"), on ? "Nach vorn" : "Voraus");
+    if (on) LOOKR.lok.pitch = G && G.size[0] < G.size[1] ? -0.02 : -0.12;
+    S.throttle = 0;
+    S.rudder = 0;
+    S.bow = 0;
+    syncControls();
+    setPane(on ? "lok" : "bruecke");
+  }
+  let LASTRAIL = null;
+  function startRail(o) {
+    LASTRAIL = Object.assign({}, o);
+    RETRY_RAIL = null;
+    RS = initRail(o);
+    S.t = o.t;
+    phase = "rail";
+    TRAINPOS = { d: RS.d, dir: RS.dir, idle: false };
+    for (const id of ["intro", "docked", "train", "over", "railArr"]) $(id).hidden = true;
+    LOOKR.lok = { yaw: 0, pitch: -0.12 };
+    setRailUI(true);
+    updatePause();
+    wake();
+    radio(
+      RS.dir > 0
+        ? `Inselbahn ${fmtTime(RS.depT)} ab Hafenbahnhof nach Langeoog Ort. Warten Sie auf den Pfiff des Zugführers, dann Fahrschalter nach oben. Vor Pfeiftafeln pfeifen, höchstens 25 km/h.`
+        : `Inselbahn ${fmtTime(RS.depT)} ab Inselbahnhof zum Hafen. Warten Sie auf den Pfiff des Zugführers. Vor Pfeiftafeln pfeifen, an der Deichscharte langsam.`,
+      { silent: true },
+    );
+  }
+  function railArrived() {
+    phase = "railEnd";
+    const r = RS;
+    const rows = railRows();
+    if (ENV.mode === "beide" && r.dir < 0) {
+      PREV = { rows, label: "Inselbahn" };
+      $("railArrTitle").textContent = "Hafenbahnhof erreicht";
+      $("railArrText").textContent =
+        `Die Inselbahn steht um ${fmtTime(r.t)} am Hafenbahnhof. Die Fähre nach Bensersiel wartet am Liegeplatz 2.`;
+      $("railArrBtn").textContent = "Umsteigen zur Fähre";
+      $("railArr").hidden = false;
+      return;
+    }
+    showFinal(
+      (PREV.rows || []).concat(rows),
+      r.dir > 0 ? "Inselbahnhof erreicht" : "Hafenbahnhof erreicht",
+      (r.dir > 0 ? "Inselbahnhof Langeoog" : "Hafenbahnhof Langeoog") + " · " + fmtTime(r.t),
+      r.dir > 0
+        ? "Die Fahrgäste sind im Ort angekommen. Gute Fahrt als Kapitän und Lokführer!"
+        : "Die Fahrgäste sind am Hafen angekommen.",
+    );
+  }
+  function showFinal(rows, title, eyebrow, text) {
+    phase = "train";
     const total = Math.max(
       0,
       rows.reduce((a, b) => a + b[1], 0),
     );
+    $("trainEyebrow").textContent = eyebrow;
+    $("trainTitle").textContent = title;
+    $("trainText").textContent = text;
+    $("trainImg").classList.remove("grey");
     $("scoreStats").innerHTML =
-      rows.map(([a, b]) => `<dt>${a}</dt><dd>${b > 0 && a !== "Grundwert" ? "+" : ""}${b}</dd>`).join("") +
-      `<dt class="sum">Punkte</dt><dd class="sum">${total}</dd>`;
+      rows
+        .map(([a, b]) => `<dt>${a}</dt><dd>${b > 0 && !/^Grundwert/.test(a) ? "+" : ""}${b}</dd>`)
+        .join("") + `<dt class="sum">Punkte</dt><dd class="sum">${total}</dd>`;
+    const k = rows.filter((r) => /^Grundwert/.test(r[0])).reduce((a, r) => a + r[1], 0) / 1000;
     $("rankName").textContent =
-      total >= 1250
+      total >= 1250 * k
         ? "Inselkapitän"
-        : total >= 1000
+        : total >= 1000 * k
           ? "Kapitän"
-          : total >= 750
+          : total >= 750 * k
             ? "Steuermann"
             : "Leichtmatrose";
     let best = 0;
+    const key = "inselfaehre-best-" + ENV.mode;
     try {
-      best = +localStorage.getItem("inselfaehre-best") || 0;
-      if (total > best) localStorage.setItem("inselfaehre-best", String(total));
+      best = +localStorage.getItem(key) || 0;
+      if (total > best) localStorage.setItem(key, String(total));
     } catch (e) {}
     $("bestText").textContent =
       total > best ? (best ? "Neuer Bestwert" : "Erste Wertung") : "Bestwert " + best;
     $("train").hidden = false;
+  }
+  function beginGame() {
+    PREV = { rows: null, label: "" };
+    RS = null;
+    RETRY_RAIL = null;
+    const m = ENV.mode;
+    TRAINPOS =
+      ENV.dir === "LB"
+        ? { d: RF.hStop, dir: -1, idle: true }
+        : { d: RF.hStop + TRAIN_LEN, dir: 1, idle: true };
+    if (m === "bahn" || (m === "beide" && ENV.dir === "LB")) {
+      setDir();
+      S = initState();
+      if (ENV.dir === "BL") {
+        S.x = BERTH.x;
+        S.y = BERTH.y;
+        S.h = 0;
+      }
+      const dir = ENV.dir === "BL" ? 1 : -1,
+        dep = RAIL_SCHED[ENV.dir].dep;
+      startRail({ dir, t: dep - 120, depT: dep });
+      return;
+    }
+    setRailUI(false);
+    start();
+  }
+  // Umsteigen per Filmszene
+  $("railArrBtn").onclick = () => {
+    $("railArr").hidden = true;
+    const t0 = RS.t + UMSTIEG;
+    playCut("b2s", () => {
+      setRailUI(false);
+      RS = null;
+      TRAINPOS = { d: RF.hStop, dir: -1, idle: true };
+      start({ t0 });
+    });
   };
 
+  function updateRailUI(now) {
+    const r = RS;
+    if (!r) return;
+    setT(els.clock, fmtTime(r.t));
+    setT(els.speed, String(Math.round(r.v * 3.6)));
+    const lim = railLimit(r.d);
+    setT(els.hdg, lim + " km/h");
+    const toStop = Math.max(0, r.dir * (r.target - r.d));
+    setT(els.depth, toStop >= 1000 ? fmt1(toStop / 1000) + " km" : Math.round(toStop) + " m");
+    els.depthBox.dataset.state = "";
+    setT($("roDepthSub"), railStation());
+    const late = Math.round((Math.max(r.t + toStop / 6.5, r.arrT) - r.arrT) / 60);
+    setT(els.train, fmtTime(r.arrT));
+    setT($("roTrainSub"), late > 0 ? "+" + late + " min" : "planmäßig");
+    els.trainBox.dataset.state = late > 2 ? "warn" : "";
+    setT(els.rest, "");
+    els.dock.disabled = false;
+    setT(els.dock, "Pfeife");
+    els.dock.classList.remove("ready");
+    let a = null;
+    const nx = railNext();
+    if (phase === "railEnd") a = ["ok", "Zug steht am Bahnsteig"];
+    else if (!r.departOK) {
+      const w = Math.max(0, Math.ceil(r.depT - r.t));
+      a =
+        S.throttle > 0
+          ? ["crit", "Noch nicht losfahren: erst pfeift der Zugführer ab"]
+          : [
+              "warn",
+              `Fahrgäste steigen ein · Abfahrt ${fmtTime(r.depT)}` +
+                (w < 300 ? ` (${Math.floor(w / 60)}:${String(w % 60).padStart(2, "0")})` : ""),
+            ];
+    } else if (r.v * 3.6 > lim + 2) a = ["crit", `Zu schnell: höchstens ${lim} km/h`];
+    else if (nx && nx.now) a = ["crit", `Jetzt pfeifen: ${nx.sub}`];
+    else if (nx && nx.txt === "Pfeiftafel" && nx.dist < 160)
+      a = ["warn", `Pfeiftafel in ${Math.round(nx.dist)} m · ${nx.sub}`];
+    else if (nx && nx.txt === "Haltetafel" && nx.dist < 220)
+      a = ["ok", `Haltetafel in ${Math.round(nx.dist)} m · bremsen`];
+    else if (!r.moved) a = ["ok", "Abfahrt! Fahrschalter nach oben"];
+    if (a) {
+      els.alert.hidden = false;
+      els.alert.dataset.kind = a[0];
+      setT(els.alert, a[1]);
+    } else els.alert.hidden = true;
+    if (!els.radio.hidden && now > radioUntil) els.radio.hidden = true;
+    els.hint.hidden = !(LOOKR[pane] && now < hintUntil);
+  }
   function updateUI(now) {
+    if (isRail() || (RS && (phase === "train" || phase === "over"))) {
+      updateRailUI(now);
+      return;
+    }
     setT(els.clock, fmtTime(S.t));
     const kn = Math.abs(S.u) * KN;
     setT(els.speed, (S.u < -0.05 ? "−" : "") + fmt1(kn));
@@ -4293,6 +5294,14 @@ input {
       m = Math.min(m, segDist(x, y, p[j][0], p[j][1], p[i][0], p[i][1]));
     return m;
   }
+  const TSTN = railPt(RAIL_L - 80);
+  function stationZone(x, n) {
+    const dx = x - TSTN.x,
+      dy = n - TSTN.y;
+    const u = dx * TSTN.tx + dy * TSTN.ty,
+      v = -dx * TSTN.ty + dy * TSTN.tx;
+    return Math.abs(u) < 115 && v > -60 && v < 80;
+  }
   function railDist(x, y) {
     let m = 1e9;
     for (let i = 1; i < RAIL.length; i++)
@@ -4309,8 +5318,14 @@ input {
     };
     // Inselprofil: Wattseite flach mit Salzwiesen, im Norden die hohe Randdünenkette vor dem Strand
     let ramp = ss(90, 380, e);
-    const north = ss(6900, 7750, n);
-    ramp *= 1 - 0.9 * Math.exp(-(((x + 2950) / 950) ** 2 + ((n - 7120) / 600) ** 2) * 1.6);
+    const north = ss(7750, 8250, n);
+    ramp *=
+      1 -
+      0.92 * Math.exp(-(((x - TOWN.x) / (TOWN.rx + 80)) ** 2 + ((n - TOWN.y) / (TOWN.ry + 60)) ** 2) * 1.6);
+    // Polder zwischen Deich und Ort: flache Weiden
+    ramp *=
+      1 -
+      0.88 * ss(-6900, -6500, x) * (1 - ss(-4700, -4300, x)) * ss(5900, 6050, n) * (1 - ss(7550, 7800, n));
     ramp *= 1 - Math.exp(-((x + 5200) ** 2 + (n - 5720) ** 2) / (480 * 480));
     ramp *= ss(25, 110, railDist(x, n));
     return (
@@ -4689,6 +5704,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     const WHITE = std(0xeef0ef, { roughness: 0.45 }),
       CHROME = std(0xd9dcdd, { roughness: 0.25, metalness: 0.9 });
     const GLASS = std(0x26343c, { roughness: 0.08, metalness: 0.6 });
+    GLASS.name = "glass";
     const LAMP = new T.MeshStandardMaterial({
       color: 0xfff6dd,
       emissive: 0xfff2c8,
@@ -4876,7 +5892,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       // Glocke/Horn auf dem Vorbau, Auspuff
       mesh(new T.SphereGeometry(0.14, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), BLACK, g, hx + 1.2, 2.5, -0.25);
       mesh(new T.CylinderGeometry(0.05, 0.05, 0.12, 8), BLACK, g, hx + 1.2, 2.47, -0.25);
-      mesh(new T.CylinderGeometry(0.15, 0.17, 1.35, 14), RED, g, -0.05, 2.5 + 0.6, 0.38);
+      mesh(new T.CylinderGeometry(0.15, 0.17, 1.35, 14), RED, g, -0.05, 2.5 + 0.6, -0.42);
       // Führerhaus
       const cx = -1.85,
         cl = 2.35,
@@ -4924,14 +5940,32 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       const win = (w, h, px, py, pz, ry) => {
         const m = mesh(box(w, h, 0.04), GLASS, g, px, py, pz);
         m.rotation.y = ry;
-        const f = mesh(box(w + 0.1, h + 0.1, 0.03), BLACK, g, px, py, pz);
-        f.rotation.y = ry;
-        f.position.add(new T.Vector3(-Math.sin(ry) * 0.01, 0, -Math.cos(ry) * 0.01));
+        [
+          [0, h / 2 + 0.03, w + 0.12, 0.06],
+          [0, -h / 2 - 0.03, w + 0.12, 0.06],
+          [w / 2 + 0.03, 0, 0.06, h],
+          [-w / 2 - 0.03, 0, 0.06, h],
+        ].forEach(([a, b, ww, hh]) => {
+          const f = mesh(box(ww, hh, 0.05), BLACK, g, px + Math.cos(ry) * a, py + b, pz - Math.sin(ry) * a);
+          f.rotation.y = ry;
+        });
       };
       [-0.5, 0.5].forEach((z) => {
-        win(0.86, 0.72, cx + cl / 2 + 0.01, 2.95, z, Math.PI / 2);
-        win(0.86, 0.72, cx - cl / 2 - 0.01, 2.95, z, Math.PI / 2);
+        win(0.92, 0.95, cx + cl / 2 + 0.01, 2.92, z, Math.PI / 2);
+        win(0.92, 0.95, cx - cl / 2 - 0.01, 2.92, z, Math.PI / 2);
       });
+      mesh(new T.CylinderGeometry(0.012, 0.012, 0.9, 4), BLACK, g, cx - 0.6, cb + ch + 0.5, -0.6);
+      mesh(box(0.5, 0.12, 0.35), WHITE, g, cx + 0.3, cb + ch + 0.12, 0.2);
+      [-0.62, 0.62].forEach((z) =>
+        mesh(
+          new T.CylinderGeometry(0.07, 0.07, 0.06, 12).rotateZ(Math.PI / 2),
+          std(0xc0141a, { roughness: 0.3, emissive: 0x300000 }),
+          g,
+          hx + hl / 2 + 0.04,
+          1.62,
+          z * 0.82,
+        ),
+      );
       [-1, 1].forEach((sd) => {
         win(0.62, 0.86, cx + 0.38, 2.85, sd * (cw / 2 + 0.01), 0);
         win(0.42, 0.42, cx - 0.72, 2.45, sd * (cw / 2 + 0.01), 0);
@@ -5054,7 +6088,16 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       return "#" + c.getHexString();
     };
 
-    K.COLORS = { rot: 0xc9282b, blau: 0x2e6fc2, gelb: 0xf2c11c, gruen: 0x2f9b2c, lila: 0x7b2c6f };
+    K.COLORS = {
+      rot: 0xc9282b,
+      blau: 0x2e6fc2,
+      gelb: 0xf2c11c,
+      gruen: 0x2f9b2c,
+      lila: 0x7b2c6f,
+      pink: 0xc8327e,
+      orange: 0xe2682a,
+      dblau: 0x223f8f,
+    };
     K.makeCoach = (color) => {
       const g = new T.Group();
       const L = 11.6,
@@ -5118,9 +6161,444 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         mesh(box(0.05, 1.0, 0.05), RAILC, g, e * (L / 2 + 1.07), B + 0.52, 0);
       });
       // Inneneinrichtung schemenhaft: Holzbänke
-      const WOOD = std(0x8a5a32, { roughness: 0.7 });
-      for (let i = -4; i <= 4; i++) mesh(box(0.45, 0.5, W - 0.4), WOOD, g, i * 1.25, B + 0.45, 0);
+      const WOOD = std(0xb98a52, { roughness: 0.55 }),
+        LEG = std(0x8c9093, { roughness: 0.4, metalness: 0.6 });
+      for (let i = -4; i <= 4; i++) {
+        const x0 = i * 1.25;
+        [-1, 1].forEach((sd) => {
+          const zc = sd * 0.68;
+          mesh(box(0.46, 0.06, 0.82), WOOD, g, x0, B + 0.46, zc);
+          mesh(box(0.06, 0.42, 0.06), LEG, g, x0, B + 0.22, zc);
+          const back = mesh(box(0.06, 0.5, 0.82), WOOD, g, x0 + (i % 2 ? 0.22 : -0.22), B + 0.75, zc);
+          back.rotation.z = (i % 2 ? 1 : -1) * 0.08;
+        });
+      }
       g.userData.len = L + 2.6;
+      return g;
+    };
+
+    // ---------- Führerstand innen (Schöma), nach Foto: cremefarben, Pult mit vielen Rundinstrumenten rechts vorn ----------
+    const cv = (w, h, f) => {
+      const c = document.createElement("canvas");
+      c.width = w;
+      c.height = h;
+      f(c.getContext("2d"), w, h);
+      return tex(c);
+    };
+    const CREAM = std(0xe6e0d0, { roughness: 0.7, side: T.DoubleSide }),
+      CREAM2 = std(0xd8d1bf, { roughness: 0.6 }),
+      GREYF = std(0x7c7d78, { roughness: 0.9 });
+    const wallWithHoles = (parent, W0, H0, holes, mat, place) => {
+      // Wand aus Platten um rechteckige Öffnungen (lokal: u quer, v hoch)
+      const us = [0, W0],
+        vs = [0, H0];
+      holes.forEach((h) => {
+        us.push(h[0], h[0] + h[2]);
+        vs.push(h[1], h[1] + h[3]);
+      });
+      const U = [...new Set(us)].sort((a, b) => a - b),
+        V = [...new Set(vs)].sort((a, b) => a - b);
+      for (let i = 0; i < U.length - 1; i++)
+        for (let j = 0; j < V.length - 1; j++) {
+          const uc = (U[i] + U[i + 1]) / 2,
+            vc = (V[j] + V[j + 1]) / 2;
+          if (holes.some((h) => uc > h[0] && uc < h[0] + h[2] && vc > h[1] && vc < h[1] + h[3])) continue;
+          const w = U[i + 1] - U[i],
+            hh = V[j + 1] - V[j];
+          if (w < 1e-3 || hh < 1e-3) continue;
+          const m = new T.Mesh(new T.PlaneGeometry(w, hh), mat);
+          m.position.set(uc - W0 / 2, vc, 0);
+          const holder = new T.Group();
+          holder.add(m);
+          place(holder);
+          parent.add(holder);
+        }
+    };
+    K.makeCabInterior = () => {
+      const g = new T.Group();
+      const cx = -1.85,
+        cl = 2.35,
+        cw = 2.2,
+        fl = 1.12,
+        top = 3.42,
+        x0 = cx - cl / 2 + 0.05,
+        x1 = cx + cl / 2 - 0.05,
+        zw = cw / 2 - 0.05,
+        H0 = top - fl;
+      mesh(box(cl - 0.1, 0.04, cw - 0.1), GREYF, g, cx, fl, 0);
+      mesh(box(cl - 0.1, 0.04, cw - 0.1), CREAM2, g, cx, top, 0);
+      // Front- und Rückwand mit zwei großen Fenstern, Seitenwände mit Türfenster und Bullauge
+      const fw = [
+        [0.09, 2.445 - fl, 0.92, 0.95],
+        [1.09, 2.445 - fl, 0.92, 0.95],
+      ];
+      wallWithHoles(g, 2 * zw, H0, fw, CREAM, (h) => {
+        h.position.set(x1, fl, 0);
+        h.rotation.y = -Math.PI / 2;
+      });
+      wallWithHoles(g, 2 * zw, H0, fw, CREAM, (h) => {
+        h.position.set(x0, fl, 0);
+        h.rotation.y = Math.PI / 2;
+      });
+      const sideU = (xa, w, sd) => (sd < 0 ? xa - x0 : x1 - (xa + w));
+      [-1, 1].forEach((sd) =>
+        wallWithHoles(
+          g,
+          cl - 0.1,
+          H0,
+          [
+            [sideU(cx + 0.38 - 0.31, 0.62, sd), 2.42 - fl, 0.62, 0.86],
+            [sideU(cx - 0.72 - 0.2, 0.4, sd), 2.25 - fl, 0.4, 0.4],
+          ],
+          CREAM,
+          (h) => {
+            h.position.set(cx, fl, sd * zw);
+            h.rotation.y = sd > 0 ? Math.PI : 0;
+          },
+        ),
+      );
+      // Scheibenwischer
+      [-0.5, 0.5].forEach((z) => {
+        const w = mesh(box(0.015, 0.45, 0.02), BLACK, g, x1 + 0.03, 2.62, z + 0.32);
+        w.rotation.x = 1.25;
+      });
+      // Pult rechts: Unterbau, schräges Instrumentenfeld, Tischplatte mit Hebeln
+      const gauges = cv(1024, 512, (x, w, h) => {
+        x.fillStyle = "#c9b48f";
+        x.fillRect(0, 0, w, h);
+        x.strokeStyle = "rgba(0,0,0,.25)";
+        x.lineWidth = 4;
+        x.strokeRect(6, 6, w - 12, h - 12);
+        const gauge = (cx0, cy0, r, red) => {
+          x.fillStyle = "#222";
+          x.beginPath();
+          x.arc(cx0, cy0, r + 7, 0, 7);
+          x.fill();
+          x.fillStyle = "#f4f2ea";
+          x.beginPath();
+          x.arc(cx0, cy0, r, 0, 7);
+          x.fill();
+          x.strokeStyle = "#222";
+          x.lineWidth = 2;
+          for (let k = 0; k <= 10; k++) {
+            const a = Math.PI * 0.75 + (k / 10) * Math.PI * 1.5;
+            x.beginPath();
+            x.moveTo(cx0 + Math.cos(a) * r * 0.78, cy0 + Math.sin(a) * r * 0.78);
+            x.lineTo(cx0 + Math.cos(a) * r * 0.95, cy0 + Math.sin(a) * r * 0.95);
+            x.stroke();
+          }
+          if (red) {
+            x.strokeStyle = "#c0261d";
+            x.lineWidth = 5;
+            x.beginPath();
+            x.arc(cx0, cy0, r * 0.86, Math.PI * 1.85, Math.PI * 2.25);
+            x.stroke();
+          }
+          const a = Math.PI * (0.9 + Math.random() * 0.9);
+          x.strokeStyle = "#111";
+          x.lineWidth = 3;
+          x.beginPath();
+          x.moveTo(cx0, cy0);
+          x.lineTo(cx0 + Math.cos(a) * r * 0.8, cy0 + Math.sin(a) * r * 0.8);
+          x.stroke();
+        };
+        const lamp = (a, b, c) => {
+          x.fillStyle = "#333";
+          x.beginPath();
+          x.arc(a, b, 15, 0, 7);
+          x.fill();
+          x.fillStyle = c;
+          x.beginPath();
+          x.arc(a, b, 11, 0, 7);
+          x.fill();
+        };
+        const sw = (a, b) => {
+          x.fillStyle = "#555";
+          x.fillRect(a - 12, b - 12, 24, 24);
+          x.fillStyle = "#ddd";
+          x.fillRect(a - 3, b - 20, 6, 20);
+        };
+        [
+          [80, 80],
+          [180, 80],
+          [280, 80],
+          [380, 80],
+          [480, 80],
+          [580, 80],
+          [680, 80],
+        ].forEach(([a, b], i) => gauge(a, b, 36, i % 3 === 0));
+        [
+          [90, 205],
+          [190, 205],
+          [290, 205],
+          [600, 205],
+          [700, 205],
+        ].forEach(([a, b]) => gauge(a, b, 34, false));
+        gauge(445, 240, 78, true);
+        x.fillStyle = "#111";
+        x.font = "bold 20px Arial";
+        x.textAlign = "center";
+        x.fillText("km/h", 445, 290);
+        for (let i = 0; i < 9; i++)
+          lamp(
+            70 + i * 80,
+            340,
+            [
+              "#d6352c",
+              "#3fae49",
+              "#f0c419",
+              "#ffffff",
+              "#d6352c",
+              "#3fae49",
+              "#2f6fd1",
+              "#f0c419",
+              "#d6352c",
+            ][i],
+          );
+        for (let i = 0; i < 12; i++) sw(60 + i * 62, 420);
+        gauge(860, 200, 70, false);
+        gauge(860, 380, 60, true);
+        x.fillStyle = "#c0261d";
+        x.fillRect(800, 455, 120, 36);
+        x.fillStyle = "#fff";
+        x.font = "bold 22px Arial";
+        x.fillText("LOK 5", 860, 481);
+      });
+      const pz0 = 0.04,
+        pz1 = zw - 0.02,
+        pw = pz1 - pz0,
+        pzc = (pz0 + pz1) / 2;
+      mesh(box(0.55, 0.95, pw), CREAM2, g, x1 - 0.3, fl + 0.48, pzc);
+      const panel = mesh(
+        new T.PlaneGeometry(pw, 0.62),
+        std(0xffffff, { map: gauges, roughness: 0.45, metalness: 0.25 }),
+        g,
+        x1 - 0.22,
+        fl + 1.18,
+        pzc,
+      );
+      panel.rotation.set(0, -Math.PI / 2, 0);
+      panel.rotateX(-0.55);
+      mesh(box(0.35, 0.7, pw), CREAM2, g, x1 - 0.12, fl + 1.12, pzc).visible = false;
+      mesh(
+        box(0.5, 0.05, pw + 0.04),
+        std(0x9a9c99, { roughness: 0.4, metalness: 0.5 }),
+        g,
+        x1 - 0.58,
+        fl + 0.97,
+        pzc,
+      );
+      // Fahrschalter (Handrad) und Bremshebel auf der Tischplatte
+      const thrL = new T.Group();
+      thrL.position.set(x1 - 0.62, fl + 1.0, 0.25);
+      g.add(thrL);
+      mesh(new T.CylinderGeometry(0.03, 0.03, 0.22, 8), BLACK, thrL, 0, 0.11, 0);
+      mesh(new T.SphereGeometry(0.06, 10, 8), BLACK, thrL, 0, 0.24, 0);
+      const brkL = new T.Group();
+      brkL.position.set(x1 - 0.62, fl + 1.0, 0.8);
+      g.add(brkL);
+      mesh(new T.CylinderGeometry(0.03, 0.03, 0.26, 8), STEEL, brkL, 0, 0.13, 0);
+      mesh(box(0.05, 0.06, 0.16), std(0xc0261d, { roughness: 0.4 }), brkL, 0, 0.27, 0);
+      // Schläuche, Linkes Pult, Sitz
+      mesh(box(0.45, 0.85, 0.75), CREAM2, g, x1 - 0.28, fl + 0.43, -0.6);
+      mesh(box(0.45, 0.08, 0.45), std(0x3a3d40, { roughness: 0.8 }), g, cx - 0.2, fl + 0.62, 0.5);
+      mesh(box(0.08, 0.55, 0.45), std(0x3a3d40, { roughness: 0.8 }), g, cx - 0.44, fl + 0.92, 0.5);
+      mesh(new T.CylinderGeometry(0.04, 0.04, 0.6, 8), STEEL, g, cx - 0.2, fl + 0.3, 0.5);
+      // Schilder über der Mittelsäule: Wappen und Fahrplantafel
+      const shield = cv(128, 160, (x, w, h) => {
+        x.fillStyle = "#c8a24a";
+        x.fillRect(0, 0, w, h);
+        x.fillStyle = "#1f2a6b";
+        x.beginPath();
+        x.moveTo(24, 30);
+        x.lineTo(104, 30);
+        x.lineTo(104, 90);
+        x.quadraticCurveTo(104, 130, 64, 145);
+        x.quadraticCurveTo(24, 130, 24, 90);
+        x.closePath();
+        x.fill();
+        x.fillStyle = "#e6e2d8";
+        x.font = "bold 18px Arial";
+        x.textAlign = "center";
+        x.fillText("LANGEOOG", 64, 20);
+      });
+      const pl1 = mesh(new T.PlaneGeometry(0.13, 0.16), std(0xffffff, { map: shield }), g, x1 - 0.03, 3.3, 0);
+      pl1.rotation.y = -Math.PI / 2;
+      const tt = cv(160, 200, (x, w, h) => {
+        x.fillStyle = "#efe9dc";
+        x.fillRect(0, 0, w, h);
+        x.strokeStyle = "#8a6a3a";
+        x.lineWidth = 8;
+        x.strokeRect(4, 4, w - 8, h - 8);
+        x.fillStyle = "#333";
+        x.font = "12px Arial";
+        for (let i = 0; i < 12; i++) x.fillRect(20, 30 + i * 13, 60 + ((i * 37) % 60), 3);
+      });
+      const pl2 = mesh(new T.PlaneGeometry(0.16, 0.2), std(0xffffff, { map: tt }), g, x1 - 0.03, 3.08, 0);
+      pl2.rotation.y = -Math.PI / 2;
+      mesh(box(0.04, 0.95, 0.09), CREAM2, g, x1 - 0.01, 2.92, 0);
+      g.userData = { thrL, brkL, eye: new T.Vector3(cx + 0.05, 2.92, 0.5) };
+      return g;
+    };
+
+    // ---------- Wageninneres: cremefarbene Wände, Holzleisten an der Decke, Fenster wie außen ----------
+    K.makeCoachInterior = () => {
+      const g = new T.Group();
+      const L = 11.6,
+        W = 2.3,
+        B = 1.02,
+        H = 2.3,
+        zw = W / 2 - 0.06,
+        fl = B + 0.06,
+        top = B + H - 0.08,
+        H0 = top - fl;
+      mesh(box(L - 0.1, 0.03, W - 0.12), std(0x8e9293, { roughness: 0.9 }), g, 0, fl, 0);
+      // Fenster an derselben Stelle wie auf der Außenhaut
+      const ws = [0.62, 1.05, 0.62, 0.62, 1.05, 0.62, 0.62, 1.05, 0.62, 0.62, 1.05, 0.62];
+      const tot = ws.reduce((a, b) => a + b, 0);
+      const gap = (L - 0.8 - tot) / (ws.length - 1);
+      const holes = [];
+      let px = 0.4;
+      ws.forEach((w) => {
+        holes.push([px - 0.05, B + 1.08 - fl, w, H - 1.3]);
+        px += w + gap;
+      });
+      const SIDEI = std(0xe9e3d2, { roughness: 0.75, side: T.DoubleSide });
+      [-1, 1].forEach((sd) =>
+        wallWithHoles(g, L - 0.1, H0, holes, SIDEI, (h) => {
+          h.position.set(0, fl, sd * zw);
+          h.rotation.y = sd > 0 ? Math.PI : 0;
+        }),
+      );
+      // Fensterrahmen schwarz, abgerundet angedeutet
+      const FR = std(0x1b1b1b, { roughness: 0.5 });
+      holes.forEach((hh) =>
+        [-1, 1].forEach((sd) => {
+          const x = -L / 2 + 0.05 + hh[0] + hh[2] / 2,
+            y = fl + hh[1] + hh[3] / 2,
+            z = sd * (zw - 0.015);
+          mesh(box(hh[2] + 0.08, 0.05, 0.03), FR, g, x, y + hh[3] / 2 + 0.02, z);
+          mesh(box(hh[2] + 0.08, 0.05, 0.03), FR, g, x, y - hh[3] / 2 - 0.02, z);
+          mesh(box(0.05, hh[3], 0.03), FR, g, x - hh[2] / 2 - 0.02, y, z);
+          mesh(box(0.05, hh[3], 0.03), FR, g, x + hh[2] / 2 + 0.02, y, z);
+        }),
+      );
+      // Stirnwände mit Tür und Fenster
+      [-1, 1].forEach((e) =>
+        wallWithHoles(g, W - 0.12, H0, [[(W - 0.12) / 2 - 0.3, 1.0, 0.6, 0.8]], SIDEI, (h) => {
+          h.position.set(e * (L / 2 - 0.06), fl, 0);
+          h.rotation.y = e > 0 ? -Math.PI / 2 : Math.PI / 2;
+        }),
+      );
+      // gewölbte Decke mit Holzleisten und Leuchten
+      const ceil = new T.Mesh(
+        roofGeo(W - 0.12, 0.09, L - 0.12, 0.02),
+        std(0xefebe0, { roughness: 0.8, side: T.DoubleSide }),
+      );
+      ceil.position.y = top;
+      g.add(ceil);
+      const WD = std(0x9a6a3a, { roughness: 0.6 });
+      [-0.75, 0.75].forEach((z) => mesh(box(L - 0.2, 0.06, 0.07), WD, g, 0, top + 0.02, z));
+      for (let x = -4.8; x <= 4.8; x += 2.4)
+        mesh(
+          new T.CylinderGeometry(0.12, 0.12, 0.04, 14),
+          new T.MeshStandardMaterial({ color: 0xffffff, emissive: 0x777766 }),
+          g,
+          x,
+          top + 0.08,
+          0,
+        );
+      // Holzverkleidung unter den Fenstern
+      [-1, 1].forEach((sd) => mesh(box(L - 0.2, 0.04, 0.03), WD, g, 0, B + 1.04, sd * (zw - 0.02)));
+      g.userData = { eye: new T.Vector3(-L / 2 + 0.6, B + 1.55, 0.05) };
+      return g;
+    };
+
+    // ---------- Gepäckwagen: Flachwagen mit bunten Gepäckcontainern und Geländer ----------
+    K.makeFlat = () => {
+      const g = new T.Group();
+      const L = 9.0;
+      mesh(box(L, 0.3, 2.2), std(0x1f3a7a, { roughness: 0.5, metalness: 0.3 }), g, 0, 1.0, 0);
+      mesh(box(L, 0.05, 2.15), std(0x5a4a3a, { roughness: 0.9 }), g, 0, 1.17, 0);
+      [-3.0, 3.0].forEach((x) => {
+        mesh(box(1.8, 0.32, 1.5), BLACK, g, x, 0.5, 0);
+        [-0.55, 0.55].forEach((o) => axle(g, x + o, 0.3));
+      });
+      [-1, 1].forEach((e) => {
+        mesh(box(0.2, 0.34, 1.2), BLACK, g, e * (L / 2 + 0.1), 0.85, 0);
+      });
+      const OR = std(0xe8901c, { roughness: 0.45, metalness: 0.2 });
+      [-1, 1].forEach((e) => {
+        mesh(box(0.06, 1.0, 2.1), OR, g, e * (L / 2 - 0.05), 1.7, 0);
+        [0.25, 0.6, 0.95].forEach((y) => mesh(box(0.04, 0.05, 2.1), OR, g, e * (L / 2 - 0.02), 1.2 + y, 0));
+      });
+      const CC = [0x2f9b45, 0xc8322a, 0xd8418a, 0xe8901c, 0x2f9b45, 0x2e6fc2];
+      for (let i = 0; i < 6; i++) {
+        const c = new T.Group();
+        mesh(box(1.25, 1.55, 1.9), std(CC[i], { roughness: 0.55, metalness: 0.2 }), c, 0, 0.78, 0);
+        mesh(box(1.27, 0.08, 1.92), std(0x333333), c, 0, 1.56, 0);
+        mesh(box(0.03, 1.2, 1.5), std(0x222222, { roughness: 0.6 }), c, 0.63, 0.8, 0);
+        c.position.set(-3.6 + i * 1.44, 1.2, 0);
+        g.add(c);
+      }
+      g.userData.len = L + 0.4;
+      return g;
+    };
+
+    // ---------- Denkmal-Lok Kö 2: kleine grüne Rangierlok mit roten Speichenrädern ----------
+    K.makeKoe2 = () => {
+      const g = new T.Group();
+      const GR = std(0x4f9a83, { roughness: 0.6, metalness: 0.2 }),
+        RD = std(0xc8452a, { roughness: 0.5 }),
+        GRD = std(0x3c4a52, { roughness: 0.7 });
+      mesh(box(4.0, 0.45, 1.5), GRD, g, 0, 0.8, 0);
+      mesh(box(4.4, 0.06, 1.8), GRD, g, 0, 1.05, 0);
+      [-0.85, 0.85].forEach((x) =>
+        [-0.5, 0.5].forEach((z) => {
+          const w = mesh(
+            new T.CylinderGeometry(0.36, 0.36, 0.1, 16).rotateX(Math.PI / 2),
+            RD,
+            g,
+            x,
+            0.36,
+            z * 1.12,
+          );
+          for (let k = 0; k < 6; k++) {
+            const sp = mesh(box(0.05, 0.62, 0.03), RD, g, x, 0.36, z * 1.18);
+            sp.rotation.z = (k * Math.PI) / 6;
+          }
+        }),
+      );
+      const cr = mesh(box(1.75, 0.07, 0.07), RD, g, 0, 0.36, 0.64);
+      const cr2 = mesh(box(1.75, 0.07, 0.07), RD, g, 0, 0.36, -0.64);
+      mesh(box(2.2, 1.15, 1.25), GR, g, 0.75, 1.65, 0);
+      mesh(box(1.5, 1.95, 1.45), GR, g, -1.15, 2.05, 0);
+      mesh(box(1.6, 0.08, 1.55), std(0x8a9295, { metalness: 0.5, roughness: 0.5 }), g, -1.15, 3.06, 0);
+      [-1, 1].forEach((sd) => {
+        mesh(box(0.55, 0.45, 0.03), GLASS, g, -0.85, 2.55, sd * 0.74);
+        mesh(box(0.03, 0.42, 0.4), GLASS, g, -0.39, 2.55, sd * 0.36);
+      });
+      mesh(new T.CylinderGeometry(0.4, 0.4, 0.06, 20).rotateZ(Math.PI / 2), RD, g, 2.25, 0.85, 0);
+      mesh(new T.CylinderGeometry(0.05, 0.05, 1.4, 8), std(0x9aa0a3, { metalness: 0.7 }), g, 0.3, 2.9, 0.2);
+      const pl = cv(128, 160, (x, w, h) => {
+        x.fillStyle = "#fff";
+        x.fillRect(0, 0, w, h);
+        x.fillStyle = "#222";
+        x.font = "bold 22px Arial";
+        x.textAlign = "center";
+        x.fillText("»Kö 2«", 64, 26);
+        x.font = "11px Arial";
+        for (let i = 0; i < 9; i++) x.fillRect(16, 42 + i * 12, 96 - (i % 3) * 14, 2);
+      });
+      const p = mesh(new T.PlaneGeometry(0.5, 0.62), std(0xffffff, { map: pl }), g, 1.86, 1.75, 0);
+      p.rotation.y = Math.PI / 2;
+      // Gleisstück mit Holzschwellen
+      for (let i = 0; i < 9; i++)
+        mesh(box(0.25, 0.12, 1.6), std(0x6a5440, { roughness: 0.9 }), g, -2.4 + i * 0.6, 0.0, 0);
+      [-0.5, 0.5].forEach((z) =>
+        mesh(box(5.2, 0.11, 0.07), std(0x6a4a36, { metalness: 0.4, roughness: 0.7 }), g, 0, 0.11, z),
+      );
+      g.userData.len = 4.6;
       return g;
     };
 
@@ -5311,6 +6789,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       });
       by.forEach((list, mat) => {
         const m = new T.Mesh(mergeGeo(list), mat);
+        m.name = mat.name || "";
         m.castShadow = true;
         m.receiveShadow = true;
         out.add(m);
@@ -6246,10 +7725,10 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       })();
       const box = new T.BoxGeometry(1, 1, 1);
       box.translate(0, 0.5, 0);
-      const CX = -2950,
-        CN = 7120,
-        RX = 950,
-        RN = 560;
+      const CX = TOWN.x,
+        CN = TOWN.y,
+        RX = TOWN.rx,
+        RN = TOWN.ry;
       const inTown = (x, n) => ((x - CX) / RX) ** 2 + ((n - CN) / RN) ** 2 < 1;
       const houses = [],
         roads = [],
@@ -6278,7 +7757,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
             if (
               !inTown(x, n) ||
               railDist(x, n) < 14 ||
-              Math.hypot(x + 3150, n - 7380) < 120 ||
+              Math.hypot(x - TOWN.wt[0], n - TOWN.wt[1]) < 120 ||
+              stationZone(x, n) ||
               Math.hypot(x - (CX + 60), n - (CN - 40)) < 40
             )
               return;
@@ -6387,8 +7867,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     }
     // Wasserturm Langeoog auf seiner Düne: achteckiger weißer Turm, Wasserbehälter mit Fenstern, rotes Spitzdach
     {
-      const wx = -3150,
-        wn = 7380;
+      const wx = TOWN.wt[0],
+        wn = TOWN.wt[1];
       const hill = new T.SphereGeometry(1, 28, 12, 0, Math.PI * 2, 0, Math.PI / 2);
       hill.scale(110, 20, 95);
       const hc = new Float32Array(hill.attributes.position.count * 3);
@@ -6516,12 +7996,12 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         if (railDist(x, n) < 12) continue;
         if (inPoly(x, n, ISLAND)) trees.push([x, n, 4 + R7() * 4]);
       }
-      for (let i = 0; i < 220; i++) {
+      for (let i = 0; i < 260; i++) {
         const a = R7() * 6.283,
-          r = R7() * 600;
-        const x = -2800 + Math.cos(a) * r,
-          n = 7000 + Math.sin(a) * r * 0.8;
-        if (inPoly(x, n, ISLAND)) trees.push([x, n, 3 + R7() * 4]);
+          r = Math.sqrt(R7()) * 1;
+        const x = TOWN.x + Math.cos(a) * r * (TOWN.rx + 180),
+          n = TOWN.y + Math.sin(a) * r * (TOWN.ry + 150);
+        if (inPoly(x, n, ISLAND) && railDist(x, n) > 14) trees.push([x, n, 3 + R7() * 4]);
       }
       for (let i = 0; i < 120; i++) {
         const x = -700 + R7() * 1400,
@@ -6551,53 +8031,875 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       put(trees, TR, false);
       put(bushes, BU, true);
     }
-    // Inselbahn
-    const RAILSEG = [];
-    let RL = 0;
-    for (let i = 1; i < RAIL.length; i++) {
-      const [ax, an] = RAIL[i - 1],
-        [bx, bn] = RAIL[i];
-      const len = Math.hypot(bx - ax, bn - an);
-      RAILSEG.push({ ax, an, len, tx: (bx - ax) / len, tn: (bn - an) / len, d0: RL });
-      RL += len;
+    // ===== Inselbahn Langeoog: Strecke Hafen – Ort mit Deichscharte, Bahnübergängen, Pfeiftafeln, Ortsbahnhof und Denkmal Kö 2 =====
+    const IB = buildInselbahnKit(T, std);
+    const trackY = (x, n) => {
+      const p = railNear(x, n);
+      return (p < 40 ? ISL_TOP : groundY(x, n)) + 0.3;
+    };
+    function railNear(x, n) {
+      return railDist(x, n);
     }
-    const railAt = (d) => {
-      d = Math.max(0, Math.min(RL - 0.01, d));
-      let s = RAILSEG[RAILSEG.length - 1];
-      for (const q of RAILSEG) {
-        if (d < q.d0 + q.len) {
-          s = q;
-          break;
+    const RTOP = 0.116; // Schienenoberkante über Schwellenhöhe
+    const railY = (d) => {
+      const p = railPt(d);
+      return ISL_TOP + 0.3;
+    }; // Strecke liegt im flachen Polder auf Normalhöhe
+    // Band entlang der Strecke: Querversatz o0..o1 (links positiv), Höhe y(x,n,d)
+    const ribbon = (d0, d1, o0, o1, yf, mat, step = 4) => {
+      const P = [],
+        U = [],
+        I = [];
+      let k = 0;
+      for (let d = d0; ; d += step) {
+        const dd = Math.min(d, d1);
+        const p = railPt(dd);
+        const lx = -p.ty,
+          ln = p.tx;
+        [o0, o1].forEach((o, j) => {
+          const x = p.x + lx * o,
+            n = p.y + ln * o;
+          P.push(x, yf(x, n, dd), -n);
+          U.push((j * (o1 - o0)) / 3, dd / 3);
+        });
+        if (k > 0) {
+          const a = (k - 1) * 2;
+          I.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+        }
+        k++;
+        if (dd >= d1) break;
+      }
+      const g = new T.BufferGeometry();
+      g.setAttribute("position", new T.Float32BufferAttribute(P, 3));
+      g.setAttribute("uv", new T.Float32BufferAttribute(U, 2));
+      g.setIndex(I);
+      g.computeVertexNormals();
+      const m = new T.Mesh(g, mat);
+      m.receiveShadow = true;
+      scene.add(m);
+      return m;
+    };
+    const wallRibbon = (d0, d1, o, ya, yb, mat) => {
+      const P = [],
+        I = [];
+      let k = 0;
+      for (let d = d0; ; d += 4) {
+        const dd = Math.min(d, d1);
+        const p = railPt(dd);
+        const x = p.x - p.ty * o,
+          n = p.y + p.tx * o;
+        P.push(x, ya, -n, x, yb, -n);
+        if (k > 0) {
+          const a = (k - 1) * 2;
+          I.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+        }
+        k++;
+        if (dd >= d1) break;
+      }
+      const g = new T.BufferGeometry();
+      g.setAttribute("position", new T.Float32BufferAttribute(P, 3));
+      g.setIndex(I);
+      g.computeVertexNormals();
+      const m = new T.Mesh(g, mat);
+      m.material.side = T.DoubleSide;
+      scene.add(m);
+      return m;
+    };
+    const KLINKER = (() => {
+      const c = document.createElement("canvas");
+      c.width = 512;
+      c.height = 512;
+      const x = c.getContext("2d");
+      x.fillStyle = "#5a4842";
+      x.fillRect(0, 0, 512, 512);
+      const R5 = rng(56);
+      const cols = [
+        "#7a2c24",
+        "#843226",
+        "#6e2c29",
+        "#5d2a31",
+        "#532838",
+        "#8a3b2d",
+        "#73352d",
+        "#4b2a37",
+        "#843f30",
+      ];
+      for (let r = 0; r < 32; r++) {
+        const o = (r % 2) * 16;
+        for (let k = -1; k < 17; k++) {
+          x.fillStyle = cols[(R5() * cols.length) | 0];
+          x.fillRect(k * 32 + o + 1, r * 16 + 1, 30, 14);
         }
       }
-      const t = d - s.d0;
-      return { x: s.ax + s.tx * t, n: s.an + s.tn * t, h: Math.atan2(s.tx, s.tn) };
+      const t = new T.CanvasTexture(c);
+      t.encoding = T.sRGBEncoding;
+      t.wrapS = t.wrapT = T.RepeatWrapping;
+      t.anisotropy = 8;
+      return std(0xffffff, { map: t, roughness: 0.6 });
+    })();
+    const KERB = std(0xb8b4ac, { roughness: 0.8 }),
+      WLINE = std(0xf4f4f0, { roughness: 0.6 }),
+      ASPH2 = std(0x7d7d7a, { roughness: 0.95 }),
+      PAVE2 = std(0xa4a19a, { roughness: 0.9 });
+    const signTex = (w, h, draw) => {
+      const c = document.createElement("canvas");
+      c.width = w;
+      c.height = h;
+      draw(c.getContext("2d"), w, h);
+      const t = new T.CanvasTexture(c);
+      t.encoding = T.sRGBEncoding;
+      return std(0xffffff, { map: t, roughness: 0.5, side: T.DoubleSide });
     };
-    // Gleis in Meterspur auf Schotter, Zug aus Schöma-Lok und farbigen Personenwagen (nach Fotos der Inselbahn Langeoog)
-    const IB = buildInselbahnKit(T, std);
-    const trackY = (x, n) => groundY(x, n) + 0.3;
+    const POLE = std(0x9aa0a3, { metalness: 0.6, roughness: 0.4 });
+    // Schild am Pfahl neben dem Gleis, Vorderseite zeigt dem Zug entgegen (dir +1 = Fahrt Richtung Ort)
+    const trackSign = (d, dir, side, mat, w, h, top) => {
+      const p = railPt(d);
+      const r = side * (dir > 0 ? 1 : -1);
+      const x = p.x + p.ty * r,
+        n = p.y - p.tx * r;
+      const gy = ISL_TOP;
+      mesh(new T.CylinderGeometry(0.05, 0.05, top, 6), POLE, null, x, gy + top / 2, -n);
+      const s = mesh(new T.PlaneGeometry(w, h), mat, null, x, gy + top - h / 2, -n);
+      s.rotation.y = Math.atan2(p.ty, p.tx) + (dir > 0 ? -Math.PI / 2 : Math.PI / 2);
+      s.castShadow = true;
+      return s;
+    };
+    // Hauptgleis
     scene.add(
       IB.makeTrack(
         RAIL.map(([x, n]) => [x, -n]),
-        (x, z) => trackY(x, -z),
-        { piece: 10 },
+        () => ISL_TOP + 0.3,
+        { piece: 8 },
       ),
     );
-    const cars = [];
+    // Prellböcke an beiden Enden
+    const bufferStop = (d, dir) => {
+      const p = railPt(d);
+      const g = new T.Group();
+      const RW = signTex(64, 64, (x, w, h) => {
+        for (let i = 0; i < 4; i++) {
+          x.fillStyle = i % 2 ? "#ffffff" : "#c8202a";
+          x.fillRect(i * 16, 0, 16, 64);
+        }
+      });
+      mesh(
+        new T.BoxGeometry(0.5, 0.9, 2.0),
+        std(0x2a2c2e, { roughness: 0.6, metalness: 0.4 }),
+        g,
+        0,
+        0.75,
+        0,
+      );
+      mesh(new T.BoxGeometry(0.06, 0.5, 1.6), RW, g, 0.27 * dir, 1.0, 0);
+      [-1, 1].forEach((z) => {
+        const s = mesh(new T.BoxGeometry(1.6, 0.12, 0.12), std(0x2a2c2e), g, -0.7 * dir, 0.55, z * 0.53);
+        s.rotation.z = -0.5 * dir;
+      });
+      g.position.set(p.x, ISL_TOP + 0.3, -p.y);
+      g.rotation.y = Math.atan2(p.ty, p.tx);
+      scene.add(g);
+    };
+    bufferStop(0.6, -1);
+    bufferStop(RAIL_L - 0.6, 1);
+    // Deich mit Deichscharte: Grasböschung quer über die Insel, Betonwände und offene Stahltore am Gleis
     {
-      const loco = IB.bake(IB.makeLoco());
-      scene.add(loco);
-      cars.push({ g: loco, off: 0 });
-      let off = -(loco.userData.len / 2 + 0.25);
-      ["rot", "blau", "gelb", "gruen", "rot", "lila"].forEach((k) => {
-        const c = IB.bake(IB.makeCoach(IB.COLORS[k]));
-        const L = c.userData.len;
-        off -= L / 2;
-        scene.add(c);
-        cars.push({ g: c, off });
-        off -= L / 2 + 0.25;
+      const cross = railPt(RF.deich);
+      const pts = [];
+      for (let i = 1; i < DEICH.length; i++) {
+        const a = DEICH[i - 1],
+          b = DEICH[i];
+        const L0 = Math.hypot(b[0] - a[0], b[1] - a[1]);
+        for (let t = 0; t < L0; t += 12)
+          pts.push([a[0] + ((b[0] - a[0]) * t) / L0, a[1] + ((b[1] - a[1]) * t) / L0]);
+      }
+      pts.push(DEICH[DEICH.length - 1]);
+      const runs = [[], []];
+      pts.forEach((p) => {
+        const dx = p[0] - cross.x;
+        if (Math.abs(dx) < 5.5) return;
+        runs[dx < 0 ? 0 : 1].push(p);
+      });
+      runs[0].push([cross.x - 5.5, 5925]);
+      runs[1].unshift([cross.x + 5.5, 5925]);
+      const prof = [
+        [-12, 0],
+        [-2, 4.3],
+        [2, 4.3],
+        [12, 0],
+      ];
+      const GRASS = std(0x6d9447, { map: TX.detail, roughness: 1 });
+      runs.forEach((run) => {
+        const P = [],
+          I = [];
+        run.forEach((p, i) => {
+          const q = run[Math.min(run.length - 1, i + 1)],
+            o = run[Math.max(0, i - 1)];
+          let tx = q[0] - o[0],
+            ty = q[1] - o[1];
+          const l = Math.hypot(tx, ty) || 1;
+          tx /= l;
+          ty /= l;
+          prof.forEach(([o2, h]) => P.push(p[0] - ty * o2, ISL_TOP - 0.3 + h, -(p[1] + tx * o2)));
+          if (i > 0) {
+            const a = (i - 1) * 4;
+            for (let k = 0; k < 3; k++) I.push(a + k, a + 4 + k, a + k + 1, a + k + 1, a + 4 + k, a + 5 + k);
+          }
+        });
+        const g = new T.BufferGeometry();
+        g.setAttribute("position", new T.Float32BufferAttribute(P, 3));
+        g.setIndex(I);
+        g.computeVertexNormals();
+        const uv = [];
+        for (let i = 0; i < P.length / 3; i++) uv.push(P[i * 3] / 6, P[i * 3 + 2] / 6);
+        g.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
+        const m = new T.Mesh(g, GRASS);
+        m.material.side = T.DoubleSide;
+        m.receiveShadow = true;
+        scene.add(m);
+      });
+      // Betonwände der Scharte, Torflügel offen, rot-weiße Kennzeichnung
+      const CON = std(0xb9b7b0, { roughness: 0.85 }),
+        STEEL3 = std(0x5c6064, { roughness: 0.5, metalness: 0.6 }),
+        MARK = signTex(64, 64, (x, w, h) => {
+          x.fillStyle = "#fff";
+          x.fillRect(0, 0, 64, 64);
+          x.fillStyle = "#c8202a";
+          x.fillRect(10, 10, 44, 44);
+        });
+      [-1, 1].forEach((sd) => {
+        const g = new T.Group();
+        mesh(new T.BoxGeometry(24, 4.9, 0.45), CON, g, 0, 2.45, 0);
+        mesh(new T.BoxGeometry(24, 0.15, 0.6), CON, g, 0, 4.95, 0);
+        mesh(new T.BoxGeometry(0.03, 1.1, 0.03), POLE, g, -11.5, 5.6, 0);
+        mesh(new T.BoxGeometry(23, 0.04, 0.04), POLE, g, 0, 6.1, 0);
+        const gate = mesh(new T.BoxGeometry(4.8, 3.8, 0.12), STEEL3, g, -6, 2.1, -sd * 0.3);
+        const mk = mesh(new T.PlaneGeometry(0.9, 0.9), MARK, g, -6, 2.3, -sd * 0.37);
+        mk.rotation.y = sd > 0 ? Math.PI : 0;
+        g.position.set(cross.x - cross.ty * sd * 3.3, ISL_TOP, -(cross.y + cross.tx * sd * 3.3));
+        g.rotation.y = Math.atan2(cross.ty, cross.tx);
+        g.traverse((o) => {
+          if (o.isMesh) {
+            o.castShadow = true;
+            o.receiveShadow = true;
+          }
+        });
+        scene.add(g);
       });
     }
+    // Bahnübergänge: Weg quer über das Gleis, Andreaskreuze
+    const XMAT = signTex(128, 128, (x, w, h) => {
+      x.clearRect(0, 0, w, h);
+      x.translate(64, 64);
+      [1, -1].forEach((s) => {
+        x.save();
+        x.rotate((s * Math.PI) / 4);
+        x.fillStyle = "#c8202a";
+        x.fillRect(-62, -11, 124, 22);
+        x.fillStyle = "#fff";
+        x.fillRect(-58, -7, 116, 14);
+        x.fillStyle = "#c8202a";
+        for (let i = -50; i < 58; i += 24) x.fillRect(i, -7, 12, 14);
+        x.restore();
+      });
+    });
+    XMAT.transparent = true;
+    XMAT.alphaTest = 0.5;
+    RF.bue.forEach((b) => {
+      const p = railPt(b.d);
+      const lx = -p.ty,
+        ln = p.tx;
+      const L0 = 46;
+      const P = [],
+        I = [];
+      for (let k = -L0; k <= L0; k += 4) {
+        const ang = k < 0 ? -0.5 : 0.35;
+        const bend = Math.abs(k) > 12 ? (Math.abs(k) - 12) * ang * 0.6 : 0;
+        const cx = p.x + lx * k + p.tx * bend,
+          cn = p.y + ln * k + p.ty * bend;
+        [-1.7, 1.7].forEach((w) => P.push(cx + p.tx * w, ISL_TOP + 0.33, -(cn + p.ty * w)));
+        if (k > -L0) {
+          const a = P.length / 3 - 4;
+          I.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+        }
+      }
+      const g = new T.BufferGeometry();
+      g.setAttribute("position", new T.Float32BufferAttribute(P, 3));
+      g.setIndex(I);
+      g.computeVertexNormals();
+      const m = new T.Mesh(g, ASPH2);
+      m.receiveShadow = true;
+      scene.add(m);
+      [-1, 1].forEach((sd) => {
+        const x = p.x + lx * sd * 4.2 + p.tx * sd * 2.6,
+          n = p.y + ln * sd * 4.2 + p.ty * sd * 2.6;
+        mesh(new T.CylinderGeometry(0.05, 0.05, 2.6, 6), std(0xf2f2f2), null, x, ISL_TOP + 1.3, -n);
+        const s = mesh(new T.PlaneGeometry(1.3, 1.3), XMAT, null, x, ISL_TOP + 2.2, -n);
+        s.rotation.y = Math.atan2(p.ty, p.tx) + (sd > 0 ? 0 : Math.PI);
+      });
+    });
+    // Pfeiftafeln (weiße Tafel mit schwarzem P) vor jedem Bahnübergang und vor der Deichscharte, für beide Richtungen
+    {
+      const PM = signTex(96, 128, (x, w, h) => {
+        x.fillStyle = "#f6f6f2";
+        x.fillRect(0, 0, w, h);
+        x.strokeStyle = "#222";
+        x.lineWidth = 5;
+        x.strokeRect(4, 4, w - 8, h - 8);
+        x.fillStyle = "#111";
+        x.font = "bold 92px Arial";
+        x.textAlign = "center";
+        x.textBaseline = "middle";
+        x.fillText("P", w / 2, h / 2 + 4);
+      });
+      [RF.deich, ...RF.bue.map((b) => b.d)].forEach((d) =>
+        [1, -1].forEach((dir) => trackSign(d - dir * RF.pfeif, dir, 2.1, PM, 0.5, 0.66, 2.4)),
+      );
+    }
+    // Haltetafeln an beiden Bahnsteigen
+    {
+      const HM = signTex(96, 96, (x, w, h) => {
+        x.fillStyle = "#f2c11c";
+        x.fillRect(0, 0, w, h);
+        x.fillStyle = "#111";
+        x.font = "bold 76px Arial";
+        x.textAlign = "center";
+        x.textBaseline = "middle";
+        x.fillText("H", w / 2, h / 2 + 3);
+      });
+      trackSign(RF.tStop + 1, 1, -2.2, HM, 0.55, 0.55, 2.2);
+      trackSign(RF.hStop - 1, -1, -2.2, HM, 0.55, 0.55, 2.2);
+    }
+    // Rad- und Fußweg parallel zur Bahn (Westseite) mit Laternen, Graben auf der Ostseite, Weidezaun
+    ribbon(1250, RAIL_L - 175, 8.2, 11.2, () => ISL_TOP + 0.12, PAVE2, 6);
+    for (let d = 1280; d < RAIL_L - 180; d += 55) {
+      const p = railPt(d);
+      const x = p.x - p.ty * 12,
+        n = p.y + p.tx * 12;
+      mesh(
+        new T.CylinderGeometry(0.06, 0.08, 4.2, 6),
+        std(0x2f5d3a, { metalness: 0.4 }),
+        null,
+        x,
+        ISL_TOP + 2.1,
+        -n,
+      );
+      mesh(new T.SphereGeometry(0.25, 10, 8), std(0xf4f4ee, { roughness: 0.3 }), null, x, ISL_TOP + 4.3, -n);
+    }
+    ribbon(
+      RF.deich + 40,
+      1240,
+      -4.2,
+      -6.4,
+      () => ISL_TOP - 0.22,
+      std(0x3f5a3a, { roughness: 0.6, metalness: 0.1 }),
+      8,
+    );
+    {
+      const posts = [];
+      for (let d = RF.deich + 60; d < RAIL_L - 260; d += 4.5) {
+        [-12.5, 13.5].forEach((o) => {
+          if (o > 0 && d > 1240) return;
+          const p = railPt(d);
+          posts.push([p.x - p.ty * o, p.y + p.tx * o]);
+        });
+      }
+      const im = new T.InstancedMesh(
+        new T.CylinderGeometry(0.06, 0.07, 1.3, 5),
+        std(0x6b5a46, { roughness: 0.9 }),
+        posts.length,
+      );
+      const o = new T.Object3D();
+      posts.forEach((q, i) => {
+        o.position.set(q[0], ISL_TOP + 0.65, -q[1]);
+        o.updateMatrix();
+        im.setMatrixAt(i, o.matrix);
+      });
+      scene.add(im);
+    }
+    // Pferde und Kühe auf den Weiden
+    {
+      const R8 = rng(808);
+      const BODY = std(0x6a4a32, { roughness: 0.8 }),
+        WH = std(0xf0eee8, { roughness: 0.8 });
+      for (let i = 0; i < 14; i++) {
+        const d = RF.deich + 120 + R8() * 1300,
+          o = (R8() < 0.5 ? -1 : 1) * (30 + R8() * 160);
+        const p = railPt(d);
+        const x = p.x - p.ty * o,
+          n = p.y + p.tx * o;
+        const g = new T.Group();
+        const M = R8() < 0.4 ? WH : BODY;
+        mesh(new T.BoxGeometry(2.0, 0.85, 0.7), M, g, 0, 1.35, 0);
+        mesh(new T.BoxGeometry(0.7, 0.5, 0.35), M, g, 1.2, 1.75, 0).rotation.z = 0.6;
+        [
+          [-0.75, -0.25],
+          [-0.75, 0.25],
+          [0.75, -0.25],
+          [0.75, 0.25],
+        ].forEach(([a, b]) => mesh(new T.BoxGeometry(0.14, 0.95, 0.14), M, g, a, 0.5, b));
+        g.position.set(x, ISL_TOP, -n);
+        g.rotation.y = R8() * 6.28;
+        scene.add(g);
+      }
+    }
+
+    // ----- Hafenbahnhof: längerer Bahnsteig und Fußgängerbrücke über die Gleise -----
+    {
+      const g = new T.Group();
+      const ST = std(0x7d8286, { roughness: 0.6, metalness: 0.4 }),
+        RL2 = std(0xd9dde0, { metalness: 0.5, roughness: 0.35 });
+      const y0 = ISL_TOP + 5.6;
+      mesh(new T.BoxGeometry(56, 0.35, 2.6), ST, g, 0, y0, 0);
+      [-1, 1].forEach((z) => {
+        mesh(new T.BoxGeometry(56, 0.06, 0.06), RL2, g, 0, y0 + 1.2, z * 1.25);
+        for (let x = -27; x <= 27; x += 1.5)
+          mesh(new T.BoxGeometry(0.05, 1.2, 0.05), RL2, g, x, y0 + 0.6, z * 1.25);
+      });
+      [-14, 14].forEach((x) => mesh(new T.BoxGeometry(0.6, y0, 0.6), ST, g, x, y0 / 2, 0));
+      [-1, 1].forEach((e) => {
+        const st = mesh(new T.BoxGeometry(14, 0.3, 2.4), ST, g, e * 33.5, y0 / 2 + 0.1, 0);
+        st.rotation.z = e * Math.atan2(y0, 14);
+      });
+      g.position.set(-5320, 0, -5752);
+      scene.add(g);
+      g.traverse((o) => {
+        if (o.isMesh) o.castShadow = true;
+      });
+    }
+
+    // ----- Inselbahnhof im Ort: Bahnsteig, Bahnsteigdach, Empfangsgebäude mit zwei Giebeln, Gepäckhalle, Platz, Park mit Kö 2 -----
+    const SP = TSTN;
+    const SA = Math.atan2(SP.ty, SP.tx);
+    const sw = (u, v) => [SP.x + SP.tx * u - SP.ty * v, SP.y + SP.ty * u + SP.tx * v]; // u längs zum Ort, v nach links (Westen)
+    const stG = new T.Group();
+    stG.position.set(SP.x, ISL_TOP, -SP.y);
+    stG.rotation.y = SA + Math.PI;
+    scene.add(stG); // lokal: +x Richtung Hafen, +z nach Westen (Bahnsteigseite)
+    {
+      // Bahnsteig
+      const d0 = RF.platT[0],
+        d1 = RF.platT[1];
+      ribbon(d0, d1, 1.35, 7.6, () => ISL_TOP + 0.62, KLINKER, 4);
+      wallRibbon(d0, d1, 1.35, ISL_TOP, ISL_TOP + 0.62, KERB);
+      ribbon(d0, d1, 1.95, 2.1, () => ISL_TOP + 0.625, WLINE, 6);
+      // Platz vor dem Empfangsgebäude und Weg zum Park
+      const uvS = (g, sx, sy) => {
+        const uv = g.attributes.uv;
+        for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * sx, uv.getY(i) * sy);
+        return g;
+      };
+      const plaza = mesh(uvS(new T.PlaneGeometry(130, 48), 130 / 3, 48 / 3), KLINKER, stG, 0, 0.6, 32);
+      plaza.rotation.x = -Math.PI / 2;
+      plaza.receiveShadow = true;
+      const pl2 = mesh(uvS(new T.PlaneGeometry(40, 10), 40 / 3, 10 / 3), KLINKER, stG, -6, 0.08, -20);
+      pl2.rotation.x = -Math.PI / 2;
+    }
+    const BRK = std(0xffffff, { map: TX.brick, roughness: 0.85 }),
+      WHT = std(0xf4f4ee, { roughness: 0.6 }),
+      TILE = std(0xffffff, { map: TX.roofR, roughness: 0.75 }),
+      GLW = std(0x2a3a44, { roughness: 0.15, metalness: 0.5 });
+    {
+      // Empfangsgebäude: Klinker, zwei Ziergiebel zum Platz, weiße Sprossenfenster, weiße Säulen am Eingang, Schriftzug und Uhr
+      const b = new T.Group();
+      stG.add(b);
+      b.position.set(4, 0.6, 19);
+      mesh(tbox(34, 7.5, 14, 2), BRK, b, 0, 3.75, 0);
+      const r = mesh(roofGeo(14, 34, 4.5), [BRK, TILE], b, 0, 7.5, 0);
+      r.rotation.y = Math.PI / 2;
+      [-7, 6].forEach((x, i) => {
+        const gw = 10,
+          gh = 6.5;
+        const gab = new T.Shape([
+          new T.Vector2(-gw / 2, 0),
+          new T.Vector2(gw / 2, 0),
+          new T.Vector2(0.9, gh),
+          new T.Vector2(-0.9, gh),
+        ]);
+        const gg = new T.ExtrudeGeometry(gab, { depth: 7, bevelEnabled: false });
+        gg.translate(0, 0, -7);
+        mesh(gg, BRK, b, x, 7.5, 7.6).geometry.computeVertexNormals();
+        mesh(new T.BoxGeometry(gw, 7.5, 6.5), BRK, b, x, 3.75, 4.6);
+        const rr = mesh(roofGeo(gw, 7, gh - 0.4), [BRK, TILE], b, x, 7.5, 4.6);
+        mesh(new T.BoxGeometry(2.2, 1.6, 0.3), WHT, b, x, 13.2, 7.8);
+        mesh(new T.BoxGeometry(5.2, 3.6, 0.12), WHT, b, x, 9.4, 7.9);
+        mesh(new T.BoxGeometry(4.6, 3.0, 0.14), GLW, b, x, 9.4, 7.95);
+        for (let k = -1; k <= 1; k++)
+          mesh(new T.BoxGeometry(0.08, 3.0, 0.16), WHT, b, x + k * 1.15, 9.4, 7.98);
+        for (let k = -1; k <= 1; k++)
+          mesh(new T.BoxGeometry(4.6, 0.08, 0.16), WHT, b, x, 9.4 + k * 0.9, 7.98);
+        mesh(new T.BoxGeometry(gw + 0.4, 0.4, 0.4), WHT, b, x, 7.5, 7.9);
+      });
+      // Eingang mit Glasfront und weißen Säulen, Schriftzug, Uhr
+      mesh(new T.BoxGeometry(14, 3.2, 0.12), GLW, b, 0, 1.6, 8.05);
+      [-6.5, -3, 3, 6.5].forEach((x) => {
+        mesh(new T.CylinderGeometry(0.32, 0.32, 3.6, 12), WHT, b, x, 1.8, 9.4);
+        mesh(new T.BoxGeometry(0.9, 0.6, 0.9), WHT, b, x, 3.9, 9.4);
+        mesh(new T.BoxGeometry(0.9, 0.4, 0.9), WHT, b, x, 0.2, 9.4);
+      });
+      mesh(new T.BoxGeometry(16, 0.45, 2.6), BRK, b, 0, 4.4, 9.0);
+      const sign = signTex(1024, 96, (x, w, h) => {
+        x.fillStyle = "#7b3a2a";
+        x.fillRect(0, 0, w, h);
+        x.fillStyle = "#f4f2ea";
+        x.font = "bold 58px Georgia, serif";
+        x.textAlign = "center";
+        x.textBaseline = "middle";
+        x.fillText("INSELBAHNHOF        LANGEOOG", w / 2, h / 2 + 3);
+      });
+      const sp = mesh(new T.PlaneGeometry(13, 1.2), sign, b, 0, 6.0, 8.06);
+      const clock = signTex(64, 64, (x) => {
+        x.fillStyle = "#fff";
+        x.beginPath();
+        x.arc(32, 32, 30, 0, 7);
+        x.fill();
+        x.strokeStyle = "#333";
+        x.lineWidth = 3;
+        x.stroke();
+        x.beginPath();
+        x.moveTo(32, 32);
+        x.lineTo(32, 12);
+        x.moveTo(32, 32);
+        x.lineTo(46, 36);
+        x.stroke();
+      });
+      mesh(new T.CircleGeometry(0.6, 24), clock, b, 13, 4.6, 7.05);
+      mesh(new T.BoxGeometry(0.5, 0.9, 0.05), std(0xc0261d), b, 15.5, 2.4, 7.06);
+      // Bahnsteigseite: Fensterreihe
+      for (let x = -15; x <= 15; x += 3) {
+        mesh(new T.BoxGeometry(1.6, 2.0, 0.1), GLW, b, x, 2.8, -7.05);
+        mesh(new T.BoxGeometry(1.8, 0.12, 0.14), WHT, b, x, 1.75, -7.05);
+      }
+      b.traverse((o) => {
+        if (o.isMesh) {
+          o.castShadow = true;
+          o.receiveShadow = true;
+        }
+      });
+    }
+    {
+      // Gepäckhalle: langes Klinkergebäude mit Ziegeldach und offenen Toren zum Bahnsteig
+      const h = new T.Group();
+      stG.add(h);
+      h.position.set(-46, 0.6, 16);
+      mesh(tbox(56, 5.2, 13, 2), BRK, h, 0, 2.6, 0);
+      const r = mesh(roofGeo(13, 56, 3.8), [BRK, TILE], h, 0, 5.2, 0);
+      r.rotation.y = Math.PI / 2;
+      for (let x = -24; x <= 24; x += 8) {
+        mesh(new T.BoxGeometry(5.6, 3.8, 0.1), std(0x1e2326, { roughness: 0.9 }), h, x, 1.9, -6.56);
+      }
+      const CC = [0x2f9b45, 0xc8322a, 0xd8418a, 0xe8901c, 0x2e6fc2, 0xf2c11c];
+      for (let i = 0; i < 10; i++) {
+        const c = mesh(
+          new T.BoxGeometry(1.25, 1.55, 1.9),
+          std(CC[i % 6], { roughness: 0.55 }),
+          stG,
+          -60 + i * 3.2,
+          0.6 + 0.85,
+          8.6 + (i % 2) * 0.3,
+        );
+        c.castShadow = true;
+      }
+      h.traverse((o) => {
+        if (o.isMesh) {
+          o.castShadow = true;
+          o.receiveShadow = true;
+        }
+      });
+    }
+    {
+      // Bahnsteigdach: Pfosten, Ziegeldach, Glasfirst
+      const r = new T.Group();
+      stG.add(r);
+      r.position.set(20, 0.62, 4.5);
+      for (let x = -14; x <= 14; x += 7)
+        mesh(new T.CylinderGeometry(0.12, 0.12, 3.4, 8), std(0x5a3a2a), r, x, 1.7, 0);
+      const rf = mesh(roofGeo(6.4, 32, 1.4), [std(0x5a3a2a), TILE], r, 0, 3.4, 0);
+      rf.rotation.y = Math.PI / 2;
+      mesh(
+        new T.BoxGeometry(32, 0.5, 0.8),
+        std(0xbcd3dc, { roughness: 0.1, metalness: 0.3, transparent: true, opacity: 0.7 }),
+        r,
+        0,
+        4.9,
+        0,
+      );
+      const sgn = signTex(512, 64, (x, w, h) => {
+        x.fillStyle = "#1d2a33";
+        x.fillRect(0, 0, w, h);
+        x.fillStyle = "#fff";
+        x.font = "bold 40px Arial";
+        x.textAlign = "center";
+        x.textBaseline = "middle";
+        x.fillText("LANGEOOG", w / 2, h / 2 + 2);
+      });
+      const s1 = mesh(new T.PlaneGeometry(4, 0.5), sgn, r, -15.5, 3.0, 0);
+      s1.rotation.y = Math.PI / 2;
+      r.traverse((o) => {
+        if (o.isMesh) o.castShadow = true;
+      });
+    }
+    {
+      // Abstellgleis auf der Ostseite, Park mit Rundweg, Denkmal Kö 2 auf rundem Klinkerplatz mit Bänken, Info-Café
+      const a = sw(-70, -5.2),
+        b = sw(25, -5.2);
+      scene.add(
+        IB.makeTrack(
+          [
+            [a[0], -a[1]],
+            [b[0], -b[1]],
+          ],
+          () => ISL_TOP + 0.3,
+        ),
+      );
+      const park = mesh(
+        new T.PlaneGeometry(70, 44),
+        std(0x5d8c3c, { map: TX.detail, roughness: 1 }),
+        stG,
+        10,
+        0.06,
+        -34,
+      );
+      park.rotation.x = -Math.PI / 2;
+      const ring = mesh(new T.RingGeometry(9, 11, 40), PAVE2, stG, 12, 0.1, -32);
+      ring.rotation.x = -Math.PI / 2;
+      const dg = new T.CircleGeometry(6.5, 40);
+      {
+        const uv = dg.attributes.uv;
+        for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 4.3, uv.getY(i) * 4.3);
+      }
+      const disk = mesh(dg, KLINKER, stG, -6, 0.12, -20);
+      disk.rotation.x = -Math.PI / 2;
+      const k = IB.bake(IB.makeKoe2());
+      k.position.set(-6, 0.18, -20);
+      k.rotation.y = 0.5;
+      stG.add(k);
+      const BEN = std(0x8a6a48, { roughness: 0.8 });
+      [
+        [-12, -17, 0.5],
+        [0, -23, 0.5],
+      ].forEach(([x, z, ry]) => {
+        const be = new T.Group();
+        mesh(new T.BoxGeometry(1.8, 0.08, 0.45), BEN, be, 0, 0.45, 0);
+        mesh(new T.BoxGeometry(1.8, 0.45, 0.06), BEN, be, 0, 0.7, -0.22);
+        be.position.set(x, 0.12, z);
+        be.rotation.y = ry;
+        stG.add(be);
+      });
+      const cafe = new T.Group();
+      stG.add(cafe);
+      cafe.position.set(30, 0, -30);
+      mesh(tbox(12, 4.5, 9, 2), std(0xffffff, { map: TX.brick, roughness: 0.85 }), cafe, 0, 2.25, 0);
+      mesh(roofGeo(12, 9, 3.5), [BRK, TILE], cafe, 0, 4.5, 0);
+      for (let i = 0; i < 4; i++) {
+        const sch = mesh(
+          new T.CylinderGeometry(1.2, 1.2, 0.08, 16),
+          std(0xf2f2f2),
+          cafe,
+          -4 + i * 2.6,
+          2.4,
+          7,
+        );
+        mesh(new T.CylinderGeometry(0.04, 0.04, 2.4, 6), POLE, cafe, -4 + i * 2.6, 1.2, 7);
+      }
+      // Fahnenmast mit Langeoog-Flagge und Laternen auf dem Bahnsteig
+      const fl = signTex(64, 96, (x, w, h) => {
+        x.fillStyle = "#fff";
+        x.fillRect(0, 0, w, h);
+        x.fillStyle = "#d0202a";
+        x.fillRect(0, 0, w, h * 0.5);
+      });
+      mesh(new T.CylinderGeometry(0.06, 0.08, 9, 8), std(0xf2f2f2), stG, -28, 4.5, -12);
+      mesh(new T.PlaneGeometry(1.3, 1.9), fl, stG, -27.3, 8, -12).rotation.y = Math.PI / 2;
+      for (let u = -60; u <= 60; u += 20) {
+        const q = sw(u, 6.9);
+        mesh(
+          new T.CylinderGeometry(0.07, 0.09, 4.2, 8),
+          std(0x5c8a4a, { metalness: 0.4 }),
+          null,
+          q[0],
+          ISL_TOP + 0.6 + 2.1,
+          -q[1],
+        );
+        mesh(
+          new T.CylinderGeometry(0.3, 0.2, 0.45, 10),
+          std(0xf4f4ee),
+          null,
+          q[0],
+          ISL_TOP + 0.6 + 4.4,
+          -q[1],
+        );
+      }
+    }
+
+    // ----- Zug: Lok vorn, Gepäckwagen, sieben Personenwagen, Lok hinten (Schiebelok) -----
+    const TRAIN = (() => {
+      const list = [];
+      const add = (o, len, kind) => {
+        scene.add(o);
+        list.push({ o, len, kind });
+      };
+      const lokA = IB.bake(IB.makeLoco());
+      add(lokA, lokA.userData.len, "lok");
+      const flat = IB.bake(IB.makeFlat());
+      add(flat, flat.userData.len, "flat");
+      ["dblau", "pink", "orange", "orange", "pink", "gelb", "gruen"].forEach((c) => {
+        const o = IB.bake(IB.makeCoach(IB.COLORS[c]));
+        add(o, o.userData.len, "coach");
+      });
+      const lokB = IB.bake(IB.makeLoco());
+      add(lokB, lokB.userData.len, "lok");
+      let off = 0;
+      list.forEach((c) => {
+        c.off = off;
+        off += c.len + 0.3;
+      });
+      const len = off - 0.3;
+      const cab = IB.makeCabInterior();
+      cab.visible = false;
+      const coachIn = IB.makeCoachInterior();
+      coachIn.visible = false;
+      list[3].o.add(coachIn);
+      lokA.add(cab);
+      const glassA = [];
+      lokA.traverse((o) => {
+        if (o.name === "glass") glassA.push(o);
+      });
+      return { list, len, lokA, lokB, cab, coachIn, lead: lokA, glassA };
+    })();
+    // Figuren für die Filmszene: Kapitän/Lokführer und Fahrgäste
+    const person = (cols) => {
+      const g = new T.Group();
+      const M = {
+        navy: std(0x1b2747, { roughness: 0.7 }),
+        shirt: std(0x2a2f36, { roughness: 0.8 }),
+        skin: std(0xe0b08e, { roughness: 0.7 }),
+        pants: std(cols ? cols[1] : 0x1d2433, { roughness: 0.8 }),
+        shoe: std(0x151515),
+        white: std(0xf4f4f2, { roughness: 0.5 }),
+        gold: std(0xd8b04a, { metalness: 0.6, roughness: 0.35 }),
+        vest: std(0xe8f02a, { roughness: 0.5, emissive: 0x2a2c00 }),
+        refl: std(0xdfe3e6, { metalness: 0.6, roughness: 0.3 }),
+        top: std(cols ? cols[0] : 0x1b2747, { roughness: 0.75 }),
+      };
+      const legGeo = new T.BoxGeometry(0.16, 0.84, 0.18);
+      legGeo.translate(0, -0.42, 0);
+      const armGeo = new T.BoxGeometry(0.12, 0.62, 0.13);
+      armGeo.translate(0, -0.31, 0);
+      const legL = new T.Group(),
+        legR = new T.Group();
+      legL.position.set(-0.1, 0.92, 0);
+      legR.position.set(0.1, 0.92, 0);
+      mesh(legGeo, M.pants, legL);
+      mesh(legGeo, M.pants, legR);
+      mesh(new T.BoxGeometry(0.17, 0.08, 0.28), M.shoe, legL, 0, -0.86, 0.04);
+      mesh(new T.BoxGeometry(0.17, 0.08, 0.28), M.shoe, legR, 0, -0.86, 0.04);
+      g.add(legL, legR);
+      const torso = mesh(new T.BoxGeometry(0.44, 0.62, 0.24), cols ? M.top : M.navy, g, 0, 1.23, 0);
+      mesh(new T.BoxGeometry(0.12, 0.2, 0.02), M.white, g, 0, 1.44, 0.125);
+      const armL = new T.Group(),
+        armR = new T.Group();
+      armL.position.set(-0.29, 1.5, 0);
+      armR.position.set(0.29, 1.5, 0);
+      const aL = mesh(armGeo, cols ? M.top : M.navy, armL),
+        aR = mesh(armGeo, cols ? M.top : M.navy, armR);
+      mesh(new T.BoxGeometry(0.1, 0.1, 0.1), M.skin, armL, 0, -0.66, 0);
+      mesh(new T.BoxGeometry(0.1, 0.1, 0.1), M.skin, armR, 0, -0.66, 0);
+      g.add(armL, armR);
+      const cuffs = [
+        mesh(new T.BoxGeometry(0.13, 0.04, 0.14), M.gold, armL, 0, -0.56, 0),
+        mesh(new T.BoxGeometry(0.13, 0.04, 0.14), M.gold, armR, 0, -0.56, 0),
+      ];
+      mesh(new T.BoxGeometry(0.1, 0.08, 0.1), M.skin, g, 0, 1.58, 0);
+      mesh(new T.SphereGeometry(0.13, 12, 10), M.skin, g, 0, 1.72, 0);
+      const cap = new T.Group();
+      g.add(cap);
+      mesh(new T.CylinderGeometry(0.15, 0.13, 0.08, 14), M.white, cap, 0, 1.86, 0);
+      mesh(new T.CylinderGeometry(0.135, 0.135, 0.05, 14), M.navy, cap, 0, 1.81, 0);
+      mesh(new T.BoxGeometry(0.2, 0.02, 0.1), M.shoe, cap, 0, 1.79, 0.14);
+      mesh(new T.BoxGeometry(0.2, 0.025, 0.02), M.gold, cap, 0, 1.825, 0.135);
+      const capL = new T.Group();
+      g.add(capL);
+      mesh(new T.CylinderGeometry(0.135, 0.14, 0.1, 14), M.navy, capL, 0, 1.84, 0);
+      mesh(new T.BoxGeometry(0.22, 0.02, 0.12), M.navy, capL, 0, 1.8, 0.14);
+      const vest = new T.Group();
+      g.add(vest);
+      mesh(new T.BoxGeometry(0.46, 0.5, 0.26), M.vest, vest, 0, 1.26, 0);
+      [1.1, 1.32].forEach((y) => mesh(new T.BoxGeometry(0.47, 0.035, 0.27), M.refl, vest, 0, y, 0));
+      if (cols) {
+        cap.visible = false;
+        capL.visible = false;
+        vest.visible = false;
+        cuffs.forEach((c) => (c.visible = false));
+        if (cols[2]) {
+          mesh(new T.BoxGeometry(0.34, 0.42, 0.18), std(cols[2]), g, 0, 1.25, -0.2);
+        }
+      }
+      g.traverse((o) => {
+        if (o.isMesh) o.castShadow = true;
+      });
+      g.visible = false;
+      scene.add(g);
+      return {
+        g,
+        legL,
+        legR,
+        armL,
+        armR,
+        torso,
+        arms: [aL, aR],
+        cap,
+        capL,
+        vest,
+        cuffs,
+        M,
+        outfit: "kapitaen",
+      };
+    };
+    const fig = person(null);
+    const R9b = rng(99);
+    const pax = [];
+    for (let i = 0; i < 9; i++)
+      pax.push(
+        person([
+          [0xc8322a, 0x2e6fc2, 0x3a7a3a, 0xe8b923, 0x7a4a8a, 0x2f3a44][i % 6],
+          [0x2b2f3a, 0x3a3f4a, 0x5a4a3a][i % 3],
+          i % 2 ? 0x3a5a8a : 0x8a2f28,
+        ]),
+      );
+    const flash = new T.Mesh(
+      new T.SphereGeometry(0.6, 20, 14),
+      new T.MeshBasicMaterial({ color: 0xfff6c8, transparent: true, opacity: 0, depthWrite: false }),
+    );
+    flash.visible = false;
+    scene.add(flash);
+    // Treppe von der Gangway hinab zur Kaje (Liegeplatz 2)
+    {
+      const g = new T.Group();
+      const ST = std(0x7d8286, { roughness: 0.6, metalness: 0.4 }),
+        RL3 = std(0xd9dde0, { metalness: 0.5, roughness: 0.35 });
+      const L0 = Math.hypot(10.5, 4.6 - ISL_TOP);
+      const ramp = mesh(new T.BoxGeometry(1.5, 0.2, L0), ST, g, 0, 0, 0);
+      ramp.rotation.x = -Math.atan2(4.6 - ISL_TOP, 10.5);
+      for (let i = 0; i < 16; i++)
+        mesh(
+          new T.BoxGeometry(1.4, 0.06, 0.3),
+          std(0x55595c),
+          g,
+          0,
+          0.12 + (i / 15 - 0.5) * (4.6 - ISL_TOP),
+          (i / 15 - 0.5) * 10.5,
+        );
+      [-0.72, 0.72].forEach((x) => {
+        const r = mesh(new T.BoxGeometry(0.05, 0.05, L0), RL3, g, x, 1.0, 0);
+        r.rotation.x = ramp.rotation.x;
+      });
+      g.position.set(-5261.2, (4.6 + ISL_TOP) / 2, -5566.2);
+      scene.add(g);
+    }
+    const camR = new T.PerspectiveCamera(62, 1, 0.05, 9500);
+    const rigR = new T.Group();
+    rigR.add(camR);
+    scene.add(rigR);
     try {
       document.fonts &&
         document.fonts
@@ -9362,7 +11664,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
             bt.encoding = T.sRGBEncoding;
             bt.wrapS = bt.wrapT = T.RepeatWrapping;
             bt.anisotropy = 8;
-            const pg = new T.BoxGeometry(4, 0.6, 90);
+            const pg = new T.BoxGeometry(4, 0.6, 135);
             const uv = pg.attributes.uv;
             for (let i = 0; i < uv.count; i++)
               uv.setXY(i, uv.getX(i) * (pg.attributes.normal.getY(i) > 0.5 ? 4 / 6 : 1), uv.getY(i) * 15);
@@ -9372,24 +11674,24 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
               null,
               -5316.2,
               ISL_TOP + 0.3,
-              -5635,
+              -5652.5,
             );
             pl.receiveShadow = true;
             mesh(
-              new T.BoxGeometry(0.3, 0.62, 90),
+              new T.BoxGeometry(0.3, 0.62, 135),
               std(0xb8b4ac, { roughness: 0.8 }),
               null,
               -5318.05,
               ISL_TOP + 0.31,
-              -5635,
+              -5652.5,
             );
             const ln = mesh(
-              new T.PlaneGeometry(0.15, 90),
+              new T.PlaneGeometry(0.15, 135),
               std(0xf4f4f0, { roughness: 0.6 }),
               null,
               -5317.4,
               ISL_TOP + 0.605,
-              -5635,
+              -5652.5,
             );
             ln.rotation.x = -Math.PI / 2;
           }
@@ -10161,9 +12463,13 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       TRAF3D,
       yachtObjs,
       gulls,
-      cars,
-      railAt,
+      TRAIN,
       trackY,
+      camR,
+      rigR,
+      fig,
+      pax,
+      flash,
       turbines,
       buoyObjs,
       time,
@@ -10184,6 +12490,67 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     };
   }
 
+  function placeTrain(g) {
+    const P = TRAINPOS;
+    let d = P.d,
+      dir = P.dir;
+    if (
+      P.idle &&
+      ENV.dir === "BL" &&
+      !PREV.rows &&
+      ["run", "paused", "docked", "train", "intro"].includes(phase) &&
+      ENV.mode !== "beide"
+    ) {
+      d = Math.min(RF.tStop, RF.hStop + TRAIN_LEN + Math.max(0, S.t - TRAIN_LG) * 5.5);
+      dir = 1;
+    }
+    for (const c of g.TRAIN.list) {
+      const dc = d - dir * (c.off + c.len / 2);
+      const p1 = railPt(dc + c.len * 0.35),
+        p2 = railPt(dc - c.len * 0.35);
+      c.o.position.set((p1.x + p2.x) / 2, ISL_TOP + 0.3 + 0.116, -(p1.y + p2.y) / 2);
+      c.o.rotation.y =
+        Math.atan2(p1.y - p2.y, p1.x - p2.x) + (dir > 0 ? 0 : Math.PI) + (c.o === g.TRAIN.lokB ? Math.PI : 0);
+    }
+  }
+  function railCamera(g) {
+    const T = g.T,
+      TR = g.TRAIN,
+      rig = g.rigR,
+      cam = g.camR;
+    let par,
+      pos,
+      base = -Math.PI / 2,
+      L2 = LOOKR[pane];
+    if (pane === "lok") {
+      par = TR.lokA;
+      pos = TR.cab.userData.eye;
+    } else if (pane === "fenster") {
+      par = TR.list[2].o;
+      pos = new T.Vector3(2.4, 2.72, 1.42);
+      base = -Math.PI / 2 - 0.22;
+    } else if (pane === "wagen") {
+      par = TR.list[3].o;
+      pos = TR.coachIn.userData.eye;
+    } else {
+      const P = TRAINPOS;
+      const c = railPt(P.d - P.dir * TRAIN_LEN * 0.3);
+      const a = (c.h + ORBIT.yaw) * RAD,
+        cp = Math.cos(ORBIT.pitch);
+      g.camC.position.set(
+        c.x + Math.sin(a) * ORBIT.dist * cp,
+        ISL_TOP + 3 + Math.sin(ORBIT.pitch) * ORBIT.dist,
+        -(c.y + Math.cos(a) * ORBIT.dist * cp),
+      );
+      g.camC.lookAt(c.x, ISL_TOP + 2.5, -c.y);
+      return g.camC;
+    }
+    if (rig.parent !== par) par.add(rig);
+    rig.position.copy(pos);
+    rig.rotation.set(0, base + L2.yaw, 0);
+    cam.rotation.set(L2.pitch, 0, 0);
+    return cam;
+  }
   function render3D(dtR, tR) {
     const g = G,
       T = g.T;
@@ -10195,7 +12562,9 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       g.size = [w, h];
       g.renderer.setSize(w, h, false);
       const a = w / h;
-      g.camB.aspect = g.camN.aspect = g.camC.aspect = a;
+      g.camB.aspect = g.camN.aspect = g.camC.aspect = g.camR.aspect = a;
+      g.camR.fov = a < 1.15 ? 66 : 54;
+      g.camR.updateProjectionMatrix();
       g.camB.fov = a < 1.15 ? 64 : 52;
       g.camN.fov = a < 1.15 ? 54 : 44;
       g.camB.updateProjectionMatrix();
@@ -10304,12 +12673,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       o.position.set(y.x, y.v ? waveH(y.x, -y.y, tR) * 0.5 + dy : Math.max(dy, -0.95), -y.y);
       o.rotation.y = -y.h * RAD;
     });
-    const dep = ENV.dir === "LB" ? 0 : Math.max(0, S.t - TRAIN_LG) * 6;
-    g.cars.forEach((c) => {
-      const p = g.railAt(96 + dep + c.off);
-      c.g.position.set(p.x, g.trackY(p.x, p.n) + 0.116, -p.n);
-      c.g.rotation.y = Math.PI / 2 - p.h;
-    });
+    placeTrain(g);
     g.turbines.forEach((t) => (t.rot.rotation.z = tR * t.sp));
     g.gulls.forEach((q) => {
       const a = q.ph + tR * q.sp;
@@ -10331,7 +12695,15 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       o.g.rotation.set(Math.sin(tR * 1.2 + b.ph) * 0.07, 0, Math.cos(tR * 1.0 + b.ph) * 0.07);
     }
     let cam;
-    if (bridge) {
+    const railCam = isRail() || (!!RS && (phase === "train" || phase === "over"));
+    g.TRAIN.cab.visible = railCam && pane === "lok";
+    g.TRAIN.coachIn.visible = railCam && pane === "wagen";
+    g.TRAIN.glassA.forEach((m) => (m.visible = !(railCam && pane === "lok")));
+    if (phase === "cut" && CS) {
+      cam = cutCamera(g, tR);
+    } else if (railCam) {
+      cam = railCamera(g);
+    } else if (bridge) {
       g.rig.rotation.y = LOOK.yaw;
       g.camB.rotation.x = LOOK.pitch;
       cam = g.camB;
@@ -10365,7 +12737,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       }
     }
     {
-      const fin = phase === "docked" || phase === "train";
+      const fin = ["docked", "train", "cut", "cutwait", "rail", "railEnd", "rpaused"].includes(phase);
       const nearL =
         ENV.dir === "LB"
           ? S.moored && !(S.releaseT > 0)
@@ -10395,8 +12767,12 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     g.waterMat.uniforms.uCam.value.copy(cpos);
     // Schattenbereich folgt dem Schiff (vorn etwas mehr)
     const fo = bridge ? 40 : nock ? 20 : 0;
-    const fx = S.x + Math.sin(hr) * fo,
+    let fx = S.x + Math.sin(hr) * fo,
       fz = -S.y - Math.cos(hr) * fo;
+    if (railCam || phase === "cut") {
+      fx = cpos.x;
+      fz = cpos.z;
+    }
     g.sun.target.position.set(fx, 0, fz);
     g.sun.position.set(fx + g.SUN.x * 350, g.SUN.y * 350, fz + g.SUN.z * 350);
     g.sun.target.updateMatrixWorld();
@@ -10450,6 +12826,10 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       if (pane === "bruecke") {
         LOOK.yaw = Math.max(-2.8, Math.min(2.8, LOOK.yaw + mk * dx * 0.006));
         LOOK.pitch = Math.max(-0.7, Math.min(0.5, LOOK.pitch + mk * dy * 0.004));
+      } else if (LOOKR[pane]) {
+        const L2 = LOOKR[pane];
+        L2.yaw = Math.max(-2.6, Math.min(2.6, L2.yaw + mk * dx * 0.006));
+        L2.pitch = Math.max(-0.8, Math.min(0.6, L2.pitch + mk * dy * 0.004));
       } else if (pane === "nock") {
         NOCK.yaw = Math.max(-3.1, Math.min(3.1, NOCK.yaw + mk * dx * 0.006));
         NOCK.pitch = Math.max(-1.1, Math.min(0.5, NOCK.pitch + mk * dy * 0.004));
@@ -10491,6 +12871,17 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         sim -= h;
       }
     }
+    if (phase === "rail") {
+      let sim = dtR * TS;
+      while (sim > 0 && phase === "rail") {
+        const h = Math.min(0.1, sim);
+        RS.lev = S.throttle;
+        stepRail(h);
+        sim -= h;
+      }
+      if (RS) TRAINPOS = { d: RS.d, dir: RS.dir, idle: false };
+    }
+    if (phase === "cut") stepCut(dtR);
     // Nach dem Festmachen holen Leinen und Winden das Schiff sanft an den Liegeplatz
     if (phase === "docked" || phase === "train") {
       const k = Math.min(1, dtR * 0.6),
@@ -10504,7 +12895,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       S.throttle = 0;
       S.bow = 0;
     }
-    if (pane === "karte") {
+    if (pane === "karte" && !isRail() && phase !== "cut") {
       const c = $("chart");
       const { W, H, dpr } = fit(c);
       drawScene(c.getContext("2d"), W, H, dpr, { cx: W / 2, cy: H * 0.66, sc: zoom, mini: false });
