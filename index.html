@@ -1739,9 +1739,7 @@ input {
         <li>Oben rechts stellen Sie den Zeitraffer ein.</li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">
-        Version 15.10.2026 e · Mittelbahnsteig am Hafen, Hafenstraße, neue Werkstatt, tiefer Lok-Sound
-      </p>
+      <p class="ver">Version 15.10.2026 f · Bahndamm, Lok nach Foto, Menschen mit Beinen</p>
     </div>
   </div>
 </div>
@@ -5646,6 +5644,17 @@ input {
     return m;
   }
   const ISL_TOP = 1.6;
+  // Gleis liegt zwischen den Bahnhöfen auf einem flachen Damm (0,5 m); in den Bahnhöfen ebenerdig
+  function embW(d) {
+    const ss = (a, b, v) => {
+      const t = Math.max(0, Math.min(1, (v - a) / (b - a)));
+      return t * t * (3 - 2 * t);
+    };
+    return ss(150, 215, d) * (1 - ss(RAIL_L - 430, RAIL_L - 365, d));
+  }
+  function trackHt(d) {
+    return ISL_TOP + 0.3 + 0.5 * embW(d);
+  }
   function dune(x, n) {
     if (!inPoly(x, n, ISLAND)) return -1;
     const e = polyEdgeDist(x, n, ISLAND);
@@ -6131,7 +6140,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       const hl = 3.35,
         hx = 1.45;
       const hs = new T.Shape();
-      const hw = 0.86,
+      const hw = 0.72,
         hh = 1.42,
         rr = 0.22;
       hs.moveTo(-hw, 0);
@@ -6174,7 +6183,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         return tex(c);
       })();
       const fr = mesh(
-        new T.PlaneGeometry(1.4, 1.15),
+        new T.PlaneGeometry(1.2, 1.12),
         std(0xffffff, { map: grille, roughness: 0.4 }),
         g,
         hx + hl / 2 + 0.005,
@@ -6182,9 +6191,9 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         0,
       );
       fr.rotation.y = Math.PI / 2;
-      [-0.62, 0.62].forEach((z) => {
+      [-0.5, 0.5].forEach((z) => {
         mesh(
-          new T.CylinderGeometry(0.13, 0.13, 0.1, 16).rotateZ(Math.PI / 2),
+          new T.CylinderGeometry(0.12, 0.12, 0.1, 16).rotateZ(Math.PI / 2),
           CHROME,
           g,
           hx + hl / 2 + 0.05,
@@ -6242,7 +6251,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       // Glocke/Horn auf dem Vorbau, Auspuff
       mesh(new T.SphereGeometry(0.14, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), BLACK, g, hx + 1.2, 2.5, -0.25);
       mesh(new T.CylinderGeometry(0.05, 0.05, 0.12, 8), BLACK, g, hx + 1.2, 2.47, -0.25);
-      mesh(new T.CylinderGeometry(0.15, 0.17, 1.35, 14), RED, g, -0.05, 2.5 + 0.6, -0.42);
+      mesh(new T.CylinderGeometry(0.13, 0.14, 1.5, 16), RED, g, -0.56, 3.08, 0);
+      mesh(new T.CylinderGeometry(0.15, 0.15, 0.06, 16), RED, g, -0.56, 3.84, 0);
       // Führerhaus
       const cx = -1.85,
         cl = 2.35,
@@ -6300,24 +6310,52 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           f.rotation.y = ry;
         });
       };
-      [-0.5, 0.5].forEach((z) => {
-        win(0.92, 0.95, cx + cl / 2 + 0.01, 2.92, z, Math.PI / 2);
-        win(0.92, 0.95, cx - cl / 2 - 0.01, 2.92, z, Math.PI / 2);
+      const ALU = std(0xc9cdd0, { roughness: 0.3, metalness: 0.7 });
+      const rrS = (w, h, r) => {
+        const s = new T.Shape();
+        const x = -w / 2,
+          y = -h / 2;
+        s.moveTo(x + r, y);
+        s.lineTo(x + w - r, y);
+        s.quadraticCurveTo(x + w, y, x + w, y + r);
+        s.lineTo(x + w, y + h - r);
+        s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        s.lineTo(x + r, y + h);
+        s.quadraticCurveTo(x, y + h, x, y + h - r);
+        s.lineTo(x, y + r);
+        s.quadraticCurveTo(x, y, x + r, y);
+        return s;
+      };
+      const rwin = (w, h, r, px, py, pz, ry) => {
+        const gl = mesh(new T.ShapeGeometry(rrS(w, h, r), 8), GLASS, g, px, py, pz);
+        gl.rotation.y = ry;
+        const o = rrS(w + 0.12, h + 0.12, r + 0.06);
+        o.holes.push(rrS(w, h, r));
+        const fg = new T.ExtrudeGeometry(o, { depth: 0.05, bevelEnabled: false, curveSegments: 8 });
+        const f = mesh(fg, ALU, g, px, py, pz);
+        f.rotation.y = ry;
+      };
+      [-0.56, 0.56].forEach((z) => {
+        rwin(0.8, 0.94, 0.11, cx + cl / 2 + 0.012, 2.92, z, Math.PI / 2);
+        rwin(0.8, 0.94, 0.11, cx - cl / 2 - 0.012, 2.92, z, -Math.PI / 2);
+        const wp = mesh(box(0.03, 0.55, 0.03), BLACK, g, cx + cl / 2 + 0.06, 3.12, z + 0.12);
+        wp.rotation.x = 0.75;
       });
+      rwin(0.24, 0.56, 0.11, cx + cl / 2 + 0.012, 2.2, 0.9, Math.PI / 2);
       mesh(new T.CylinderGeometry(0.012, 0.012, 0.9, 4), BLACK, g, cx - 0.6, cb + ch + 0.5, -0.6);
       mesh(box(0.5, 0.12, 0.35), WHITE, g, cx + 0.3, cb + ch + 0.12, 0.2);
-      [-0.62, 0.62].forEach((z) =>
+      [-0.5, 0.5].forEach((z) =>
         mesh(
           new T.CylinderGeometry(0.07, 0.07, 0.06, 12).rotateZ(Math.PI / 2),
           std(0xc0141a, { roughness: 0.3, emissive: 0x300000 }),
           g,
           hx + hl / 2 + 0.04,
           1.62,
-          z * 0.82,
+          z * 0.86,
         ),
       );
       [-1, 1].forEach((sd) => {
-        win(0.62, 0.86, cx + 0.38, 2.85, sd * (cw / 2 + 0.01), 0);
+        rwin(0.6, 0.84, 0.09, cx + 0.38, 2.85, sd * (cw / 2 + 0.012), sd > 0 ? 0 : Math.PI);
         win(0.42, 0.42, cx - 0.72, 2.45, sd * (cw / 2 + 0.01), 0);
         const c0 = mesh(
           new T.CylinderGeometry(0.21, 0.21, 0.02, 16).rotateX(Math.PI / 2),
@@ -6649,10 +6687,10 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         return hold;
       };
       const fwin = [
-        { u: -0.5, v: 2.92 - fl, w: 0.9, h: 0.92, r: 0.1 },
-        { u: 0.5, v: 2.92 - fl, w: 0.9, h: 0.92, r: 0.1 },
+        { u: -0.56, v: 2.92 - fl, w: 0.78, h: 0.92, r: 0.1 },
+        { u: 0.56, v: 2.92 - fl, w: 0.78, h: 0.92, r: 0.1 },
       ];
-      wall(2 * zw, H0, fwin, (h) => {
+      wall(2 * zw, H0, [...fwin, { u: 0.9, v: 2.2 - fl, w: 0.22, h: 0.54, r: 0.1 }], (h) => {
         h.position.set(x1 + 0.03, fl, 0);
         h.rotation.y = -Math.PI / 2;
       });
@@ -6729,7 +6767,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         vis.rotation.z = -0.25;
       }
       // Mittelsäule mit Wappen und Fahrplantafel
-      sm(box(0.05, 1.0, 0.1), CRM2, null, x1 - 0.01, 2.92, 0);
+      sm(box(0.05, 1.0, 0.3), CRM2, null, x1 - 0.01, 2.92, 0);
       const shield = cv(128, 160, (x, w, h) => {
         x.fillStyle = "#c8a24a";
         x.fillRect(0, 0, w, h);
@@ -6776,18 +6814,18 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         opacity: 0.07,
         depthWrite: false,
       });
-      [-0.5, 0.5].forEach((z) => {
-        sm(box(0.01, 0.92, 0.9), GL, null, x1 + 0.06, 2.92, z);
+      [-0.56, 0.56].forEach((z) => {
+        sm(box(0.01, 0.92, 0.78), GL, null, x1 + 0.06, 2.92, z);
       });
       // Instrumentenpult rechts vor dem Fahrer
       const pz0 = 0.06,
-        pz1 = zw - 0.02,
+        pz1 = 0.76,
         pw = pz1 - pz0,
-        pzc = (pz0 + pz1) / 2;
-      sm(box(0.58, 0.96, pw), CRM2, null, x1 - 0.3, fl + 0.48, pzc);
+        pzc = (pz0 + pz1) / 2; // rechts daneben bleibt das kleine Fenster neben dem Vorbau frei
+      sm(box(0.58, 0.84, pw), CRM2, null, x1 - 0.3, fl + 0.42, pzc);
       sm(box(0.6, 0.05, pw + 0.02), DGR, null, x1 - 0.3, fl + 0.06, pzc);
       const PG = new T.Group();
-      PG.position.set(x1 - 0.2, fl + 1.2, pzc);
+      PG.position.set(x1 - 0.2, fl + 1.04, pzc);
       PG.rotation.set(0, -Math.PI / 2, 0);
       PG.rotateX(-0.6);
       ST.add(PG);
@@ -6839,9 +6877,9 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         ng.rotation.z = needle === undefined ? ((1.25 - R0() * 2.2) * Math.PI) / 2 + Math.PI / 2 : needle;
         return ng;
       };
-      for (let i = 0; i < 7; i++) gauge(-pw / 2 + 0.07 + i * 0.085, 0.22, 0.034);
-      for (let i = 0; i < 5; i++) gauge(-pw / 2 + 0.07 + i * 0.085, 0.115, 0.032);
-      gauge(pw / 2 - 0.1, 0.19, 0.07);
+      for (let i = 0; i < 5; i++) gauge(-pw / 2 + 0.06 + i * 0.08, 0.22, 0.033);
+      for (let i = 0; i < 4; i++) gauge(-pw / 2 + 0.06 + i * 0.08, 0.115, 0.031);
+      gauge(pw / 2 - 0.085, 0.2, 0.06);
       // Tacho groß, unten rechts, mit Skala 0–40 km/h
       const tacho = cv(256, 256, (x, w, h) => {
         x.fillStyle = "#f6f4ec";
@@ -6878,9 +6916,9 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         x.fillText("km/h", 128, 178);
       });
       const spd = gauge(
-        pw / 2 - 0.13,
-        -0.11,
-        0.11,
+        pw / 2 - 0.115,
+        -0.1,
+        0.1,
         std(0xffffff, { map: tacho, roughness: 0.35 }),
         1.25 * Math.PI,
         true,
@@ -6888,7 +6926,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       // Leuchtmelder und Kippschalter
       const LC = [0xd6352c, 0x3fae49, 0xf0c419, 0xffffff, 0xd6352c, 0x3fae49, 0x2f6fd1, 0xf0c419];
       LC.forEach((c, i) => {
-        const u = -pw / 2 + 0.06 + i * 0.062;
+        const u = -pw / 2 + 0.05 + i * 0.058;
         sm(new T.CylinderGeometry(0.018, 0.018, 0.012, 12).rotateX(Math.PI / 2), RUB, PG, u, 0.025, 0.006);
         sm(
           new T.SphereGeometry(0.013, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2).rotateX(Math.PI / 2),
@@ -6904,14 +6942,14 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           0.012,
         );
       });
-      for (let i = 0; i < 9; i++) {
-        const u = -pw / 2 + 0.06 + i * 0.055;
+      for (let i = 0; i < 8; i++) {
+        const u = -pw / 2 + 0.05 + i * 0.05;
         sm(box(0.03, 0.04, 0.01), DGR, PG, u, -0.08, 0.005);
         const t = sm(new T.CylinderGeometry(0.005, 0.005, 0.035, 6), CHROME, PG, u, -0.08, 0.02);
         t.rotation.x = 1.0 + (i % 2) * 0.9;
       }
       for (let i = 0; i < 6; i++) {
-        const u = -pw / 2 + 0.06 + i * 0.06;
+        const u = -pw / 2 + 0.05 + i * 0.055;
         sm(
           new T.CylinderGeometry(0.012, 0.012, 0.016, 12).rotateX(Math.PI / 2),
           i % 2 ? RUB : std(0x2f6fd1, { roughness: 0.4 }),
@@ -6945,7 +6983,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         sm(new T.SphereGeometry(0.035, 12, 10), RUB, thrL, 0, 0.23, 0);
       }
       const brkL = new T.Group();
-      brkL.position.set(x1 - 0.6, fl + 1.0, 0.78);
+      brkL.position.set(x1 - 0.6, fl + 1.0, 0.66);
       g.add(brkL);
       sm(new T.CylinderGeometry(0.05, 0.05, 0.05, 14), MET, brkL, 0, 0.025, 0);
       {
@@ -7031,17 +7069,11 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         sm(box(0.045, 0.03, 0.37), std(0xdfe3e6, { metalness: 0.5 }), null, x0 + 0.05, fl + 1.3, -0.3);
       }
       // Scheibenwischer außen an der Front
-      [-0.5, 0.5].forEach((z) => {
-        const w = new T.Mesh(box(0.015, 0.5, 0.02), BLACK);
-        w.position.set(x1 + 0.1, 2.62, z + 0.3);
-        w.rotation.x = 1.2;
-        g.add(w);
-      });
       // statische Teile zusammenfassen
       const baked = K.bake(ST);
       g.remove(ST);
       g.add(baked);
-      g.userData = { thrL, brkL, spd, PG, eye: new T.Vector3(cx + 0.02, 2.93, 0.48) };
+      g.userData = { thrL, brkL, spd, PG, eye: new T.Vector3(cx + 0.02, 2.93, 0.56) };
       return g;
     };
 
@@ -8818,13 +8850,62 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       return s;
     };
     // Hauptgleis
-    scene.add(
-      IB.makeTrack(
-        RAIL.map(([x, n]) => [x, -n]),
-        () => ISL_TOP + 0.3,
-        { piece: 8 },
-      ),
-    );
+    {
+      const P = [],
+        Y = new Map();
+      for (let d = 0; ; d += 4) {
+        const dd = Math.min(d, RAIL_L);
+        const p = railPt(dd);
+        const k = [p.x, -p.y];
+        P.push(k);
+        Y.set(k[0].toFixed(3) + "," + k[1].toFixed(3), trackHt(dd));
+        if (dd >= RAIL_L) break;
+      }
+      scene.add(
+        IB.makeTrack(
+          P,
+          (x, z) => {
+            const v = Y.get(x.toFixed(3) + "," + z.toFixed(3));
+            return v === undefined ? ISL_TOP + 0.3 : v;
+          },
+          { piece: 1000 },
+        ),
+      );
+      // Bahndamm: Grasböschung unter dem Schotter
+      const DP = [],
+        DI = [];
+      let k = 0;
+      for (let d = 140; ; d += 4) {
+        const dd = Math.min(d, RAIL_L - 355);
+        const p = railPt(dd);
+        const w = embW(dd);
+        const top = trackHt(dd) - 0.5,
+          lx = -p.ty,
+          ln = p.tx;
+        [
+          [-(2.0 + 1.6 * w), ISL_TOP - 0.06],
+          [-1.9, top],
+          [1.9, top],
+          [2.0 + 1.6 * w, ISL_TOP - 0.06],
+        ].forEach(([o, y]) => DP.push(p.x + lx * o, y, -(p.y + ln * o)));
+        if (k > 0) {
+          const a = (k - 1) * 4;
+          for (let j = 0; j < 3; j++) DI.push(a + j, a + 4 + j, a + j + 1, a + j + 1, a + 4 + j, a + 5 + j);
+        }
+        k++;
+        if (dd >= RAIL_L - 355) break;
+      }
+      const dg = new T.BufferGeometry();
+      dg.setAttribute("position", new T.Float32BufferAttribute(DP, 3));
+      dg.setIndex(DI);
+      dg.computeVertexNormals();
+      const uv = [];
+      for (let i = 0; i < DP.length / 3; i++) uv.push(DP[i * 3] / 5, DP[i * 3 + 2] / 5);
+      dg.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
+      const dm = new T.Mesh(dg, std(0x6f9846, { map: TX.detail, roughness: 1, side: T.DoubleSide }));
+      dm.receiveShadow = true;
+      scene.add(dm);
+    }
     // Prellböcke an beiden Enden
     const bufferStop = (d, dir) => {
       const p = railPt(d);
@@ -8869,16 +8950,16 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       const runs = [[], []];
       pts.forEach((p) => {
         const dx = p[0] - cross.x;
-        if (Math.abs(dx) < 10) return;
+        if (Math.abs(dx) < 40) return;
         runs[dx < 0 ? 0 : 1].push(p);
       });
       {
         const lx = -cross.ty,
           ln = cross.tx;
         const at = (o) => [cross.x + lx * o, cross.y + ln * o];
-        runs[0].push(at(5.0), at(3.75));
-        runs[1].unshift(at(-3.75), at(-5.0));
-      }
+        runs[0].push(at(28), at(15), at(5.0), at(3.75));
+        runs[1].unshift(at(-3.75), at(-5.0), at(-15), at(-28));
+      } // am Durchlass verläuft der Deich rechtwinklig zum Gleis
       const prof = [
         [-12, 0],
         [-2, 4.3],
@@ -8897,7 +8978,20 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           const l = Math.hypot(tx, ty) || 1;
           tx /= l;
           ty /= l;
-          prof.forEach(([o2, h]) => P.push(p[0] - ty * o2, ISL_TOP - 0.3 + h, -(p[1] + tx * o2)));
+          prof.forEach(([o2, h]) => {
+            let vx = p[0] - ty * o2,
+              vn = p[1] + tx * o2;
+            const rx = vx - cross.x,
+              rn = vn - cross.y;
+            const al = rx * cross.tx + rn * cross.ty;
+            let lt = -rx * cross.ty + rn * cross.tx; // nicht in den Durchlass ragen
+            if (Math.abs(al) < 13.6 && Math.abs(lt) < 3.62) {
+              lt = Math.sign(lt || 1) * 3.62;
+              vx = cross.x + cross.tx * al - cross.ty * lt;
+              vn = cross.y + cross.ty * al + cross.tx * lt;
+            }
+            P.push(vx, ISL_TOP - 0.3 + h, -vn);
+          });
           if (i > 0) {
             const a = (i - 1) * 4;
             for (let k = 0; k < 3; k++) I.push(a + k, a + 4 + k, a + k + 1, a + k + 1, a + 4 + k, a + 5 + k);
@@ -9113,7 +9207,9 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         const bend = Math.abs(k) > 12 ? (Math.abs(k) - 12) * ang * 0.6 : 0;
         const cx = p.x + lx * k + p.tx * bend,
           cn = p.y + ln * k + p.ty * bend;
-        [-1.7, 1.7].forEach((w) => P.push(cx + p.tx * w, ISL_TOP + 0.33, -(cn + p.ty * w)));
+        const lift = trackHt(b.d) + 0.1 - (ISL_TOP + 0.1),
+          yr = ISL_TOP + 0.1 + lift * Math.max(0, Math.min(1, 1 - (Math.abs(k) - 2.2) / 10));
+        [-1.7, 1.7].forEach((w) => P.push(cx + p.tx * w, yr, -(cn + p.ty * w)));
         if (k > -L0) {
           const a = P.length / 3 - 4;
           I.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
@@ -9169,7 +9265,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       trackSign(RF.hStop - 1, -1, -2.2, HM, 0.55, 0.55, 2.2);
     }
     // Hafenstraße: vom Ort westlich neben der Bahn bis zum Bahnübergang Feldweg, kreuzt dort schräg das Gleis und läuft östlich weiter Richtung Hafen
-    const roadPoly = (pts, w, y, mat) => {
+    const roadPoly = (pts, w, y0, mat) => {
       const P = [],
         U = [],
         I = [];
@@ -9183,6 +9279,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         tx /= l;
         tn /= l;
         if (i > 0) L += Math.hypot(q[0] - pts[i - 1][0], q[1] - pts[i - 1][1]);
+        const y = typeof y0 === "function" ? y0(q) : y0;
         [-1, 1].forEach((sd) => {
           P.push(q[0] - (tn * sd * w) / 2, y, -(q[1] + (tx * sd * w) / 2));
           U.push(sd * 0.5 + 0.5, L / 4);
@@ -9226,7 +9323,12 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         const p = railPt(RF.bue[0].d);
         HS.push([p.x + p.ty * 28, p.y - p.tx * 28]);
       }
-      roadPoly(HS, 5.5, ISL_TOP + 0.1, std(0x6b6d6f, { roughness: 0.95 }));
+      const rampY = (q) => {
+        const rp = railProj(q[0], q[1]);
+        const lift = trackHt(rp.d) + 0.1 - (ISL_TOP + 0.1);
+        return ISL_TOP + 0.1 + lift * Math.max(0, Math.min(1, 1 - (Math.abs(rp.o) - 2.4) / 12));
+      };
+      roadPoly(HS, 5.5, rampY, std(0x6b6d6f, { roughness: 0.95 }));
       // Café Golfstube westlich am Bahnübergang, Haus im Wäldchen östlich
       house(
         ...(() => {
@@ -13930,12 +14032,24 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
             return { x: p.x - p.ty * o, y: p.y + p.tx * o, tx: p.tx, ty: p.ty };
           };
           {
-            const P = [];
+            const P = [],
+              Y = new Map();
             for (let d = 7; d <= 250; d += 2) {
               const q = sidPt(d);
-              P.push([q.x, -q.y]);
+              const k = [q.x, -q.y];
+              P.push(k);
+              Y.set(k[0].toFixed(3) + "," + k[1].toFixed(3), trackHt(d));
             }
-            scene.add(IB.makeTrack(P, () => ISL_TOP + 0.3, { piece: 3 }));
+            scene.add(
+              IB.makeTrack(
+                P,
+                (x, z) => {
+                  const v = Y.get(x.toFixed(3) + "," + z.toFixed(3));
+                  return v === undefined ? ISL_TOP + 0.3 : v;
+                },
+                { piece: 1000 },
+              ),
+            );
           }
           {
             const p = railPt(250);
@@ -14224,32 +14338,69 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           return g;
         };
         // Menschen (instanziert)
+        // Menschen mit Beinen, Armen, Rumpf und Kopf (instanziert); Punkt [x,n,(y über Boden)]
         const crowd = (list) => {
           const R = rng(list.length * 7 + 3);
-          const body = new T.CylinderGeometry(0.2, 0.24, 1.15, 8);
-          body.translate(0, 0.58, 0);
-          const head = new T.SphereGeometry(0.13, 10, 8);
-          head.translate(0, 1.3, 0);
-          const ib = new T.InstancedMesh(body, std(0xffffff, { roughness: 0.8 }), list.length),
-            ih = new T.InstancedMesh(head, std(0xe2b99c, { roughness: 0.7 }), list.length);
-          const o = new T.Object3D();
-          const col = new T.Color();
+          const N = list.length;
+          const legG = new T.BoxGeometry(0.14, 0.84, 0.16);
+          legG.translate(0, 0.42, 0);
+          const torsoG = new T.BoxGeometry(0.42, 0.62, 0.25);
+          torsoG.translate(0, 1.15, 0);
+          const armG = new T.BoxGeometry(0.1, 0.6, 0.11);
+          armG.translate(0, -0.3, 0);
+          const headG = new T.SphereGeometry(0.12, 10, 8);
+          headG.translate(0, 1.63, 0);
+          const shoeG = new T.BoxGeometry(0.15, 0.07, 0.26);
+          shoeG.translate(0, 0.035, 0.04);
+          const W = std(0xffffff, { roughness: 0.8 });
+          const iLeg = new T.InstancedMesh(legG, W, N * 2),
+            iShoe = new T.InstancedMesh(shoeG, std(0x1d1d1f, { roughness: 0.7 }), N * 2),
+            iTor = new T.InstancedMesh(torsoG, W, N),
+            iArm = new T.InstancedMesh(armG, W, N * 2),
+            iHead = new T.InstancedMesh(headG, std(0xe2b99c, { roughness: 0.7 }), N);
           const CL = [
-            0x2f4f8f, 0xc23b32, 0xe8d24a, 0x3a7d4f, 0x222222, 0xeeeeee, 0x8a5a9e, 0x1d6fa3, 0xd9792b,
-            0x6b6b6b, 0xb24d7a, 0x3e6e8e,
-          ];
+              0x2f4f8f, 0xc23b32, 0xe8d24a, 0x3a7d4f, 0x222222, 0xeeeeee, 0x8a5a9e, 0x1d6fa3, 0xd9792b,
+              0x6b6b6b, 0xb24d7a, 0x3e6e8e,
+            ],
+            PA = [0x23283a, 0x3a3f4a, 0x2f3e5c, 0x5a4a3a, 0x1d1f24, 0x6b6f73];
+          const M = new T.Matrix4(),
+            L = new T.Matrix4(),
+            Q = new T.Matrix4(),
+            o = new T.Object3D(),
+            c1 = new T.Color(),
+            c2 = new T.Color();
           list.forEach((p, i) => {
-            o.position.set(p[0], ISL_TOP, -p[1]);
-            o.rotation.y = R() * 6.3;
-            const s = 0.85 + R() * 0.25;
-            o.scale.set(1, s, 1);
+            o.position.set(p[0], ISL_TOP + (p[2] || 0), -p[1]);
+            o.rotation.set(0, R() * 6.3, 0);
+            o.scale.setScalar(0.88 + R() * 0.2);
             o.updateMatrix();
-            ib.setMatrixAt(i, o.matrix);
-            ih.setMatrixAt(i, o.matrix);
-            col.set(CL[(R() * CL.length) | 0]).convertSRGBToLinear();
-            ib.setColorAt(i, col);
+            M.copy(o.matrix);
+            c1.set(CL[(R() * CL.length) | 0]).convertSRGBToLinear();
+            c2.set(PA[(R() * PA.length) | 0]).convertSRGBToLinear();
+            const step = (R() - 0.5) * 0.5;
+            [-1, 1].forEach((sd, k) => {
+              L.makeTranslation(sd * 0.11, 0, 0);
+              Q.makeRotationX(sd * step);
+              L.multiply(Q);
+              const m = M.clone().multiply(L);
+              iLeg.setMatrixAt(i * 2 + k, m);
+              iLeg.setColorAt(i * 2 + k, c2);
+              iShoe.setMatrixAt(i * 2 + k, m);
+              L.makeTranslation(sd * 0.27, 1.44, 0);
+              Q.makeRotationX(-sd * step * 0.8);
+              L.multiply(Q);
+              iArm.setMatrixAt(i * 2 + k, M.clone().multiply(L));
+              iArm.setColorAt(i * 2 + k, c1);
+            });
+            iTor.setMatrixAt(i, M);
+            iTor.setColorAt(i, c1);
+            iHead.setMatrixAt(i, M);
           });
-          scene.add(ib, ih);
+          [iLeg, iShoe, iTor, iArm, iHead].forEach((m) => {
+            m.castShadow = true;
+            m.frustumCulled = false;
+            scene.add(m);
+          });
         };
         const scatter = (x0, x1, n0, n1, k, seed) => {
           const R = rng(seed);
@@ -14453,16 +14604,6 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         flagpole(47, -6, ["#2a63b8", "#2a63b8", "#f2d33a"]);
         flagpole(50, -6, ["#c8102e", "#ffffff", "#1d4fa0"]);
         // --- Langeoog ---
-        hall(-5275, 5668, 18, 28, 7.5, 0, 0x9aa3a8, 0x5f686d);
-        hall(-5250, 5702, 26, 16, 6.5, 0, 0xb2ada0, 0x6a6f72);
-        {
-          const g = new T.Group();
-          mesh(tbox(30, 6, 10, 2), corrM(0x8a3a2a), g, 0, 3, 0);
-          mesh(roofGeo(30, 10, 2.5), [corrM(0x8a3a2a), corrM(0x5e676c)], g, 0, 6, 0);
-          for (let i = 0; i < 2; i++) mesh(new T.BoxGeometry(4, 5, 0.12), DOOR, g, -6 + i * 12, 2.5, 5.06);
-          g.position.set(-5300, ISL_TOP, -5745);
-          scene.add(g);
-        }
         house(-5200, 5760, 14, 10, 5, 4.5, BRICK, ROOFR, 0, ISL_TOP);
         house(-5175, 5785, 10, 9, 4.5, 4, BRICKY, ROOFR, Math.PI / 2, ISL_TOP);
         house(-5040, 5765, 12, 10, 4.5, 4.5, BRICK, ROOFR, 0, ISL_TOP);
@@ -14486,7 +14627,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         bikes(-5245, 5640, 10, Math.PI / 2);
         bikes(-5245, 5652, 8, Math.PI / 2);
         crowd([
-          ...scatter(-5325.6, -5322.4, 5596, 5700, 30, 31),
+          ...scatter(-5325.6, -5322.4, 5596, 5700, 30, 31).map((q) => [q[0], q[1], 0.6]),
           ...scatter(-5286, -5250, 5566, 5590, 20, 32),
           ...scatter(-5306, -5290, 5585, 5592, 8, 34),
           ...scatter(-5100, -4900, 5722, 5735, 10, 33),
@@ -14494,7 +14635,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         treesAt([
           ...scatter(-5230, -5100, 5740, 5820, 14, 41),
           ...scatter(-5000, -4700, 5745, 5830, 16, 42),
-          ...scatter(-5400, -5340, 5700, 5800, 8, 43),
+          ...scatter(-5430, -5365, 5700, 5800, 8, 43),
         ]);
         flagpole(-5240, 5566, ["#151515", "#c8102e", "#f5c400"]);
         flagpole(-5236, 5566, ["#c8102e", "#ffffff", "#1d4fa0"]);
@@ -14896,9 +15037,15 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       const dc = d - dir * (c.off + c.len / 2);
       const p1 = railPt(dc + c.len * 0.35),
         p2 = railPt(dc - c.len * 0.35);
-      c.o.position.set((p1.x + p2.x) / 2, ISL_TOP + 0.3 + 0.116, -(p1.y + p2.y) / 2);
-      c.o.rotation.y =
-        Math.atan2(p1.y - p2.y, p1.x - p2.x) + (dir > 0 ? 0 : Math.PI) + (c.o === g.TRAIN.lokB ? Math.PI : 0);
+      const h1 = trackHt(dc + c.len * 0.35),
+        h2 = trackHt(dc - c.len * 0.35);
+      c.o.position.set((p1.x + p2.x) / 2, (h1 + h2) / 2 + 0.116, -(p1.y + p2.y) / 2);
+      const flip = (dir > 0 ? 0 : 1) + (c.o === g.TRAIN.lokB ? 1 : 0);
+      c.o.rotation.set(
+        0,
+        Math.atan2(p1.y - p2.y, p1.x - p2.x) + flip * Math.PI,
+        (flip % 2 ? -1 : 1) * Math.atan2(h1 - h2, c.len * 0.7),
+      );
     }
   }
   function railCamera(g) {
