@@ -1739,7 +1739,9 @@ input {
         <li>Oben rechts stellen Sie den Zeitraffer ein.</li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">Version 15.10.2026 d · Zweiter Zug am Hafen, Flugzeuge am Flugplatz</p>
+      <p class="ver">
+        Version 15.10.2026 e · Mittelbahnsteig am Hafen, Hafenstraße, neue Werkstatt, tiefer Lok-Sound
+      </p>
     </div>
   </div>
 </div>
@@ -2149,11 +2151,13 @@ input {
   // fast gerade nach Norden durch die Weiden → leichter Knick → Nordnordwest in den Inselbahnhof am Ortsrand
   // Einfahrt in den Inselbahnhof: die letzten 350 m schnurgerade nach Nordwesten (wie auf dem Luftbild)
   const RAIL_CP = [
-    [-5320, 5575],
-    [-5320, 5735],
-    [-5333, 5800],
-    [-5366, 5866],
-    [-5395, 5925],
+    [-5320, 5588],
+    [-5320, 5700],
+    [-5320, 5760],
+    [-5350, 5840],
+    [-5375, 5905],
+    [-5392, 5960],
+    [-5395, 6060],
     [-5372, 6300],
     [-5345, 6700],
     [-5336, 6950],
@@ -2238,12 +2242,43 @@ input {
     };
   })();
   const TOWN = { x: -6020, y: 8090, rx: 640, ry: 330, wt: [-6290, 8290] };
-  const AIRP = {
-    x: -5061,
-    y: 7518.6,
-    rx: Math.sin((55 * Math.PI) / 180),
-    ry: Math.cos((55 * Math.PI) / 180),
-  }; // Flugplatz: Bahnmitte, Richtung 055°
+  // Flugplatz direkt hinter dem Bahnübergang am Ortsrand: Abfertigung ca. 230 m weiter, 170 m östlich der Bahn; Bahn 05/23 (055°)
+  const AIRP = (() => {
+    const p = railPt(RAIL_L - 620);
+    const tx = p.x + p.ty * 170,
+      tn = p.y - p.tx * 170;
+    return {
+      x: tx + 288,
+      y: tn + 45.4,
+      rx: Math.sin((55 * Math.PI) / 180),
+      ry: Math.cos((55 * Math.PI) / 180),
+    };
+  })();
+  // Lage eines Punktes zur Bahn: d entlang der Strecke, o seitlicher Abstand (positiv = links/West)
+  function railProj(x, n) {
+    let best = 1e9,
+      bd = 0,
+      bo = 0,
+      acc = 0;
+    for (let i = 1; i < RAILC.length; i++) {
+      const a = RAILC[i - 1],
+        b = RAILC[i];
+      const dx = b[0] - a[0],
+        dy = b[1] - a[1],
+        L = Math.hypot(dx, dy);
+      const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (n - a[1]) * dy) / (L * L)));
+      const px = a[0] + dx * t,
+        py = a[1] + dy * t,
+        dd = Math.hypot(x - px, n - py);
+      if (dd < best) {
+        best = dd;
+        bd = acc + t * L;
+        bo = ((x - a[0]) * -dy + (n - a[1]) * dx) / L;
+      }
+      acc += L;
+    }
+    return { d: (bd * RAIL_L) / acc, o: bo };
+  }
   function airOut(x, n) {
     const dx = x - AIRP.x,
       dy = n - AIRP.y;
@@ -3431,22 +3466,30 @@ input {
       const R = rng(1234);
       for (let k = 0; k < 6; k++) {
         const t0 = Math.round((k * N) / 6),
-          A = 0.72 + R() * 0.42,
-          f1 = 74 + R() * 12,
-          f2 = 200 + R() * 50,
-          f3 = 520 + R() * 90;
+          A = 0.75 + R() * 0.4,
+          f1 = 46 + R() * 6,
+          f2 = 96 + R() * 14,
+          f3 = 180 + R() * 30;
         for (let j = 0; j < N; j++) {
           const t = j / sr;
           if (t > 0.13) break;
           const i = (t0 + j) % N;
           d[i] +=
             A *
-            (Math.sin(2 * Math.PI * f1 * t) * Math.exp(-t * 34) * 0.9 +
-              Math.sin(2 * Math.PI * f2 * t) * Math.exp(-t * 60) * 0.45 +
-              Math.sin(2 * Math.PI * f3 * t) * Math.exp(-t * 110) * 0.18 +
-              (R() * 2 - 1) * Math.exp(-t * 80) * 0.5);
+            (Math.sin(2 * Math.PI * f1 * t) * Math.exp(-t * 22) * 1.0 +
+              Math.sin(2 * Math.PI * f2 * t) * Math.exp(-t * 38) * 0.55 +
+              Math.sin(2 * Math.PI * f3 * t) * Math.exp(-t * 70) * 0.22 +
+              (R() * 2 - 1) * Math.exp(-t * 60) * 0.22);
         }
       }
+      {
+        let lp = 0;
+        for (let pass = 0; pass < 2; pass++)
+          for (let i = 0; i < N; i++) {
+            lp += (d[i] - lp) * 0.18;
+            d[i] = lp;
+          }
+      } // Rauschen glätten: dumpfer Klang
       let mx = 0;
       for (let i = 0; i < N; i++) mx = Math.max(mx, Math.abs(d[i]));
       for (let i = 0; i < N; i++) d[i] /= mx || 1;
@@ -3462,16 +3505,23 @@ input {
       sh.curve = cv;
       const body = c.createBiquadFilter();
       body.type = "peaking";
-      body.frequency.value = 170;
-      body.Q.value = 0.8;
-      body.gain.value = 8;
+      body.frequency.value = 95;
+      body.Q.value = 0.7;
+      body.gain.value = 10;
       const lp = c.createBiquadFilter();
       lp.type = "lowpass";
-      lp.frequency.value = 900;
-      lp.Q.value = 0.6;
+      lp.frequency.value = 420;
+      lp.Q.value = 0.7;
       const hp = c.createBiquadFilter();
       hp.type = "highpass";
-      hp.frequency.value = 38;
+      hp.frequency.value = 28;
+      const sub = c.createOscillator();
+      sub.type = "sine";
+      sub.frequency.value = 30;
+      const sg = c.createGain();
+      sg.gain.value = 0.35;
+      sub.connect(sg);
+      sg.connect(hp);
       const g = c.createGain();
       g.gain.value = 0;
       src.connect(sh);
@@ -3491,8 +3541,8 @@ input {
       nz.loop = true;
       const nb = c.createBiquadFilter();
       nb.type = "bandpass";
-      nb.frequency.value = 2300;
-      nb.Q.value = 0.7;
+      nb.frequency.value = 650;
+      nb.Q.value = 0.8;
       const ng = c.createGain();
       ng.gain.value = 0;
       nz.connect(nb);
@@ -3512,7 +3562,8 @@ input {
       src.start();
       tb.start();
       nz.start();
-      LOKS = { src, lp, g, tg, tb, ng };
+      sub.start();
+      LOKS = { src, lp, g, tg, tb, ng, sub };
     } catch (e) {
       LOKS = null;
     }
@@ -3520,14 +3571,15 @@ input {
   function lokEngineUpdate(on, load, v) {
     if (!LOKS) return;
     const t = actx.currentTime;
-    const rate = 1 + 1.55 * load + 0.2 * Math.min(1, v / 7);
-    LOKS.src.playbackRate.setTargetAtTime(rate, t, 0.7);
-    LOKS.lp.frequency.setTargetAtTime(650 + 1700 * load + 150 * Math.min(1, v / 7), t, 0.4);
+    const rate = 1 + 0.38 * load + 0.06 * Math.min(1, v / 7); // Drehzahl steigt nur wenig: tief bleibender Diesel
+    LOKS.src.playbackRate.setTargetAtTime(rate, t, 0.9);
+    LOKS.sub.frequency.setTargetAtTime(30 * rate, t, 0.9);
+    LOKS.lp.frequency.setTargetAtTime(380 + 260 * load, t, 0.5);
     const pv = pane === "lok" ? 1.0 : pane === "fenster" ? 1.2 : pane === "wagen" ? 0.38 : 0.8;
-    LOKS.g.gain.setTargetAtTime(on ? pv * (0.6 + 0.4 * load) : 0, t, 0.25);
-    LOKS.tg.gain.setTargetAtTime(on ? 0.014 * load : 0, t, 0.9);
-    LOKS.tb.frequency.setTargetAtTime(1500 + 1900 * load, t, 1.4);
-    LOKS.ng.gain.setTargetAtTime(on ? (0.05 + 0.07 * load) * (pane === "wagen" ? 0.5 : 1) : 0, t, 0.4);
+    LOKS.g.gain.setTargetAtTime(on ? pv * (0.95 + 0.55 * load) : 0, t, 0.35);
+    LOKS.tg.gain.setTargetAtTime(on ? 0.004 * load : 0, t, 0.9);
+    LOKS.tb.frequency.setTargetAtTime(900 + 500 * load, t, 1.4);
+    LOKS.ng.gain.setTargetAtTime(on ? (0.015 + 0.03 * load) * (pane === "wagen" ? 0.5 : 1) : 0, t, 0.4);
   }
 
   // ---------- Filmszene beim Umsteigen: Kapitän ↔ Lokführer ----------
@@ -3681,7 +3733,7 @@ input {
     // Lok-Tür am Bahnsteig aus der aktuellen Zugstellung
     placeTrain(G);
     G.TRAIN.lokA.updateMatrixWorld(true);
-    const side = TRAINPOS.dir > 0 ? 1 : -1;
+    const side = TRAINPOS.dir > 0 ? -1 : 1; // Bahnsteig liegt westlich des Hauptgleises
     const doorOut = G.TRAIN.lokA.localToWorld(new G.T.Vector3(-1.47, 1.6, side * 2.2)),
       doorIn = G.TRAIN.lokA.localToWorld(new G.T.Vector3(-1.47, 1.13, side * 0.95)),
       cabIn = G.TRAIN.lokA.localToWorld(new G.T.Vector3(-1.95, 1.13, side * 0.2));
@@ -3693,15 +3745,16 @@ input {
       gwTop = V(-5261.2, 4.7, 5559.5),
       stairB = V(-5261.2, Y0, 5571.5),
       quay = V(-5270, Y0, 5585),
-      platS = V(-5300, Y0, 5590),
-      platE = V(-5315.4, YP, 5592);
+      platS = V(-5317, Y0, 5586),
+      platA = V(-5323.5, Y0, 5587.3),
+      platE = V(-5323.5, YP, 5590.5);
     const lerpCam = (a, b) => (f, u) => ({
       pos: a.clone().lerp(b, u),
       look: f.clone().add(new G.T.Vector3(0, 1.1, 0)),
     });
     const pax = (i, t) => ({
-      p: V(-5314.6 - Math.min(1.6, t * 0.22 + (i % 3) * 0.3), YP, nD - 24 + i * 2.1),
-      dir: -Math.PI / 2,
+      p: V(-5325.4 + Math.min(1.8, t * 0.22 + (i % 3) * 0.3), YP, nD - 24 + i * 2.1),
+      dir: Math.PI / 2,
     });
     const s2b = [
       {
@@ -3727,12 +3780,12 @@ input {
       },
       {
         dur: 6.5,
-        path: [V(-5315.6, YP, nD - 22), V(-5315.8, YP, nD - 1.5), doorOut],
+        path: [V(-5322.4, YP, nD - 22), V(-5322.3, YP, nD - 1.5), doorOut],
         cap: "Über den Bahnsteig zur Lok",
         pax: (i, t) => pax(i, t),
         cam: (f, u) => ({
-          pos: f.clone().add(new G.T.Vector3(3.2, 2.1, 7.5)),
-          look: f.clone().add(new G.T.Vector3(-0.6, 1.2, -6)),
+          pos: f.clone().add(new G.T.Vector3(-1.4, 3.4, 8.5)),
+          look: f.clone().add(new G.T.Vector3(0.4, 0.9, -6)),
         }),
       },
       {
@@ -3740,7 +3793,7 @@ input {
         path: [doorOut, doorIn, cabIn],
         fadeOut: 0.9,
         cap: "Einsteigen und los geht’s!",
-        cam: (f, u) => ({ pos: V(-5311.5, 3.2, nD + 8), look: V(-5319.5, 3.0, nD) }),
+        cam: (f, u) => ({ pos: V(-5324.0, 4.2, nD + 9), look: V(-5321, 2.2, nD) }),
       },
     ];
     if (kind === "s2b") return s2b;
@@ -3750,15 +3803,15 @@ input {
         dur: 3.4,
         path: [cabIn, doorIn, doorOut],
         cap: "Die Inselbahn ist am Hafen. Der Lokführer steigt aus …",
-        cam: (f, u) => ({ pos: V(-5310.5, 3.4, nD + 9), look: V(-5319.5, 2.6, nD - 1) }),
+        cam: (f, u) => ({ pos: V(-5324.0, 4.4, nD + 10), look: V(-5321, 2.2, nD - 1) }),
       },
       {
-        dur: 6.0,
-        path: [doorOut, V(-5315.6, YP, nD - 4), platE, platS],
+        dur: 6.4,
+        path: [doorOut, V(-5322.3, YP, nD - 4), platE, platA, platS],
         cap: "… geht über den Bahnsteig zur Fähre …",
         cam: (f, u) => ({
-          pos: f.clone().add(new G.T.Vector3(3.0, 2.0, -7)),
-          look: f.clone().add(new G.T.Vector3(0, 1.2, 6)),
+          pos: f.clone().add(new G.T.Vector3(-1.4, 3.2, -8)),
+          look: f.clone().add(new G.T.Vector3(0.3, 1.0, 6)),
         }),
       },
       {
@@ -8280,7 +8333,17 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         CN = TOWN.y,
         RX = TOWN.rx,
         RN = TOWN.ry;
-      const inTown = (x, n) => ((x - CX) / RX) ** 2 + ((n - CN) / RN) ** 2 < 1;
+      // Ort: Ellipse um den Kern, dazu die Bebauung nordöstlich des Bahnhofs bis zum Schniederdamm und westlich entlang der Hafenstraße (Luftbild)
+      const inTown = (x, n) => {
+        if (airOut(x, n) <= 0) return false;
+        if (((x - CX) / RX) ** 2 + ((n - CN) / RN) ** 2 < 1) return true;
+        const [u, v] = stnUV(x, n);
+        if (u > -140 && u < 385 && v > -430 && v < -92) return true;
+        const rp = railProj(x, n);
+        return (
+          rp.d > RAIL_L - 480 && rp.d < RAIL_L - 150 && rp.o > (rp.d > RAIL_L - 460 ? 70 : 30) && rp.o < 330
+        );
+      };
       const houses = [],
         roads = [],
         trees = [];
@@ -8289,17 +8352,17 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         ca = Math.cos(ang),
         sa = Math.sin(ang);
       const W2 = (u, v) => [CX + u * ca - v * sa, CN + u * sa + v * ca];
-      for (let v = -480; v <= 480; v += 95) {
+      for (let v = -670; v <= 480; v += 95) {
         const a = W2(-1000, v),
           b = W2(1000, v);
         roads.push([...a, ...b]);
       }
       for (let u = -900; u <= 900; u += 130) {
-        const a = W2(u, -600),
+        const a = W2(u, -760),
           b = W2(u, 600);
         roads.push([...a, ...b]);
       }
-      for (let v = -480; v <= 480; v += 95)
+      for (let v = -670; v <= 480; v += 95)
         for (let u = -940; u <= 940; u += 13 + R() * 5) {
           [
             [14, 5, 0.08],
@@ -8399,7 +8462,14 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
               bx = ax + ux * 21,
               bn = an + un * 21;
             if (!inTown(ax, an) && !inTown(bx, bn)) continue;
-            if (stationZone(ax, an) || stationZone(bx, bn)) continue;
+            if (
+              stationZone(ax, an) ||
+              stationZone(bx, bn) ||
+              railDist(ax, an) < 12 ||
+              railDist(bx, bn) < 12 ||
+              airOut(ax, an) <= 0
+            )
+              continue;
             const ya = groundY(ax, an) + 0.07,
               yb = groundY(bx, bn) + 0.07;
             const A = [ax + px, ya, -(an + pn)],
@@ -8799,11 +8869,16 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       const runs = [[], []];
       pts.forEach((p) => {
         const dx = p[0] - cross.x;
-        if (Math.abs(dx) < 5.5) return;
+        if (Math.abs(dx) < 10) return;
         runs[dx < 0 ? 0 : 1].push(p);
       });
-      runs[0].push([cross.x - 5.5, 5925]);
-      runs[1].unshift([cross.x + 5.5, 5925]);
+      {
+        const lx = -cross.ty,
+          ln = cross.tx;
+        const at = (o) => [cross.x + lx * o, cross.y + ln * o];
+        runs[0].push(at(5.0), at(3.75));
+        runs[1].unshift(at(-3.75), at(-5.0));
+      }
       const prof = [
         [-12, 0],
         [-2, 4.3],
@@ -8840,34 +8915,173 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         m.receiveShadow = true;
         scene.add(m);
       });
-      // Betonwände der Scharte, Torflügel offen, rot-weiße Kennzeichnung
-      const CON = std(0xb9b7b0, { roughness: 0.85 }),
-        STEEL3 = std(0x5c6064, { roughness: 0.5, metalness: 0.6 }),
-        MARK = signTex(64, 64, (x, w, h) => {
-          x.fillStyle = "#fff";
-          x.fillRect(0, 0, 64, 64);
-          x.fillStyle = "#c8202a";
-          x.fillRect(10, 10, 44, 44);
-        });
-      [-1, 1].forEach((sd) => {
-        const g = new T.Group();
-        mesh(new T.BoxGeometry(24, 4.9, 0.45), CON, g, 0, 2.45, 0);
-        mesh(new T.BoxGeometry(24, 0.15, 0.6), CON, g, 0, 4.95, 0);
-        mesh(new T.BoxGeometry(0.03, 1.1, 0.03), POLE, g, -11.5, 5.6, 0);
-        mesh(new T.BoxGeometry(23, 0.04, 0.04), POLE, g, 0, 6.1, 0);
-        const gate = mesh(new T.BoxGeometry(4.8, 3.8, 0.12), STEEL3, g, -6, 2.1, -sd * 0.3);
-        const mk = mesh(new T.PlaneGeometry(0.9, 0.9), MARK, g, -6, 2.3, -sd * 0.37);
-        mk.rotation.y = sd > 0 ? Math.PI : 0;
-        g.position.set(cross.x - cross.ty * sd * 3.3, ISL_TOP, -(cross.y + cross.tx * sd * 3.3));
-        g.rotation.y = Math.atan2(cross.ty, cross.tx);
-        g.traverse((o) => {
-          if (o.isMesh) {
-            o.castShadow = true;
-            o.receiveShadow = true;
+      // Deichscharte: Betonwände folgen dem Deichprofil, Kopfbalken, Dammbalkennischen, geöffnete Stemmtore mit Warnanstrich, Pflaster im Durchlass
+      {
+        const bt = (() => {
+          const c = document.createElement("canvas");
+          c.width = 256;
+          c.height = 256;
+          const x = c.getContext("2d");
+          x.fillStyle = "#b8b5ad";
+          x.fillRect(0, 0, 256, 256);
+          const R = rng(17);
+          for (let i = 0; i < 9; i++) {
+            x.fillStyle = `rgba(${R() < 0.5 ? 255 : 40},${R() < 0.5 ? 255 : 40},${R() < 0.5 ? 255 : 40},.05)`;
+            x.fillRect(0, i * 28, 256, 26);
           }
+          x.strokeStyle = "rgba(60,58,54,.25)";
+          x.lineWidth = 1.5;
+          for (let i = 0; i <= 9; i++) {
+            x.beginPath();
+            x.moveTo(0, i * 28);
+            x.lineTo(256, i * 28);
+            x.stroke();
+          }
+          for (let i = 0; i < 1500; i++) {
+            x.fillStyle = `rgba(0,0,0,${R() * 0.08})`;
+            x.fillRect(R() * 256, R() * 256, 2, 2);
+          }
+          const t = new T.CanvasTexture(c);
+          t.encoding = T.sRGBEncoding;
+          t.wrapS = t.wrapT = T.RepeatWrapping;
+          return t;
+        })();
+        const CON = std(0xffffff, { map: bt, roughness: 0.9 }),
+          CAP = std(0x8d8a84, { roughness: 0.8 }),
+          STEEL3 = std(0x4f5459, { roughness: 0.45, metalness: 0.65 }),
+          RED = std(0xc8202a, { roughness: 0.5 }),
+          WHI = std(0xf2f2ee, { roughness: 0.5 });
+        const prof = [
+          [-13, 0],
+          [13, 0],
+          [13, 0.6],
+          [2.6, 4.75],
+          [-2.6, 4.75],
+          [-13, 0.6],
+        ];
+        const wallGeo = (() => {
+          const sh = new T.Shape(prof.map(([a, y]) => new T.Vector2(a, y)));
+          const g = new T.ExtrudeGeometry(sh, { depth: 0.6, bevelEnabled: false });
+          g.translate(0, 0, -0.3);
+          return worldUV(g, 3);
+        })();
+        const capGeo = (a0, y0, a1, y1) => {
+          const L = Math.hypot(a1 - a0, y1 - y0);
+          const g = new T.BoxGeometry(L, 0.22, 0.9);
+          g.rotateZ(Math.atan2(y1 - y0, a1 - a0));
+          g.translate((a0 + a1) / 2, (y0 + y1) / 2 + 0.11, 0);
+          return g;
+        };
+        [-1, 1].forEach((sd) => {
+          const g = new T.Group();
+          const zi = sd * 0.31; // Innenseite zum Gleis
+          mesh(wallGeo, CON, g, 0, 0, 0);
+          [
+            [-13, 0.6, -2.6, 4.75],
+            [-2.6, 4.75, 2.6, 4.75],
+            [2.6, 4.75, 13, 0.6],
+          ].forEach((q) => mesh(capGeo(...q), CAP, g, 0, 0, 0));
+          // Nischen für Dammbalken mit Stahlführung
+          [-1.3, 1.3].forEach((a) => {
+            mesh(
+              new T.BoxGeometry(0.34, 4.6, 0.12),
+              std(0x2f3337, { roughness: 0.8 }),
+              g,
+              a,
+              2.35,
+              zi + sd * 0.02,
+            );
+            mesh(new T.BoxGeometry(0.08, 4.6, 0.18), STEEL3, g, a - 0.2, 2.35, zi + sd * 0.05);
+            mesh(new T.BoxGeometry(0.08, 4.6, 0.18), STEEL3, g, a + 0.2, 2.35, zi + sd * 0.05);
+          });
+          // Torflügel geöffnet an der Wand, Rahmen, rot-weiße Warnfelder
+          const leaf = new T.Group();
+          g.add(leaf);
+          leaf.position.set(4.2, 0, zi + sd * 0.22);
+          mesh(new T.BoxGeometry(2.9, 3.7, 0.1), STEEL3, leaf, 1.45, 1.95, 0);
+          [0.12, 1.45, 2.78].forEach((a) =>
+            mesh(new T.BoxGeometry(0.12, 3.8, 0.16), STEEL3, leaf, a, 1.95, 0),
+          );
+          [0.15, 1.95, 3.75].forEach((y) =>
+            mesh(new T.BoxGeometry(2.9, 0.12, 0.16), STEEL3, leaf, 1.45, y, 0),
+          );
+          for (let k = 0; k < 5; k++) {
+            const st = mesh(
+              new T.BoxGeometry(0.42, 1.9, 0.02),
+              k % 2 ? WHI : RED,
+              leaf,
+              0.55 + k * 0.45,
+              2.0,
+              sd * 0.07,
+            );
+            st.rotation.z = 0.5;
+          }
+          [
+            [6.6, 1],
+            [8.0, 0],
+          ].forEach(([a, r]) =>
+            mesh(new T.CylinderGeometry(0.06, 0.06, 0.3, 8), STEEL3, g, a, 0.5 + r * 3, zi + sd * 0.1),
+          );
+          // rot-weiße Kennzeichnung an den Wandköpfen
+          [-12.7, 12.7].forEach((a) => {
+            for (let k = 0; k < 4; k++)
+              mesh(
+                new T.BoxGeometry(0.62, 0.32, 0.02),
+                k % 2 ? WHI : RED,
+                g,
+                a,
+                0.2 + k * 0.32,
+                zi + sd * 0.02,
+              );
+          });
+          g.position.set(cross.x - cross.ty * sd * 3.3, ISL_TOP - 0.3, -(cross.y + cross.tx * sd * 3.3));
+          g.rotation.y = Math.atan2(cross.ty, cross.tx);
+          g.traverse((o) => {
+            if (o.isMesh) {
+              o.castShadow = true;
+              o.receiveShadow = true;
+            }
+          });
+          scene.add(g);
         });
-        scene.add(g);
-      });
+        // Pflaster im Durchlass neben dem Gleis
+        ribbon(
+          RF.deich - 13,
+          RF.deich + 13,
+          1.7,
+          3.0,
+          () => ISL_TOP + 0.05,
+          std(0x8e8a84, { roughness: 0.95 }),
+          2,
+        );
+        ribbon(
+          RF.deich - 13,
+          RF.deich + 13,
+          -3.0,
+          -1.7,
+          () => ISL_TOP + 0.05,
+          std(0x8e8a84, { roughness: 0.95 }),
+          2,
+        );
+        // Schild
+        {
+          const p = railPt(RF.deich + 16);
+          const sg = signTex(256, 64, (x, w, h) => {
+            x.fillStyle = "#1d3f7a";
+            x.fillRect(0, 0, w, h);
+            x.fillStyle = "#fff";
+            x.font = "bold 30px Arial";
+            x.textAlign = "center";
+            x.textBaseline = "middle";
+            x.fillText("Deichscharte", w / 2, h / 2 + 2);
+          });
+          const x0 = p.x - p.ty * 4.4,
+            n0 = p.y + p.tx * 4.4;
+          mesh(new T.CylinderGeometry(0.05, 0.05, 2.4, 6), POLE, null, x0, ISL_TOP + 1.2, -n0);
+          const m = mesh(new T.PlaneGeometry(1.4, 0.35), sg, null, x0, ISL_TOP + 2.3, -n0);
+          m.rotation.y = Math.atan2(p.ty, p.tx) - Math.PI / 2;
+        }
+      }
     }
     // Bahnübergänge: Weg quer über das Gleis, Andreaskreuze
     const XMAT = signTex(128, 128, (x, w, h) => {
@@ -8905,13 +9119,15 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           I.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
         }
       }
-      const g = new T.BufferGeometry();
-      g.setAttribute("position", new T.Float32BufferAttribute(P, 3));
-      g.setIndex(I);
-      g.computeVertexNormals();
-      const m = new T.Mesh(g, ASPH2);
-      m.receiveShadow = true;
-      scene.add(m);
+      if (b.name !== "Feldweg") {
+        const g = new T.BufferGeometry();
+        g.setAttribute("position", new T.Float32BufferAttribute(P, 3));
+        g.setIndex(I);
+        g.computeVertexNormals();
+        const m = new T.Mesh(g, ASPH2);
+        m.receiveShadow = true;
+        scene.add(m);
+      }
       [-1, 1].forEach((sd) => {
         const x = p.x + lx * sd * 4.2 + p.tx * sd * 2.6,
           n = p.y + ln * sd * 4.2 + p.ty * sd * 2.6;
@@ -8951,6 +9167,360 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       });
       trackSign(RF.tStop + 1, 1, -2.2, HM, 0.55, 0.55, 2.2);
       trackSign(RF.hStop - 1, -1, -2.2, HM, 0.55, 0.55, 2.2);
+    }
+    // Hafenstraße: vom Ort westlich neben der Bahn bis zum Bahnübergang Feldweg, kreuzt dort schräg das Gleis und läuft östlich weiter Richtung Hafen
+    const roadPoly = (pts, w, y, mat) => {
+      const P = [],
+        U = [],
+        I = [];
+      let L = 0;
+      pts.forEach((q, i) => {
+        const a = pts[Math.max(0, i - 1)],
+          b = pts[Math.min(pts.length - 1, i + 1)];
+        let tx = b[0] - a[0],
+          tn = b[1] - a[1];
+        const l = Math.hypot(tx, tn) || 1;
+        tx /= l;
+        tn /= l;
+        if (i > 0) L += Math.hypot(q[0] - pts[i - 1][0], q[1] - pts[i - 1][1]);
+        [-1, 1].forEach((sd) => {
+          P.push(q[0] - (tn * sd * w) / 2, y, -(q[1] + (tx * sd * w) / 2));
+          U.push(sd * 0.5 + 0.5, L / 4);
+        });
+        if (i > 0) {
+          const k = (i - 1) * 2;
+          I.push(k, k + 2, k + 1, k + 1, k + 2, k + 3);
+        }
+      });
+      const g = new T.BufferGeometry();
+      g.setAttribute("position", new T.Float32BufferAttribute(P, 3));
+      g.setAttribute("uv", new T.Float32BufferAttribute(U, 2));
+      g.setIndex(I);
+      g.computeVertexNormals();
+      const m = new T.Mesh(g, mat);
+      m.material.side = T.DoubleSide;
+      m.receiveShadow = true;
+      scene.add(m);
+      return m;
+    };
+    {
+      const HS = [];
+      const dF = RF.bue[1].d,
+        dO = RAIL_L - 330;
+      const offAt = (d) => {
+        if (d >= dO) return 54.5;
+        if (d > dO - 130) {
+          const t = (d - (dO - 130)) / 130;
+          return 16 + ((54.5 - 16) * (1 - Math.cos(Math.PI * t))) / 2;
+        }
+        if (d >= dF + 45) return 16;
+        if (d >= dF - 45) return (16 * (d - dF)) / 45;
+        return -16 - Math.min(24, (dF - 45 - d) * 0.05);
+      };
+      for (let d = dO + 8; d >= RF.deich + 150; d -= d > dF - 60 && d < dF + 60 ? 3 : 8) {
+        const p = railPt(d);
+        const o = offAt(d);
+        HS.push([p.x - p.ty * o, p.y + p.tx * o]);
+      }
+      {
+        const p = railPt(RF.bue[0].d);
+        HS.push([p.x + p.ty * 28, p.y - p.tx * 28]);
+      }
+      roadPoly(HS, 5.5, ISL_TOP + 0.1, std(0x6b6d6f, { roughness: 0.95 }));
+      // Café Golfstube westlich am Bahnübergang, Haus im Wäldchen östlich
+      house(
+        ...(() => {
+          const p = railPt(dF + 28);
+          return [p.x - p.ty * 34, p.y + p.tx * 34];
+        })(),
+        13,
+        10,
+        4.2,
+        4.5,
+        BRICK,
+        ROOFD,
+        Math.atan2(railPt(dF).ty, railPt(dF).tx),
+        ISL_TOP,
+      );
+      house(
+        ...(() => {
+          const p = railPt(dF - 70);
+          return [p.x + p.ty * 32, p.y - p.tx * 32];
+        })(),
+        10,
+        9,
+        4,
+        4,
+        BRICKY,
+        ROOFD,
+        0.3,
+        ISL_TOP,
+      );
+      // Wäldchen westlich der Hafenstraße zwischen Bahnübergang und Ort (Ringschloot)
+      {
+        const R = rng(4242);
+        const tr = [];
+        for (let d = dF - 20; d < dO - 200; d += 5) {
+          for (let k = 0; k < 2; k++) {
+            const o = 24 + R() * 70;
+            if (R() < 0.35) continue;
+            const p = railPt(d + R() * 4);
+            tr.push([p.x - p.ty * o, p.y + p.tx * o, 3 + R() * 3]);
+          }
+        }
+        for (let d = dF - 260; d < dF - 30; d += 6) {
+          const o = 30 + R() * 50;
+          const p = railPt(d);
+          tr.push([p.x - p.ty * o, p.y + p.tx * o, 3 + R() * 2.5]);
+        }
+        const crown = new T.IcosahedronGeometry(1, 1),
+          trunk = new T.CylinderGeometry(0.16, 0.24, 1, 6);
+        trunk.translate(0, 0.5, 0);
+        const ic = new T.InstancedMesh(crown, std(0x3c5a2c, { roughness: 1, flatShading: true }), tr.length),
+          it = new T.InstancedMesh(trunk, std(0x4a3a2c, { roughness: 1 }), tr.length);
+        const o = new T.Object3D();
+        const col = new T.Color();
+        tr.forEach((q, i) => {
+          const s = q[2];
+          o.position.set(q[0], ISL_TOP - 0.2, -q[1]);
+          o.rotation.set(0, i, 0);
+          o.scale.set(1, s * 0.9, 1);
+          o.updateMatrix();
+          it.setMatrixAt(i, o.matrix);
+          o.position.y = ISL_TOP + s * 1.15;
+          o.scale.set(s * 0.8, s, s * 0.8);
+          o.updateMatrix();
+          ic.setMatrixAt(i, o.matrix);
+          col.setHSL(0.27 + R() * 0.05, 0.35, 0.24 + R() * 0.08);
+          ic.setColorAt(i, col);
+        });
+        ic.castShadow = true;
+        scene.add(ic, it);
+      }
+    }
+    // Hinter dem Bahnübergang am Ortsrand (Schniederdamm) östlich: Spielplatz, Sportplatz des TSV, Reitplätze, Vereinsheim, Sturmeck, Hubschrauberlandeplatz
+    {
+      const E = (d, o) => {
+        const p = railPt(d);
+        return [p.x + p.ty * o, p.y - p.tx * o];
+      };
+      const hd = (d) => {
+        const p = railPt(d);
+        return Math.atan2(p.ty, p.tx);
+      };
+      const dO = RF.bue[2].d;
+      const grp = (d, o, rotAdd) => {
+        const g = new T.Group();
+        const q = E(d, o);
+        g.position.set(q[0], ISL_TOP, -q[1]);
+        g.rotation.y = hd(d) + (rotAdd || 0);
+        scene.add(g);
+        return g;
+      }; // lokal x entlang der Bahn Richtung Ort, z nach Ost
+      // Schniederdamm nach Osten und Polderweg nach Norden
+      {
+        const P = [];
+        for (let o = 6; o <= 430; o += 12) {
+          const q = E(dO + o * 0.25, o);
+          P.push(q);
+        }
+        roadPoly(P, 5, ISL_TOP + 0.09, std(0x6f7173, { roughness: 0.95 }));
+        const P2 = [];
+        for (let k = 0; k <= 14; k++) {
+          const q = E(dO + 30 + k * 22, 95 + k * 2);
+          P2.push(q);
+        }
+        roadPoly(P2, 4, ISL_TOP + 0.09, std(0x7a7c7d, { roughness: 0.95 }));
+      }
+      // Sportplatz mit Linien und Toren
+      {
+        const g = grp(dO - 75, 150);
+        const fl = signTex(512, 320, (x, w, h) => {
+          x.fillStyle = "#4f8a34";
+          x.fillRect(0, 0, w, h);
+          for (let i = 0; i < 10; i++) {
+            x.fillStyle = i % 2 ? "rgba(255,255,255,.05)" : "rgba(0,0,0,.05)";
+            x.fillRect((i * w) / 10, 0, w / 10, h);
+          }
+          x.strokeStyle = "#f2f2ee";
+          x.lineWidth = 4;
+          x.strokeRect(14, 14, w - 28, h - 28);
+          x.beginPath();
+          x.moveTo(w / 2, 14);
+          x.lineTo(w / 2, h - 14);
+          x.stroke();
+          x.beginPath();
+          x.arc(w / 2, h / 2, 40, 0, 7);
+          x.stroke();
+          x.strokeRect(14, h / 2 - 70, 70, 140);
+          x.strokeRect(w - 84, h / 2 - 70, 70, 140);
+        });
+        const m = mesh(new T.PlaneGeometry(105, 68), fl, g, 0, 0.08, 0);
+        m.rotation.x = -Math.PI / 2;
+        m.receiveShadow = true;
+        [-1, 1].forEach((e) => {
+          const G2 = std(0xf4f4f0, { roughness: 0.4 });
+          mesh(new T.BoxGeometry(0.12, 2.44, 0.12), G2, g, e * 49, 1.22, -3.66);
+          mesh(new T.BoxGeometry(0.12, 2.44, 0.12), G2, g, e * 49, 1.22, 3.66);
+          mesh(new T.BoxGeometry(0.12, 0.12, 7.44), G2, g, e * 49, 2.44, 0);
+        });
+        for (let k = -50; k <= 50; k += 25)
+          [-38, 38].forEach((z) => {
+            mesh(new T.CylinderGeometry(0.1, 0.12, 12, 6), POLE, g, k, 6, z);
+            mesh(new T.BoxGeometry(1.6, 0.5, 0.3), std(0xe6e9ea), g, k, 12, z);
+          });
+      }
+      // Spielplatz Oskar-Kreuder-Platz: Sandflächen, Klettergerüst, Schaukel, Rutsche
+      {
+        const g = grp(dO - 28, 48);
+        const SA = std(0xe3d3a5, { map: TX.sand, roughness: 1 });
+        [
+          [0, 0, 30, 18],
+          [-14, 12, 12, 10],
+          [12, -12, 14, 10],
+        ].forEach(([x, z, w, d]) => {
+          const m = mesh(new T.PlaneGeometry(w, d), SA, g, x, 0.07, z);
+          m.rotation.x = -Math.PI / 2;
+        });
+        const WD = std(0x9a6a3a, { roughness: 0.8 }),
+          RD = std(0xc8322a, { roughness: 0.5 }),
+          BL = std(0x2e6fc2, { roughness: 0.5 }),
+          YL = std(0xf2c11c, { roughness: 0.5 });
+        [
+          [-6, -3],
+          [-2, -3],
+          [-6, 1],
+          [-2, 1],
+        ].forEach(([x, z]) => mesh(new T.CylinderGeometry(0.1, 0.1, 3, 6), WD, g, x, 1.5, z));
+        mesh(new T.BoxGeometry(4.4, 0.15, 4.4), WD, g, -4, 2.2, -1);
+        mesh(roofGeo(4.4, 4.4, 1.4), [WD, RD], g, -4, 3.0, -1);
+        const sl = mesh(new T.BoxGeometry(4.5, 0.1, 0.9), YL, g, 1.0, 1.2, -1);
+        sl.rotation.z = -0.45;
+        [
+          [6, 4],
+          [10, 4],
+        ].forEach(([x, z]) => {
+          const a = mesh(new T.CylinderGeometry(0.07, 0.07, 3, 6), BL, g, x, 1.5, z - 1.2);
+          a.rotation.x = 0.25;
+          const b = mesh(new T.CylinderGeometry(0.07, 0.07, 3, 6), BL, g, x, 1.5, z + 1.2);
+          b.rotation.x = -0.25;
+        });
+        mesh(new T.BoxGeometry(4.2, 0.1, 0.1), BL, g, 8, 2.9, 4);
+        [7, 9].forEach((x) => {
+          mesh(new T.CylinderGeometry(0.01, 0.01, 2.1, 4), std(0x333333), g, x, 1.85, 4);
+          mesh(new T.BoxGeometry(0.5, 0.05, 0.25), std(0x222222), g, x, 0.8, 4);
+        });
+        for (let i = 0; i < 5; i++) {
+          const t = mesh(
+            new T.IcosahedronGeometry(1, 1),
+            std(0x41622f, { roughness: 1, flatShading: true }),
+            g,
+            -16 + i * 8,
+            4.5,
+            -14 + (i % 2) * 28,
+          );
+          t.scale.set(3, 3.4, 3);
+        }
+      }
+      // Reitplätze (Sand) mit Zaun
+      [
+        [dO - 40, 280, 22, 45],
+        [dO - 95, 265, 26, 52],
+      ].forEach(([d, o, w, l]) => {
+        const g = grp(d, o, 0.3);
+        const m = mesh(
+          new T.PlaneGeometry(l, w),
+          std(0xd8c7a0, { map: TX.sand, roughness: 1 }),
+          g,
+          0,
+          0.07,
+          0,
+        );
+        m.rotation.x = -Math.PI / 2;
+        const F = std(0xf2f2ee, { roughness: 0.6 });
+        [
+          [0, w / 2, l, 0.08],
+          [0, -w / 2, l, 0.08],
+          [l / 2, 0, 0.08, w],
+          [-l / 2, 0, 0.08, w],
+        ].forEach(([x, z, a, b]) => {
+          mesh(new T.BoxGeometry(a, 0.08, b), F, g, x, 1.2, z);
+          mesh(new T.BoxGeometry(a, 0.08, b), F, g, x, 0.6, z);
+        });
+      });
+      // Vereinsheim TSV Langeoog mit langem rotem Dach, Tennisplätze, Restaurant Sturmeck, Golfclub, Hubschrauberlandeplatz
+      {
+        const g = grp(dO - 150, 175, 0.35);
+        mesh(tbox(46, 3.4, 10, 2), BRICK, g, 0, 1.7, 0);
+        mesh(roofGeo(10, 46, 3), [BRICK, std(0xa8432a, { roughness: 0.7 })], g, 0, 3.4, 0).rotation.y =
+          Math.PI / 2;
+        for (let x = -20; x <= 20; x += 4) mesh(new T.BoxGeometry(1.6, 1.2, 0.12), WIN, g, x, 1.8, 5.05);
+        const tp = mesh(new T.PlaneGeometry(36, 34), std(0xb24a2e, { roughness: 0.9 }), g, -2, 0.08, -24);
+        tp.rotation.x = -Math.PI / 2;
+        for (let k = -1; k <= 1; k += 2) {
+          const ln = mesh(new T.PlaneGeometry(0.2, 30), std(0xf2f2ee), g, -2 + k * 0, 0.09, -24);
+          ln.rotation.x = -Math.PI / 2;
+        }
+      }
+      {
+        const g = grp(dO - 205, 128, -0.2);
+        mesh(tbox(14, 4, 10, 2), std(0xf1ece0, { roughness: 0.8 }), g, 0, 2, 0);
+        mesh(
+          roofGeo(14, 10, 4.2),
+          [std(0xf1ece0), std(0xffffff, { map: TX.roofR, roughness: 0.75 })],
+          g,
+          0,
+          4,
+          0,
+        );
+        for (let x = -5; x <= 5; x += 2.5) mesh(new T.BoxGeometry(1.4, 1.6, 0.12), WIN, g, x, 1.8, 5.05);
+        const sg = signTex(256, 64, (x, w, h) => {
+          x.fillStyle = "#7a3426";
+          x.fillRect(0, 0, w, h);
+          x.fillStyle = "#fff";
+          x.font = "bold 34px Georgia";
+          x.textAlign = "center";
+          x.textBaseline = "middle";
+          x.fillText("Sturmeck", w / 2, h / 2 + 2);
+        });
+        mesh(new T.PlaneGeometry(4, 1), sg, g, 0, 3.2, 5.08);
+        for (let i = 0; i < 3; i++) {
+          mesh(new T.ConeGeometry(1.4, 0.5, 10), std(0xe9e4d8), g, -4 + i * 4, 2.4, 8);
+          mesh(new T.CylinderGeometry(0.04, 0.04, 2.4, 6), POLE, g, -4 + i * 4, 1.2, 8);
+        }
+      }
+      {
+        const g = grp(dO - 185, 82, 0.5);
+        mesh(tbox(12, 3.6, 9, 2), BRICKY, g, 0, 1.8, 0);
+        mesh(roofGeo(12, 9, 3.6), [BRICKY, ROOFD], g, 0, 3.6, 0);
+        const sg = signTex(256, 64, (x, w, h) => {
+          x.fillStyle = "#1f5f3a";
+          x.fillRect(0, 0, w, h);
+          x.fillStyle = "#fff";
+          x.font = "bold 24px Arial";
+          x.textAlign = "center";
+          x.textBaseline = "middle";
+          x.fillText("Golfclub Insel Langeoog", w / 2, h / 2 + 2);
+        });
+        mesh(new T.PlaneGeometry(4.4, 1.1), sg, g, 0, 2.6, 4.56);
+      }
+      {
+        const g = grp(dO - 205, 235, 0.2);
+        const hp = signTex(256, 256, (x, w, h) => {
+          x.fillStyle = "#9a9a94";
+          x.fillRect(0, 0, w, h);
+          x.strokeStyle = "#f2f2ee";
+          x.lineWidth = 10;
+          x.strokeRect(20, 20, w - 40, h - 40);
+          x.fillStyle = "#f2f2ee";
+          x.font = "bold 150px Arial";
+          x.textAlign = "center";
+          x.textBaseline = "middle";
+          x.fillText("H", w / 2, h / 2 + 8);
+        });
+        const m = mesh(new T.PlaneGeometry(22, 22), hp, g, 0, 0.08, 0);
+        m.rotation.x = -Math.PI / 2;
+      }
     }
     // Rad- und Fußweg parallel zur Bahn (Westseite) mit Laternen, Graben auf der Ostseite, Weidezaun
     ribbon(1250, RAIL_L - 175, 8.2, 11.2, () => ISL_TOP + 0.12, PAVE2, 6);
@@ -9528,7 +10098,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         const st = mesh(new T.BoxGeometry(14, 0.3, 2.4), ST, g, e * 33.5, y0 / 2 + 0.1, 0);
         st.rotation.z = e * Math.atan2(y0, 14);
       });
-      g.position.set(-5320, 0, -5752);
+      g.position.set(-5322, 0, -5690);
       scene.add(g);
       g.traverse((o) => {
         if (o.isMesh) o.castShadow = true;
@@ -9671,16 +10241,13 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
 
     {
       // --- Gleisanlage: Werkstattgleise W1/W2 (Weichen Richtung Hafen), Abstellgleis auf der Nordostseite ---
-      trk([...sCurve(330, 250, 0, -25.5), [166, -25.5]]);
-      trk([...sCurve(300, 245, 0, -17), [166, -17]]);
-      trk([...sCurve(236, 206, 0, -6), [118, -6]]);
-      trk([...sCurve(285, 225, 0, 21.75), [166, 21.75]]); // Ladegleis in die Güterhalle
+      const vLead = (u) => (-47 * (1 - Math.cos(Math.PI * Math.min(1, Math.max(0, (u - 140) / 95))))) / 2;
+      trk([...sCurve(140, 235, 0, -47), [332, -47]]); // Werkstattgleis 1
+      trk([...sCurve(200, 238, vLead(200), -57), [332, -57]]); // Werkstattgleis 2, Weiche im Zufahrtsgleis
       // Weichenlaternen (Stellböcke) an den Abzweigen
       [
-        [330, 2.4],
-        [300, 2.4],
-        [236, 2.4],
-        [285, -2.4],
+        [140, 2.4],
+        [200, vLead(200) + 2.4],
       ].forEach(([u, v]) => {
         bx(u - 0.3, u + 0.3, 0, 0.7, v - 0.2, v + 0.2, DARK);
         const l = at(new T.BoxGeometry(0.28, 0.28, 0.28), stdc(0xf2f2ee, { emissive: 0x222222 }), u, 0.9, v);
@@ -9703,10 +10270,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           dir > 0 ? Math.PI / 2 : -Math.PI / 2,
         );
       };
-      pb(165, -17, 1);
-      pb(165, -25.5, 1);
-      pb(117.5, -6, 1);
-      pb(165, 21.75, 1);
+      pb(331, -47, -1);
+      pb(331, -57, -1);
     }
 
     {
@@ -9714,7 +10279,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       slab(2, 150, 1.35, 7.6, PL, KLINKER);
       bx(2, 150, PL, PL + 0.01, 1.9, 2.05, WLINE); // Bahnsteig mit weißer Sicherheitslinie
       slab(-30, 158, 7.4, 33, PL, KLINKER);
-      slab(55, 216, 33, 50, PL, KLINKER);
+      slab(55, 158, 33, 50, PL, KLINKER);
       slab(-30, -1.4, -14, 7.4, PL, KLINKER); // Vorplatz um Prellbock und Gebäude, Gehweg vor der Fassade
       // Rundes Pflastermuster auf dem Vorplatz (wie auf dem Foto)
       {
@@ -10066,9 +10631,9 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       }
       // Langer Flügel nach Südosten: Info, Fahrkarten, Gepäck, Güter
       const FW = 33.5;
-      bx(89.2, 158, PL, 6.8, 13, FW, BRK);
+      bx(89.2, 124, PL, 6.8, 13, FW, BRK);
       {
-        const r = at(roofGeo(FW - 13, 68.8, 4.4), [BRK, TILE], 123.6, 6.75, (FW + 13) / 2);
+        const r = at(roofGeo(FW - 13, 34.4, 4.4), [BRK, TILE], 106.6, 6.75, (FW + 13) / 2);
         r.rotation.y = Math.PI / 2;
       }
       bx(92, 97.5, PL, PL + 3.3, FW - 0.1, FW + 0.04, GLW);
@@ -10104,7 +10669,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         });
         at(new T.PlaneGeometry(0.5, 0.75), ib, 90.6, PL + 2.3, FW + 0.05);
       }
-      for (let u = 101; u <= 154; u += 5.3) {
+      for (let u = 101; u <= 120; u += 5.3) {
         bx(u - 0.85, u + 0.85, PL + 0.9, PL + 3.4, FW - 0.1, FW + 0.03, GLW);
         bx(u - 1, u + 1, PL + 0.75, PL + 0.9, FW, FW + 0.18, WHT);
         for (let k = 1; k < 4; k++)
@@ -10120,17 +10685,56 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         bx(u - 0.03, u + 0.03, PL + 0.9, PL + 3.4, FW, FW + 0.06, WHT);
       }
       // Bahnsteigseite des Flügels: Fenster und zwei Gepäcktore
-      for (let u = 93; u <= 155; u += 6) {
-        if (Math.abs(u - 111) < 3 || Math.abs(u - 135) < 3) continue;
+      for (let u = 93; u <= 120; u += 6) {
         bx(u - 0.8, u + 0.8, PL + 1.0, PL + 3.2, 12.92, 13, GLW);
         bx(u - 0.9, u + 0.9, PL + 0.9, PL + 1.0, 12.8, 13, WHT);
       }
-      [111, 135].forEach((u) => {
-        bx(u - 1.8, u + 1.8, PL, PL + 3.4, 12.9, 13, stdc(0x3f5a3a, { roughness: 0.7 }));
-        bx(u - 1.95, u + 1.95, PL + 3.4, PL + 3.6, 12.8, 13, WHT);
+      // Güterschuppen: kurzer Klinkerbau mit drei großen Schiebetoren zum Gleis, Laderampe
+      bx(124.4, 152, PL, 6.0, 13, 31, BRK);
+      {
+        const r = at(roofGeo(18, 27.6, 3.0), [BRK, TILE], 138.2, 5.95, 22);
+        r.rotation.y = Math.PI / 2;
+      }
+      [129.3, 138.2, 147.1].forEach((u, i) => {
+        bx(u - 2.3, u + 2.3, PL, PL + 4.2, 12.86, 12.95, stdc(0x1a1c1e, { roughness: 0.9 }));
+        bx(
+          u - 2.5,
+          u + 2.5,
+          PL + 4.2,
+          PL + 4.45,
+          12.7,
+          12.95,
+          stdc(0x4a5a63, { metalness: 0.5, roughness: 0.4 }),
+        );
+        const off = i === 1 ? 0 : i === 0 ? -2.4 : 2.4;
+        bx(u + off - 1.15, u + off + 1.15, PL, PL + 4.15, 12.72, 12.82, stdc(0x3f5a3a, { roughness: 0.7 }));
+        for (let k = 0; k < 3; k++)
+          bx(
+            u + off - 1.1,
+            u + off + 1.1,
+            PL + 0.5 + k * 1.4,
+            PL + 0.56 + k * 1.4,
+            12.68,
+            12.72,
+            stdc(0x2f4a2e, { roughness: 0.7 }),
+          );
       });
+      for (let i = 0; i < 6; i++)
+        bx(
+          127 + i * 1.4,
+          127.9 + i * 1.4,
+          PL,
+          PL + 1.3,
+          8.5,
+          9.6,
+          stdc([0x2f9b45, 0xc8322a, 0xe8901c, 0x2e6fc2, 0xf2c11c, 0xd8418a][i], { roughness: 0.55 }),
+        );
+      {
+        const sg = label("Güterabfertigung", 9, 0.7, "bold # Arial", "#f4f2ea", "#1d3f7a");
+        at(new T.PlaneGeometry(9, 0.7), sg, 138.2, PL + 4.9, 12.68, Math.PI);
+      }
       // Dachgauben auf dem Flügel
-      for (let u = 104; u <= 150; u += 11.5) {
+      for (let u = 104; u <= 116; u += 11.5) {
         bx(u - 1.3, u + 1.3, 8.6, 10.4, 26.8, 29.5, BRK);
         bx(u - 0.8, u + 0.8, 8.9, 10.1, 29.45, 29.55, GLW);
         bx(u - 0.9, u + 0.9, 8.8, 8.9, 29.4, 29.65, WHT);
@@ -10138,158 +10742,99 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       }
     }
 
-    // --- Hallen am Südostende: links (Nordost) die Lokwerkstatt mit zwei Gleisen, rechts (Südwest) die Güterhalle ---
-    const hallBuild = (V0, V1, gates, open, title, col, dock) => {
-      const U0 = 159,
-        U1 = 208,
-        W = V1 - V0,
+    {
+      // Lokwerkstatt links (Nordost) nach Luftbild: große helle Halle mit flachem weißem Dach, zwei Tore zum Bahnhof, Anbau
+      const U0 = 240,
+        U1 = 335,
+        V0 = -64,
+        V1 = -40,
+        EV = 8.2,
+        RG = 9.6,
         VC = (V0 + V1) / 2,
-        EV = 7.6,
-        RG = 10.6;
-      bx(U0, U1 - 0.5, 0, EV, V0, V0 + 0.5, BRK);
-      bx(U0, U1 - 0.5, 0, EV, V1 - 0.5, V1, BRK);
-      bx(U0, U0 + 0.5, 0, EV, V0, V1, BRK);
+        W = V1 - V0;
+      const WL = stdc(0xd9dcd8, { roughness: 0.6, metalness: 0.2 }),
+        RF2 = stdc(0xf1f3f1, { roughness: 0.6 }),
+        TOR = stdc(0x2f6b8c, { roughness: 0.55, metalness: 0.3 });
+      bx(U0 + 0.5, U1, 0, EV, V0, V0 + 0.4, WL);
+      bx(U0 + 0.5, U1, 0, EV, V1 - 0.4, V1, WL);
+      bx(U1 - 0.4, U1, 0, EV, V0, V1, WL);
       {
-        const sh = gableShape(
-          W,
-          EV,
-          RG,
-          gates.map((v) => [v - VC - 2.3, 0, 4.6, 5.4, 0]),
-        );
-        at(extr(sh, 0.5), BRK, U1 - 0.25, 0, VC, -Math.PI / 2);
-        gates.forEach((v) => {
-          bx(
-            U1 - 0.05,
-            U1 + 0.1,
-            5.4,
-            5.7,
-            v - 2.5,
-            v + 2.5,
-            stdc(0x4a5a63, { metalness: 0.5, roughness: 0.4 }),
-          );
-          if (open)
-            [-1, 1].forEach((sd) => {
-              const d = at(
-                new T.BoxGeometry(0.08, 5.3, 1.15),
-                stdc(0x2f6b8c, { roughness: 0.55, metalness: 0.3 }),
-                U1 + 0.6,
-                2.65,
-                v + sd * 2.95,
-              );
-              d.rotation.y = sd * 0.9;
-            });
-          else {
-            bx(U1 - 0.35, U1 - 0.2, 0, 5.4, v - 2.3, v + 2.3, stdc(col, { roughness: 0.7 }));
-            for (let k = -1; k <= 1; k++)
-              bx(
-                U1 - 0.2,
-                U1 - 0.15,
-                0,
-                5.4,
-                v + k * 1.15 - 0.04,
-                v + k * 1.15 + 0.04,
-                stdc(0x3a3d40, { roughness: 0.6 }),
-              );
-          }
-        });
-        const sg = label(title, 10, 0.8, "bold # Arial", "#f4f2ea", "#1d3f7a");
-        at(new T.PlaneGeometry(10, 0.8), sg, U1 + 0.03, 6.55, VC, Math.PI / 2);
+        const sh = gableShape(W, EV, RG, [
+          [-47 - VC - 2.4, 0, 4.8, 5.8, 0],
+          [-57 - VC - 2.4, 0, 4.8, 5.8, 0],
+        ]);
+        at(extr(sh, 0.45), WL, U0 + 0.25, 0, VC, -Math.PI / 2);
       }
       {
         const sh = gableShape(W, EV, RG, []);
-        at(extr(sh, 0.5), BRK, U0 + 0.25, 0, VC, -Math.PI / 2);
+        at(extr(sh, 0.45), WL, U1 - 0.2, 0, VC, -Math.PI / 2);
       }
       {
-        const r = at(
-          roofGeo(W, U1 - U0, RG - EV),
-          [BRK, stdc(0x6c6f72, { roughness: 0.7, metalness: 0.3 })],
-          (U0 + U1) / 2,
-          EV - 0.05,
-          VC,
-        );
+        const r = at(roofGeo(W, U1 - U0, RG - EV), [WL, RF2], (U0 + U1) / 2, EV - 0.05, VC);
         r.rotation.y = Math.PI / 2;
-        const sl = Math.atan2(RG - EV, W / 2 + 0.5);
+      }
+      for (let u = U0 + 4; u < U1 - 3; u += 5)
+        [V0 - 0.02, V1 + 0.02].forEach((v) => bx(u - 1.8, u + 1.8, 5.0, 7.2, v - 0.04, v + 0.04, GLW));
+      [-47, -57].forEach((v) => {
+        bx(
+          U0 - 0.1,
+          U0 + 0.05,
+          5.8,
+          6.1,
+          v - 2.6,
+          v + 2.6,
+          stdc(0x4a5a63, { metalness: 0.5, roughness: 0.4 }),
+        );
         [-1, 1].forEach((sd) => {
-          const g = at(
-            new T.BoxGeometry(U1 - U0 - 4, 0.08, 2.6),
-            stdc(0xbcd3dc, { roughness: 0.1, metalness: 0.4, transparent: true, opacity: 0.75 }),
-            (U0 + U1) / 2,
-            RG - 0.95,
-            VC + sd * 2.1,
-          );
-          g.rotation.x = sd * sl;
+          const d = at(new T.BoxGeometry(0.08, 5.7, 1.2), TOR, U0 - 0.6, 2.85, v + sd * 3.05);
+          d.rotation.y = -sd * 0.9;
         });
+      });
+      {
+        const sg = label("Inselbahn Langeoog · Werkstatt", 11, 0.85, "bold # Arial", "#f4f2ea", "#1d3f7a");
+        at(new T.PlaneGeometry(11, 0.85), sg, U0 - 0.05, 7.0, VC, -Math.PI / 2);
       }
-      for (let u = U0 + 3; u < U1 - 2; u += 4.2)
-        [V0 - 0.02, V1 + 0.02].forEach((v) => bx(u - 1.5, u + 1.5, 4.4, 6.6, v - 0.04, v + 0.04, GLW));
-      if (open) {
-        bx(U0 + 0.5, U1 - 0.5, 0, 0.38, V0 + 0.5, V1 - 0.5, CONC).castShadow = false;
-        bx(U0 + 0.5, U1 - 0.5, EV - 0.1, EV, V0 + 0.5, V1 - 0.5, stdc(0x5a5e60, { roughness: 0.9 }));
-        for (let u = U0 + 5; u < U1 - 3; u += 7)
-          gates.forEach((v) =>
-            bx(
-              u - 1.6,
-              u + 1.6,
-              EV - 0.45,
-              EV - 0.35,
-              v - 0.2,
-              v + 0.2,
-              new T.MeshBasicMaterial({ color: 0xfff7e0 }),
-            ),
-          );
-        bx(U0 + 2, U0 + 9, 0.38, 1.3, V0 + 0.6, V0 + 1.6, stdc(0x6a7a85, { metalness: 0.4, roughness: 0.5 }));
-        bx(U0 + 2, U0 + 9, 0.38, 3.2, VC - 0.2, VC + 0.2, stdc(0x8a4a2a, { roughness: 0.8 }));
-        if (dock) {
-          bx(U0 + 3, U1 - 3, 0.38, 1.1, dock[0], dock[1], CONC);
-          for (let u = U0 + 6; u < U1 - 6; u += 3.2)
-            bx(
-              u - 0.6,
-              u + 0.6,
-              1.1,
-              2.3,
-              (dock[0] + dock[1]) / 2 - 0.6,
-              (dock[0] + dock[1]) / 2 + 0.6,
-              stdc([0x2f9b45, 0xc8322a, 0xe8901c, 0x2e6fc2][Math.round(u) % 4], { roughness: 0.55 }),
-            );
-        } else {
-          const g = new T.PlaneGeometry(26, 24);
-          const m = at(g, CONC, U1 + 13, 0.32, VC);
-          m.rotation.x = -Math.PI / 2;
-          m.castShadow = false;
-        }
+      bx(U0 + 0.5, U1 - 0.5, 0, 0.38, V0 + 0.4, V1 - 0.4, CONC).castShadow = false;
+      bx(U0 + 0.5, U1 - 0.5, EV - 0.1, EV, V0 + 0.4, V1 - 0.4, stdc(0x5a5e60, { roughness: 0.9 }));
+      for (let u = U0 + 6; u < U1 - 4; u += 8)
+        [-47, -57].forEach((v) =>
+          bx(
+            u - 1.6,
+            u + 1.6,
+            EV - 0.45,
+            EV - 0.35,
+            v - 0.2,
+            v + 0.2,
+            new T.MeshBasicMaterial({ color: 0xfff7e0 }),
+          ),
+        );
+      bx(U0 + 4, U0 + 14, 0.38, 1.3, V0 + 0.5, V0 + 1.6, stdc(0x6a7a85, { metalness: 0.4, roughness: 0.5 }));
+      // Anbau mit weißem Dach
+      bx(285, 332, 0, 5.5, -84, -64, WL);
+      {
+        const r = at(roofGeo(20, 47, 1.4), [WL, RF2], 308.5, 5.45, -74);
+        r.rotation.y = Math.PI / 2;
       }
-    };
-    hallBuild(-33, -10.5, [-17, -25.5], true, "Inselbahn Langeoog · Werkstatt", 0);
-    hallBuild(10.5, 33, [21.75], true, "Güterabfertigung", 0x6b4a2e, [24.6, 31.5]);
-    {
-      // Ersatzloks: eine halb aus dem Werkstatttor, eine in der Halle; abgestellte Gepäckwagen; Containerlager an der Güterhalle
+      for (let u = 289; u < 330; u += 5) bx(u - 1.4, u + 1.4, 2.4, 4.2, -84.05, -83.95, GLW);
+      // Vorfeld vor den Toren, Ersatzloks, Gepäckwagen
+      {
+        const g = new T.PlaneGeometry(26, 30);
+        const m = at(g, CONC, 226, 0.32, -52);
+        m.rotation.x = -Math.PI / 2;
+        m.castShadow = false;
+      }
       const l1 = IB.bake(IB.makeLoco());
-      l1.position.set(209.2, 0.3 + 0.116, -17);
+      l1.position.set(238.8, 0.3 + 0.116, -47);
+      l1.rotation.y = Math.PI;
       stG.add(l1);
       const l2 = IB.bake(IB.makeLoco());
-      l2.position.set(175, 0.3 + 0.116, -25.5);
-      l2.rotation.y = Math.PI;
+      l2.position.set(285, 0.3 + 0.116, -57);
       stG.add(l2);
-      [131, 141, 151].forEach((u) => {
+      [300, 310].forEach((u) => {
         const f = IB.bake(IB.makeFlat());
-        f.position.set(u, 0.3 + 0.116, -6);
+        f.position.set(u, 0.3 + 0.116, -47);
         stG.add(f);
       });
-      [203, 193].forEach((u) => {
-        const f = IB.bake(IB.makeFlat());
-        f.position.set(u, 0.3 + 0.116, 21.75);
-        stG.add(f);
-      });
-      const CC = [0x2f9b45, 0xc8322a, 0xd8418a, 0xe8901c, 0x2e6fc2, 0xf2c11c];
-      for (let i = 0; i < 14; i++) {
-        const u = 215 + (i % 7) * 1.6,
-          v = 29 + Math.floor(i / 7) * 2.3;
-        bx(u - 0.65, u + 0.65, 0.05, 1.65, v - 0.95, v + 0.95, stdc(CC[i % 6], { roughness: 0.55 }));
-      }
-      const g = new T.PlaneGeometry(30, 26);
-      const m = at(g, CONC, 222, 0.05, 22);
-      m.rotation.x = -Math.PI / 2;
-      m.castShadow = false;
     }
 
     {
@@ -13448,7 +13993,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
             const baked = IB.bake(grp);
             scene.add(baked);
           }
-          // Bahnsteig aus Klinkerpflaster (Läuferverband in Rot, Braun und Violett), graue Kante, weiße Sicherheitslinie
+          // Mittelbahnsteig zwischen Hauptgleis und zweitem Gleis: Klinkerpflaster, graue Kanten, weiße Sicherheitslinien, Dach mit Stützen
           {
             const c = document.createElement("canvas");
             c.width = 512;
@@ -13481,62 +14026,69 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
             bt.encoding = T.sRGBEncoding;
             bt.wrapS = bt.wrapT = T.RepeatWrapping;
             bt.anisotropy = 8;
-            const pg = new T.BoxGeometry(4, 0.6, 135);
-            const uv = pg.attributes.uv;
-            for (let i = 0; i < uv.count; i++)
-              uv.setXY(i, uv.getX(i) * (pg.attributes.normal.getY(i) > 0.5 ? 4 / 6 : 1), uv.getY(i) * 15);
-            const pl = mesh(
-              pg,
-              std(0xffffff, { map: bt, roughness: 0.55, metalness: 0.05 }),
-              null,
-              -5316.2,
-              ISL_TOP + 0.3,
-              -5652.5,
+            const PM = std(0xffffff, { map: bt, roughness: 0.55, metalness: 0.05 });
+            const P0 = 0.8,
+              P1 = 128,
+              yP = () => ISL_TOP + 0.6;
+            ribbon(P0, P1, 1.45, 6.55, yP, PM, 2);
+            const KM = std(0xb8b4ac, { roughness: 0.8 });
+            wallRibbon(P0, P1, 1.45, ISL_TOP, ISL_TOP + 0.6, KM);
+            wallRibbon(P0, P1, 6.55, ISL_TOP, ISL_TOP + 0.6, KM);
+            const WL = std(0xf4f4f0, { roughness: 0.6 });
+            ribbon(P0, P1, 1.95, 2.1, () => ISL_TOP + 0.605, WL, 3);
+            ribbon(P0, P1, 5.9, 6.05, () => ISL_TOP + 0.605, WL, 3);
+            {
+              const p = railPt(P0);
+              const x0 = p.x - p.ty * 4,
+                n0 = p.y + p.tx * 4;
+              mesh(new T.BoxGeometry(5.1, 0.6, 0.3), KM, null, x0, ISL_TOP + 0.3, -(n0 - 0.1));
+            }
+            // Dach über dem mittleren Teil
+            const POST = std(0x8f9497, { metalness: 0.5 });
+            for (let d = 14; d <= 96; d += 8) {
+              const p = railPt(d);
+              mesh(
+                new T.CylinderGeometry(0.1, 0.1, 3.4, 6),
+                POST,
+                null,
+                p.x - p.ty * 4,
+                ISL_TOP + 2.3,
+                -(p.y + p.tx * 4),
+              );
+            }
+            ribbon(
+              10,
+              100,
+              2.0,
+              6.0,
+              () => ISL_TOP + 4.05,
+              std(0x5b6064, { roughness: 0.6, metalness: 0.3, side: T.DoubleSide }),
+              3,
             );
-            pl.receiveShadow = true;
-            mesh(
-              new T.BoxGeometry(0.3, 0.62, 135),
-              std(0xb8b4ac, { roughness: 0.8 }),
-              null,
-              -5318.05,
-              ISL_TOP + 0.31,
-              -5652.5,
-            );
-            const ln = mesh(
-              new T.PlaneGeometry(0.15, 135),
-              std(0xf4f4f0, { roughness: 0.6 }),
-              null,
-              -5317.4,
-              ISL_TOP + 0.605,
-              -5652.5,
-            );
-            ln.rotation.x = -Math.PI / 2;
+            {
+              const p = railPt(9);
+              const sg = mesh(
+                new T.PlaneGeometry(4, 0.6),
+                signM("LANGEOOG HAFEN", 80, "#1d2a33"),
+                null,
+                p.x - p.ty * 4,
+                ISL_TOP + 3.6,
+                -(p.y + p.tx * 4),
+              );
+              sg.rotation.y = Math.atan2(p.ty, p.tx) + Math.PI / 2;
+            }
+            // Bänke
+            const BEN = std(0x8a6a48, { roughness: 0.8 });
+            [30, 52, 74].forEach((d) => {
+              const p = railPt(d);
+              const g = new T.Group();
+              mesh(new T.BoxGeometry(1.8, 0.08, 0.45), BEN, g, 0, 0.45, 0);
+              mesh(new T.BoxGeometry(1.8, 0.45, 0.06), BEN, g, 0, 0.7, -0.22);
+              g.position.set(p.x - p.ty * 4, ISL_TOP + 0.6, -(p.y + p.tx * 4));
+              g.rotation.y = Math.atan2(p.ty, p.tx);
+              scene.add(g);
+            });
           }
-          for (let n = 5595; n <= 5675; n += 8)
-            mesh(
-              new T.CylinderGeometry(0.1, 0.1, 3.4, 6),
-              std(0x8f9497, { metalness: 0.5 }),
-              null,
-              -5316.2,
-              ISL_TOP + 2.3,
-              -n,
-            );
-          mesh(
-            new T.BoxGeometry(4.6, 0.18, 84),
-            std(0x5b6064, { roughness: 0.6, metalness: 0.3 }),
-            null,
-            -5316.2,
-            ISL_TOP + 4.05,
-            -5635,
-          );
-          const sgn = mesh(
-            new T.PlaneGeometry(4, 0.6),
-            signM("LANGEOOG HAFEN", 80, "#1d2a33"),
-            null,
-            -5316.2,
-            ISL_TOP + 3.6,
-            -5594.9,
-          );
         }
         // Yachthafen am Nordufer mit Seenotretter
         buildMarina(
@@ -13601,7 +14153,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
             [-5240, 5565],
             [-5240, 5640],
             [-5300, 5600],
-            [-5330, 5680],
+            [-5334, 5680],
             [-5150, 5712],
             [-4900, 5718],
             [-4650, 5720],
@@ -13934,7 +14486,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         bikes(-5245, 5640, 10, Math.PI / 2);
         bikes(-5245, 5652, 8, Math.PI / 2);
         crowd([
-          ...scatter(-5318, -5314.5, 5596, 5672, 30, 31),
+          ...scatter(-5325.6, -5322.4, 5596, 5700, 30, 31),
           ...scatter(-5286, -5250, 5566, 5590, 20, 32),
           ...scatter(-5306, -5290, 5585, 5592, 8, 34),
           ...scatter(-5100, -4900, 5722, 5735, 10, 33),
