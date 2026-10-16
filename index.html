@@ -541,6 +541,9 @@ input[type="range"]::-moz-range-thumb {
   gap: 6px;
   margin-top: 6px;
 }
+button {
+  touch-action: manipulation;
+}
 .btn.hold {
   touch-action: none;
   user-select: none;
@@ -1739,7 +1742,7 @@ input {
         <li>Oben rechts stellen Sie den Zeitraffer ein.</li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">Version 15.10.2026 i · Klinkerhalle, Wischer, runde Brückenfenster</p>
+      <p class="ver">Version 16.10.2026 a · Seitenfenster der Brücke, Salzfilm schwächer</p>
     </div>
   </div>
 </div>
@@ -2379,6 +2382,7 @@ input {
     phase = "intro",
     zoom = 0.55,
     pane = "bruecke";
+  let INTRO_DRAW = 3; // Startmenü: Hintergrund nur wenige Bilder lang zeichnen
   let radioUntil = 0,
     hintUntil = 0;
   function radio(txt, opt) {
@@ -5108,9 +5112,16 @@ input {
             S = initState();
           }
           applyEnv();
+          if (sg.dataset.key !== "mode") {
+            clearTimeout(INTRO_TM);
+            INTRO_TM = setTimeout(() => {
+              INTRO_DRAW = Math.max(INTRO_DRAW, 2);
+            }, 350);
+          }
         }),
     ),
   );
+  let INTRO_TM = 0;
   function syncEnvUI() {
     document
       .querySelectorAll(".seg")
@@ -5166,6 +5177,7 @@ input {
   }
   function showIntro() {
     phase = "intro";
+    INTRO_DRAW = 3;
     for (const id of ["docked", "train", "over"]) $(id).hidden = true;
     syncEnvUI();
     applyEnv();
@@ -8949,11 +8961,29 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         n = p.y - p.tx * r;
       const gy = ISL_TOP;
       mesh(new T.CylinderGeometry(0.05, 0.05, top, 6), POLE, null, x, gy + top / 2, -n);
-      const s = mesh(new T.PlaneGeometry(w, h), mat, null, x, gy + top - h / 2, -n);
-      s.rotation.y = Math.atan2(p.ty, p.tx) + (dir > 0 ? -Math.PI / 2 : Math.PI / 2);
+      const th = Math.atan2(p.ty, p.tx) + (dir > 0 ? -Math.PI / 2 : Math.PI / 2),
+        ox = Math.sin(th) * 0.075,
+        oz = Math.cos(th) * 0.075; // Tafel vor dem Pfahl, zum Zug hin
+      const s = mesh(new T.PlaneGeometry(w, h), mat, null, x + ox, gy + top - h / 2, -n + oz);
+      s.rotation.y = th;
       s.castShadow = true;
+      const bk = mesh(new T.PlaneGeometry(w, h), TSBACK, null, x + ox * 0.9, gy + top - h / 2, -n + oz * 0.9);
+      bk.rotation.y = th + Math.PI;
+      const cl = mesh(
+        new T.BoxGeometry(0.16, 0.05, 0.06),
+        POLE,
+        null,
+        x + ox * 0.5,
+        gy + top - h * 0.25,
+        -n + oz * 0.5,
+      );
+      cl.rotation.y = th;
+      const c2 = cl.clone();
+      c2.position.y = gy + top - h * 0.75;
+      scene.add(c2);
       return s;
     };
+    const TSBACK = std(0x8a8f92, { roughness: 0.6, metalness: 0.3 });
     // Hauptgleis
     {
       const P = [],
@@ -11738,7 +11768,21 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     sb(11.0, 0.25, 4.2, W, 0, 7.15, 13.1);
     [-1, 1].forEach((sd) => mesh(new T.CylinderGeometry(0.12, 0.12, 2.1, 10), W, tilt, sd * 5.5, 6.1, -14.9));
     // Steuerhaus außen
-    extOnly.push(sb(6.9, 3.38, 7, W, 0, 7.4, 11.5));
+    // hohl, damit man durch die Frontscheiben hineinsieht: Seiten, Rückwand, Brüstung, Sturz, Holme
+    [-1, 1].forEach((sd) => {
+      const x = sd * 3.4;
+      extOnly.push(sb(0.1, 8.62 - 7.4, 7, W, x, 7.4, 11.5), sb(0.1, 10.78 - 10.17, 7, W, x, 10.17, 11.5));
+      [
+        [14.75, 15.0],
+        [12.41, 12.63],
+        [8.0, 10.31],
+      ].forEach(([a, b]) => extOnly.push(sb(0.1, 1.55, b - a, W, x, 8.62, (a + b) / 2)));
+    });
+    extOnly.push(sb(6.9, 3.38, 0.1, W, 0, 7.4, 8.0));
+    extOnly.push(sb(6.9, 8.62 - 7.4, 0.1, W, 0, 7.4, 15.0));
+    extOnly.push(sb(6.9, 10.78 - 10.17, 0.3, W, 0, 10.17, 15.0));
+    [-1.12, 1.12].forEach((x) => extOnly.push(sb(0.12, 1.55, 0.2, W, x, 8.62, 15.0)));
+    [-1, 1].forEach((sd) => extOnly.push(sb(0.24, 1.55, 0.2, W, sd * 3.33, 8.62, 15.0)));
     // Fenster (Glas mit Rahmen und Himmelsspiegelung)
     const winList = [];
     const addWin = (x, y, s, w, h, face) => winList.push([x, y, s, w, h, face]);
@@ -11787,18 +11831,35 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       sb(0.5, 0.6, 0.1, GLS, 0, y + 1.1, s + 0.03);
     });
     // Steuerhausfenster außen: drei Frontscheiben, je zwei Seitenscheiben, zwei Heckscheiben
-    const GLSB = glassMat({ frame: 0.035, rad: 0.38, cor: 0xf2f2ef });
+    const GLSB = glassMat({ frame: 0.035, rad: 0.38, cor: 0xf2f2ef }),
+      GLSF = glassMat({
+        transp: true,
+        tint: 0x9fb4bd,
+        side: T.DoubleSide,
+        frame: 0.035,
+        rad: 0.38,
+        cor: 0xf2f2ef,
+      });
     const sbx = (w, h, d, mat, x, y0, sz) => mesh(new T.BoxGeometry(w, h, d), mat, tilt, x, y0 + h / 2, -sz);
     [
-      [-2.24, 2.0],
-      [0, 2.08],
-      [2.24, 2.0],
-    ].forEach(([x, w]) => extOnly.push(sbx(w, 2.0, 0.08, GLSB, x, 8.34, 15.04)));
+      [-2.2, 2.04],
+      [0, 2.12],
+      [2.2, 2.04],
+    ].forEach(([x, w]) => {
+      const m = mesh(new T.PlaneGeometry(w, 1.55), GLSF, tilt, x, 8.62 + 0.775, -15.06);
+      m.renderOrder = 5;
+      extOnly.push(m);
+    });
     [-1, 1].forEach((sd) => {
       [
-        [13.69, 2.1],
+        [13.69, 2.12],
         [11.36, 2.1],
-      ].forEach(([s, w]) => extOnly.push(sbx(0.08, 1.98, w, GLSB, sd * 3.47, 8.4, s)));
+      ].forEach(([s, w]) => {
+        const m = mesh(new T.PlaneGeometry(w, 1.55), GLSF, tilt, sd * 3.455, 8.62 + 0.775, -s);
+        m.rotation.y = (sd * Math.PI) / 2;
+        m.renderOrder = 5;
+        extOnly.push(m);
+      });
       extOnly.push(sbx(1.8, 1.86, 0.08, GLSB, sd * 2.0, 8.42, 7.97));
     });
     {
@@ -12314,28 +12375,34 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       const c = mesh(tbox(IW, 0.06, 7.2, 2.4), CEILM, interior, 0, 10.71, -11.5);
     }
     // Front: Brüstung, Fensterbank, Sturz, Holme, Scheiben
-    ib(IW, 0.92, 0.1, BEIGE, 0, 7.42, 15.02);
-    ib(IW, 0.06, 0.5, WOODL, 0, 8.3, 14.78, 0.8);
-    ib(IW + 0.1, 0.34, 0.32, WOODL, 0, 10.36, 14.95, 0.8);
-    [-(HW - 0.08), -1.15, 1.15, HW - 0.08].forEach((x) => ib(0.2, 2.02, 0.26, WOODL, x, 8.34, 14.95, 0.8));
+    // Frontfenster nach Foto: drei breite, niedrige Scheiben mit schmalen Holmen
+    const FY0 = 8.62,
+      FH = 1.55,
+      FYC = FY0 + FH / 2;
+    ib(IW, FY0 - 7.42, 0.1, BEIGE, 0, 7.42, 15.02);
+    ib(IW, 0.06, 0.5, WOODL, 0, FY0 - 0.04, 14.78, 0.8);
+    ib(IW + 0.1, 10.7 - (FY0 + FH), 0.32, WOODL, 0, FY0 + FH, 14.95, 0.8);
+    [-(HW - 0.08), HW - 0.08].forEach((x) => ib(0.2, FH, 0.26, WOODL, x, FY0, 14.95, 0.8));
+    [-1.12, 1.12].forEach((x) => ib(0.12, FH, 0.26, WOODL, x, FY0, 14.95, 0.8));
     const FP = [
-      [-2.24, 2.02],
-      [0, 2.1],
-      [2.24, 2.02],
+      [-2.2, 2.04],
+      [0, 2.12],
+      [2.2, 2.04],
     ];
-    FP.forEach(([x, w]) => pane(w, 2.02, x, 9.35, 15.05, 0));
+    const inPanes = [];
+    FP.forEach(([x, w]) => inPanes.push(pane(w, FH, x, FYC, 15.05, 0)));
     const WIPE = std(0x101214, { roughness: 0.45, metalness: 0.3 }),
       WRUB = std(0x050505, { roughness: 0.9 }),
       WMOT = std(0x2b2f33, { roughness: 0.5, metalness: 0.4 });
     const SWP = 0.62,
-      AR = 1.0,
-      BL = 0.5; // Schwenkwinkel, Armlänge bis Blattmitte, halbe Blattlänge
+      AR = 0.8,
+      BL = 0.42; // Schwenkwinkel, Armlänge bis Blattmitte, halbe Blattlänge
     FP.forEach(([x, w], i) => {
       const a = [0.42, -0.3, -0.5][i];
       // Motorgehäuse oben am Rahmen
-      mesh(new T.BoxGeometry(0.34, 0.2, 0.16), WMOT, interior, x, 10.33, -15.2);
+      mesh(new T.BoxGeometry(0.34, 0.2, 0.16), WMOT, interior, x, FY0 + FH + 0.12, -15.2);
       const pv = new T.Group();
-      pv.position.set(x, 10.3, -15.15);
+      pv.position.set(x, FY0 + FH - 0.03, -15.15);
       pv.rotation.z = a;
       interior.add(pv);
       mesh(new T.CylinderGeometry(0.075, 0.075, 0.09, 14).rotateX(Math.PI / 2), WIPE, pv, 0, 0, 0);
@@ -12352,23 +12419,23 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       );
       // Salzfilm auf der Scheibe, im Wischbereich klar
       const cw = 256,
-        ch = Math.round((256 * 2.02) / w),
+        ch = Math.round((256 * FH) / w),
         c = document.createElement("canvas");
       c.width = cw;
       c.height = ch;
       const g = c.getContext("2d");
       const R = rng(90 + i);
-      g.fillStyle = "rgba(222,226,224,0.13)";
+      g.fillStyle = "rgba(222,226,224,0.07)";
       g.fillRect(0, 0, cw, ch);
-      for (let k = 0; k < 600; k++) {
-        g.fillStyle = `rgba(${(235 - R() * 30) | 0},${(238 - R() * 25) | 0},${(236 - R() * 25) | 0},${0.06 + R() * 0.2})`;
-        const r = 0.5 + R() * 1.6;
+      for (let k = 0; k < 420; k++) {
+        g.fillStyle = `rgba(${(235 - R() * 30) | 0},${(238 - R() * 25) | 0},${(236 - R() * 25) | 0},${0.03 + R() * 0.12})`;
+        const r = 0.5 + R() * 1.4;
         g.beginPath();
         g.arc(R() * cw, R() * ch, r, 0, 7);
         g.fill();
       }
-      for (let k = 0; k < 18; k++) {
-        g.strokeStyle = "rgba(210,215,212,0.12)";
+      for (let k = 0; k < 12; k++) {
+        g.strokeStyle = "rgba(210,215,212,0.07)";
         g.lineWidth = 1 + R() * 2;
         const x0 = R() * cw;
         g.beginPath();
@@ -12377,47 +12444,50 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         g.stroke();
       }
       const px = (X) => (X / w + 0.5) * cw,
-        py = (Y) => (1 - (Y - (9.35 - 1.01)) / 2.02) * ch;
+        py = (Y) => (1 - (Y - FY0) / FH) * ch;
       g.globalCompositeOperation = "destination-out";
       g.fillStyle = "rgba(0,0,0,1)";
       g.beginPath();
       const N = 30;
       for (let k = 0; k <= N; k++) {
         const t = -SWP + (2 * SWP * k) / N;
-        g.lineTo(px(AR * Math.sin(t)), py(10.3 - AR * Math.cos(t) + BL));
+        g.lineTo(px(AR * Math.sin(t)), py(FY0 + FH - 0.03 - AR * Math.cos(t) + BL));
       }
       for (let k = N; k >= 0; k--) {
         const t = -SWP + (2 * SWP * k) / N;
-        g.lineTo(px(AR * Math.sin(t)), py(10.3 - AR * Math.cos(t) - BL));
+        g.lineTo(px(AR * Math.sin(t)), py(FY0 + FH - 0.03 - AR * Math.cos(t) - BL));
       }
       g.closePath();
       g.fill();
       // Rand des Wischfelds etwas dichter
       g.globalCompositeOperation = "source-over";
-      g.strokeStyle = "rgba(225,228,226,0.3)";
+      g.strokeStyle = "rgba(225,228,226,0.16)";
       g.lineWidth = 3;
       g.stroke();
       const tx = new T.CanvasTexture(c);
       tx.encoding = T.sRGBEncoding;
       const film = mesh(
-        new T.PlaneGeometry(w - 0.06, 1.96),
+        new T.PlaneGeometry(w - 0.06, FH - 0.06),
         new T.MeshBasicMaterial({ map: tx, transparent: true, depthWrite: false, side: T.DoubleSide }),
         interior,
         x,
-        9.35,
+        FYC,
         -15.075,
       );
       film.renderOrder = 6;
+      inPanes.push(film);
     });
     // Seitenwände mit Fenstern und Tür zur Nock
     [-1, 1].forEach((sd) => {
-      ib(0.1, 0.98, 7.0, BEIGE, sd * (HW - 0.04), 7.42, 11.5);
-      ib(0.4, 0.06, 6.9, WOODL, sd * (HW - 0.22), 8.4, 11.55, 0.8);
-      ib(0.3, 0.32, 7.0, WOODL, sd * (HW - 0.1), 10.38, 11.5, 0.8);
-      [14.86, 12.52, 10.2].forEach((s) => ib(0.24, 1.98, 0.22, WOODL, sd * (HW - 0.05), 8.4, s, 0.8));
-      pane(2.12, 1.98, sd * HW, 9.39, 13.69, Math.PI / 2);
-      pane(2.1, 1.98, sd * HW, 9.39, 11.36, Math.PI / 2);
-      ib(0.1, 2.0, 2.1, BEIGE, sd * (HW - 0.04), 8.4, 9.1);
+      ib(0.1, FY0 - 7.42, 7.0, BEIGE, sd * (HW - 0.04), 7.42, 11.5);
+      ib(0.4, 0.06, 6.9, WOODL, sd * (HW - 0.22), FY0 - 0.04, 11.55, 0.8);
+      ib(0.3, 10.7 - (FY0 + FH), 7.0, WOODL, sd * (HW - 0.1), FY0 + FH, 11.5, 0.8);
+      [14.86, 12.52, 10.2].forEach((s) => ib(0.24, FH, 0.22, WOODL, sd * (HW - 0.05), FY0, s, 0.8));
+      inPanes.push(
+        pane(2.12, FH, sd * HW, FYC, 13.69, Math.PI / 2),
+        pane(2.1, FH, sd * HW, FYC, 11.36, Math.PI / 2),
+      );
+      ib(0.1, FH, 2.1, BEIGE, sd * (HW - 0.04), FY0, 9.1);
       ib(0.08, 2.05, 0.95, DOORW, sd * (HW - 0.12), 7.45, 9.15);
       ib(0.06, 0.5, 0.4, std(0x1a2731, { roughness: 0.2 }), sd * (HW - 0.17), 8.9, 9.15);
       ib(0.12, 0.04, 0.18, std(0x9aa0a3, { metalness: 0.8, roughness: 0.3 }), sd * (HW - 0.2), 8.45, 9.45);
@@ -15287,6 +15357,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       shipRoot,
       tilt,
       interior,
+      inPanes,
       extOnly,
       scanner,
       flagD,
@@ -15422,8 +15493,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     g.time.value = tR;
     const bridge = pane === "bruecke",
       nock = pane === "nock";
-    g.interior.visible = bridge;
     g.extOnly.forEach((m) => (m.visible = !bridge));
+    g.inPanes.forEach((m) => (m.visible = bridge));
     const sx = S.x,
       sz = -S.y;
     const heave = waveH(sx, sz, tR) * 0.1;
@@ -15660,6 +15731,12 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         d.tex.needsUpdate = true;
       });
     }
+    if (bridge) g.interior.visible = true;
+    else {
+      cam.updateMatrixWorld();
+      const cp = cam.getWorldPosition(g._v3 || (g._v3 = new T.Vector3()));
+      g.interior.visible = cp.distanceTo(g.shipRoot.position) < 160;
+    }
     g.renderer.render(g.scene, cam);
   }
 
@@ -15758,7 +15835,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       const c = $("chart");
       const { W, H, dpr } = fit(c);
       drawScene(c.getContext("2d"), W, H, dpr, { cx: W / 2, cy: H * 0.66, sc: zoom, mini: false });
-    } else if (G) {
+    } else if (G && (phase !== "intro" || INTRO_DRAW > 0)) {
+      if (phase === "intro") INTRO_DRAW--;
       try {
         render3D(dtR, t3);
       } catch (e) {
