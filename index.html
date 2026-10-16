@@ -1742,7 +1742,7 @@ input {
         <li>Oben rechts stellen Sie den Zeitraffer ein.</li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">Version 16.10.2026 a · Seitenfenster der Brücke, Salzfilm schwächer</p>
+      <p class="ver">Version 16.10.2026 f · Brückenfenster höher, feinere Wischer, kleinere Ecken</p>
     </div>
   </div>
 </div>
@@ -11762,36 +11762,48 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     sb(11.94, 2.6, 41, W, 0, 2.43, -5.5);
     sb(11.9, 0.04, 40.9, DECKG, 0, 5.03, -5.5);
     // Ebene 2: Obersalon
-    sb(11.0, 2.37, 19, W, 0, 5.05, 1.5);
+    // reicht nach Foto bis vorn unter die Brücke (kein offenes Deck), Front mit Fenstern und Wappen
+    sb(11.0, 2.37, 23.05, W, 0, 5.05, 3.525);
     sb(11.0, 0.03, 19, DECKG, 0, 7.42, 1.5);
-    // Steuerhausboden über der Terrasse, Stützen
-    sb(11.0, 0.25, 4.2, W, 0, 7.15, 13.1);
-    [-1, 1].forEach((sd) => mesh(new T.CylinderGeometry(0.12, 0.12, 2.1, 10), W, tilt, sd * 5.5, 6.1, -14.9));
+    // Brückenmaße nach Foto: hohes Band unter niedrigen Fenstern, Dach direkt darüber (Dach 0,72 m tiefer als zuvor)
+    const BD = 0.72,
+      BY0 = 8.72,
+      BH = 1.13,
+      BY1 = BY0 + BH,
+      BTOP = 10.78 - BD,
+      BCEIL = 10.7 - BD;
     // Steuerhaus außen
     // hohl, damit man durch die Frontscheiben hineinsieht: Seiten, Rückwand, Brüstung, Sturz, Holme
     [-1, 1].forEach((sd) => {
       const x = sd * 3.4;
-      extOnly.push(sb(0.1, 8.62 - 7.4, 7, W, x, 7.4, 11.5), sb(0.1, 10.78 - 10.17, 7, W, x, 10.17, 11.5));
       [
-        [14.75, 15.0],
-        [12.41, 12.63],
+        [8.0, 13.6],
+        [14.52, 15.0],
+      ].forEach(([a, b]) => extOnly.push(sb(0.1, BTOP - BY1, b - a, W, x, BY1, (a + b) / 2)));
+      [
+        [8.0, 13.6],
+        [14.52, 15.0],
+      ].forEach(([a, b]) => extOnly.push(sb(0.1, BY0 - 7.4, b - a, W, x, 7.4, (a + b) / 2)));
+      [
+        [14.52, 15.0],
+        [12.41, 13.6],
         [8.0, 10.31],
-      ].forEach(([a, b]) => extOnly.push(sb(0.1, 1.55, b - a, W, x, 8.62, (a + b) / 2)));
+      ].forEach(([a, b]) => extOnly.push(sb(0.1, BH, b - a, W, x, BY0, (a + b) / 2)));
     });
-    extOnly.push(sb(6.9, 3.38, 0.1, W, 0, 7.4, 8.0));
-    extOnly.push(sb(6.9, 8.62 - 7.4, 0.1, W, 0, 7.4, 15.0));
-    extOnly.push(sb(6.9, 10.78 - 10.17, 0.3, W, 0, 10.17, 15.0));
-    [-1.12, 1.12].forEach((x) => extOnly.push(sb(0.12, 1.55, 0.2, W, x, 8.62, 15.0)));
-    [-1, 1].forEach((sd) => extOnly.push(sb(0.24, 1.55, 0.2, W, sd * 3.33, 8.62, 15.0)));
+    extOnly.push(sb(6.9, BTOP - 7.4, 0.1, W, 0, 7.4, 8.0));
+    extOnly.push(sb(6.9, BY0 - 7.4, 0.1, W, 0, 7.4, 15.0));
+    extOnly.push(sb(6.9, BTOP - BY1, 0.3, W, 0, BY1, 15.0));
+    [-1.12, 1.12].forEach((x) => extOnly.push(sb(0.12, BH, 0.2, W, x, BY0, 15.0)));
+    [-1, 1].forEach((sd) => extOnly.push(sb(0.24, BH, 0.2, W, sd * 3.33, BY0, 15.0)));
     // Fenster (Glas mit Rahmen und Himmelsspiegelung)
     const winList = [];
     const addWin = (x, y, s, w, h, face) => winList.push([x, y, s, w, h, face]);
     for (let s = 12.6; s >= -24; s -= 2.45)
       [-1, 1].forEach((sd) => addWin(sd * 5.99, 4.05, s, 1.35, 0.9, "x"));
-    for (let s = 9.8; s >= -6.8; s -= 2.1)
+    for (let s = 14.0; s >= -6.8; s -= 2.1)
       [-1, 1].forEach((sd) => addWin(sd * 5.52, 6.25, s, 1.5, 1.05, "x"));
     [-4.1, -2.3, 2.3, 4.1].forEach((x) => addWin(x, 3.8, 15.0, 1.4, 1.0, "z"));
-    [-4.0, -2.1, 2.1, 4.0].forEach((x) => addWin(x, 6.25, 11.0, 1.6, 1.3, "z"));
+    [-3.65, -1.4, 1.4, 3.65].forEach((x) => addWin(x, 6.4, 15.05, 1.45, 0.85, "z"));
     {
       const geo = new T.BoxGeometry(1, 1, 1);
       const im = new T.InstancedMesh(geo, GLS, winList.length);
@@ -11823,21 +11835,18 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     sb(0.07, 1.55, 1.1, DOORM, 6.03, 0.55, -0.5);
     sb(0.08, 0.45, 0.42, GLS, 6.05, 1.45, -0.5);
     sb(0.09, 0.06, 1.24, RED, 6.04, 2.12, -0.5);
-    [
-      [15.0, 2.43],
-      [11.0, 5.05],
-    ].forEach(([s, y]) => {
+    [[15.0, 2.43]].forEach(([s, y]) => {
       sb(1.1, 2.0, 0.08, DOORM, 0, y, s + 0.02);
       sb(0.5, 0.6, 0.1, GLS, 0, y + 1.1, s + 0.03);
     });
     // Steuerhausfenster außen: drei Frontscheiben, je zwei Seitenscheiben, zwei Heckscheiben
-    const GLSB = glassMat({ frame: 0.035, rad: 0.38, cor: 0xf2f2ef }),
+    const GLSB = glassMat({ frame: 0.035, rad: 0.2, cor: 0xf2f2ef }),
       GLSF = glassMat({
         transp: true,
         tint: 0x9fb4bd,
         side: T.DoubleSide,
         frame: 0.035,
-        rad: 0.38,
+        rad: 0.2,
         cor: 0xf2f2ef,
       });
     const sbx = (w, h, d, mat, x, y0, sz) => mesh(new T.BoxGeometry(w, h, d), mat, tilt, x, y0 + h / 2, -sz);
@@ -11846,21 +11855,18 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       [0, 2.12],
       [2.2, 2.04],
     ].forEach(([x, w]) => {
-      const m = mesh(new T.PlaneGeometry(w, 1.55), GLSF, tilt, x, 8.62 + 0.775, -15.06);
+      const m = mesh(new T.PlaneGeometry(w, BH), GLSF, tilt, x, BY0 + BH / 2, -15.06);
       m.renderOrder = 5;
       extOnly.push(m);
     });
     [-1, 1].forEach((sd) => {
-      [
-        [13.69, 2.12],
-        [11.36, 2.1],
-      ].forEach(([s, w]) => {
-        const m = mesh(new T.PlaneGeometry(w, 1.55), GLSF, tilt, sd * 3.455, 8.62 + 0.775, -s);
+      [[11.36, 2.1]].forEach(([s, w]) => {
+        const m = mesh(new T.PlaneGeometry(w, BH), GLSF, tilt, sd * 3.455, BY0 + BH / 2, -s);
         m.rotation.y = (sd * Math.PI) / 2;
         m.renderOrder = 5;
         extOnly.push(m);
       });
-      extOnly.push(sbx(1.8, 1.86, 0.08, GLSB, sd * 2.0, 8.42, 7.97));
+      extOnly.push(sbx(1.8, BH, 0.08, GLSB, sd * 2.0, BY0, 7.97));
     });
     {
       const c = document.createElement("canvas");
@@ -11889,14 +11895,14 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       const t = new T.CanvasTexture(c);
       t.encoding = T.sRGBEncoding;
       const m = mesh(
-        new T.PlaneGeometry(0.5, 0.62),
+        new T.PlaneGeometry(0.62, 0.78),
         std(0xffffff, { map: t, transparent: true }),
         tilt,
         0,
-        7.85,
-        -15.07,
+        7.98,
+        -15.08,
       );
-      extOnly.push(m);
+      m.rotation.y = Math.PI;
     }
     // Dach: weiße Unterseite, orange ausgestellte Kante, grüne Oberseite
     sb(11.2, 0.08, 8.6, W, 0, 10.72, 11.6);
@@ -11985,9 +11991,9 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       sb(0.9, 0.12, 0.12, W, -6.5, 7.0, 11.2);
       sb(0.9, 0.12, 0.12, W, -6.5, 7.0, 14.0);
     }
-    sb(0.5, 2.4, 0.5, W, -4.6, 5.05, 14.4);
+    sb(0.5, 2.4, 0.5, W, -5.6, 5.05, 15.4);
     {
-      const a = mesh(tbox(0.35, 0.35, 6.2, 2), W, tilt, -4.6, 7.6, -17.2);
+      const a = mesh(tbox(0.35, 0.35, 6.2, 2), W, tilt, -5.6, 7.6, -18.2);
       a.rotation.x = 0.18;
     }
     const RING = std(0xe8531c, { roughness: 0.5 });
@@ -11995,8 +12001,6 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     [
       [-1.6, 3.9, 15.04, 0],
       [1.6, 3.9, 15.04, 0],
-      [-3.1, 6.4, 11.04, 0],
-      [3.1, 6.4, 11.04, 0],
     ].forEach(([x, y, s]) => mesh(ringGeo, RING, tilt, x, y, -s));
     // Container und Gepäck auf dem Vorschiff, Poller
     sb(2.4, 2.5, 6, std(0xb0307a, { roughness: 0.6, metalness: 0.2 }), -2.4, 2.45, 21.5);
@@ -12035,8 +12039,6 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       const n = Math.max(1, Math.round(len / 1.3));
       for (let i = 0; i <= n; i++) posts.push([x1 + (dx * i) / n, y, s1 + (ds * i) / n]);
     };
-    rail(-5.9, 14.95, 5.9, 14.95, 5.05);
-    [-1, 1].forEach((sd) => rail(sd * 5.9, 14.95, sd * 5.9, 11.05, 5.05));
     [-1, 1].forEach((sd) => rail(sd * 5.42, 8.0, sd * 5.42, -7.95, 7.45));
     rail(-5.42, -7.95, 5.42, -7.95, 7.45);
     [-1, 1].forEach((sd) => rail(sd * 5.9, -8.05, sd * 5.9, -25.9, 5.05));
@@ -12048,7 +12050,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       const im = new T.InstancedMesh(new T.CylinderGeometry(0.03, 0.03, 1.0, 6), RAILM2, posts.length);
       const o = new T.Object3D();
       posts.forEach((p, i) => {
-        o.position.set(p[0], p[1] + 0.5, -p[2]);
+        o.position.set(p[0], p[1] + 0.5 - (p[1] > 10.5 && p[2] > 6.8 && p[2] < 16.6 ? BD : 0), -p[2]);
         o.updateMatrix();
         im.setMatrixAt(i, o.matrix);
       });
@@ -12081,7 +12083,6 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       const zones = [
         [-4.9, 4.9, 7.6, -7.5, 7.45, 26],
         [-5.4, 5.4, -8.6, -25.4, 5.07, 30],
-        [-5.4, 5.4, 14.6, 11.4, 5.07, 10],
       ];
       zones.forEach(([x0, x1, s0, s1, y, n]) => {
         for (let i = 0; i < n; i++) {
@@ -12353,7 +12354,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         tint: 0xb8ccd4,
         side: T.DoubleSide,
         frame: 0.035,
-        rad: 0.38,
+        rad: 0.2,
         cor: 0xd9d3c6,
       }),
       DOORW = std(0xeceae4, { roughness: 0.5 });
@@ -12376,12 +12377,12 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     }
     // Front: Brüstung, Fensterbank, Sturz, Holme, Scheiben
     // Frontfenster nach Foto: drei breite, niedrige Scheiben mit schmalen Holmen
-    const FY0 = 8.62,
-      FH = 1.55,
+    const FY0 = BY0,
+      FH = BH,
       FYC = FY0 + FH / 2;
-    ib(IW, FY0 - 7.42, 0.1, BEIGE, 0, 7.42, 15.02);
+    ib(IW, FY0 - 7.42, 0.1, BEIGE, 0, 7.42, 14.96);
     ib(IW, 0.06, 0.5, WOODL, 0, FY0 - 0.04, 14.78, 0.8);
-    ib(IW + 0.1, 10.7 - (FY0 + FH), 0.32, WOODL, 0, FY0 + FH, 14.95, 0.8);
+    ib(IW + 0.1, BCEIL - (FY0 + FH), 0.32, WOODL, 0, FY0 + FH, 14.95, 0.8);
     [-(HW - 0.08), HW - 0.08].forEach((x) => ib(0.2, FH, 0.26, WOODL, x, FY0, 14.95, 0.8));
     [-1.12, 1.12].forEach((x) => ib(0.12, FH, 0.26, WOODL, x, FY0, 14.95, 0.8));
     const FP = [
@@ -12395,27 +12396,27 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       WRUB = std(0x050505, { roughness: 0.9 }),
       WMOT = std(0x2b2f33, { roughness: 0.5, metalness: 0.4 });
     const SWP = 0.62,
-      AR = 0.8,
-      BL = 0.42; // Schwenkwinkel, Armlänge bis Blattmitte, halbe Blattlänge
+      AR = 0.64,
+      BL = 0.38; // Schwenkwinkel, Armlänge bis Blattmitte, halbe Blattlänge
     FP.forEach(([x, w], i) => {
       const a = [0.42, -0.3, -0.5][i];
       // Motorgehäuse oben am Rahmen
-      mesh(new T.BoxGeometry(0.34, 0.2, 0.16), WMOT, interior, x, FY0 + FH + 0.12, -15.2);
+      mesh(new T.BoxGeometry(0.22, 0.12, 0.1), WMOT, interior, x, FY0 + FH + 0.07, -15.18);
       const pv = new T.Group();
       pv.position.set(x, FY0 + FH - 0.03, -15.15);
       pv.rotation.z = a;
       interior.add(pv);
-      mesh(new T.CylinderGeometry(0.075, 0.075, 0.09, 14).rotateX(Math.PI / 2), WIPE, pv, 0, 0, 0);
-      [-0.09, 0.09].forEach((o) => mesh(new T.BoxGeometry(0.045, AR, 0.035), WIPE, pv, o, -AR / 2, 0));
-      mesh(new T.BoxGeometry(0.2, 0.05, 0.04), WIPE, pv, 0, -AR, 0);
+      mesh(new T.CylinderGeometry(0.04, 0.04, 0.06, 12).rotateX(Math.PI / 2), WIPE, pv, 0, 0, 0);
+      [-0.05, 0.05].forEach((o) => mesh(new T.BoxGeometry(0.022, AR, 0.02), WIPE, pv, o, -AR / 2, 0));
+      mesh(new T.BoxGeometry(0.12, 0.03, 0.025), WIPE, pv, 0, -AR, 0);
       const bl = new T.Group();
       bl.position.set(0, -AR, 0);
       bl.rotation.z = -a;
       pv.add(bl);
-      mesh(new T.BoxGeometry(0.05, 2 * BL, 0.05), WIPE, bl, 0, 0, 0);
-      mesh(new T.BoxGeometry(0.025, 2 * BL + 0.02, 0.035), WRUB, bl, 0, 0, 0.035);
+      mesh(new T.BoxGeometry(0.028, 2 * BL, 0.028), WIPE, bl, 0, 0, 0);
+      mesh(new T.BoxGeometry(0.014, 2 * BL + 0.02, 0.02), WRUB, bl, 0, 0, 0.022);
       [-BL * 0.6, 0, BL * 0.6].forEach((y) =>
-        mesh(new T.BoxGeometry(0.07, 0.08, 0.06), WIPE, bl, 0, y, 0.01),
+        mesh(new T.BoxGeometry(0.04, 0.05, 0.035), WIPE, bl, 0, y, 0.005),
       );
       // Salzfilm auf der Scheibe, im Wischbereich klar
       const cw = 256,
@@ -12478,30 +12479,46 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       inPanes.push(film);
     });
     // Seitenwände mit Fenstern und Tür zur Nock
+    // vorn neben dem Außensteuerstand statt der Scheibe die Tür zur Nock (s 13,6 bis 14,52)
+    const DS0 = 13.6,
+      DS1 = 14.52;
     [-1, 1].forEach((sd) => {
-      ib(0.1, FY0 - 7.42, 7.0, BEIGE, sd * (HW - 0.04), 7.42, 11.5);
-      ib(0.4, 0.06, 6.9, WOODL, sd * (HW - 0.22), FY0 - 0.04, 11.55, 0.8);
-      ib(0.3, 10.7 - (FY0 + FH), 7.0, WOODL, sd * (HW - 0.1), FY0 + FH, 11.5, 0.8);
-      [14.86, 12.52, 10.2].forEach((s) => ib(0.24, FH, 0.22, WOODL, sd * (HW - 0.05), FY0, s, 0.8));
-      inPanes.push(
-        pane(2.12, FH, sd * HW, FYC, 13.69, Math.PI / 2),
-        pane(2.1, FH, sd * HW, FYC, 11.36, Math.PI / 2),
+      const xw = sd * (HW - 0.04);
+      [
+        [8.0, DS0],
+        [DS1, 15.0],
+      ].forEach(([a, b]) => ib(0.1, FY0 - 7.42, b - a, BEIGE, xw, 7.42, (a + b) / 2));
+      [
+        [8.1, DS0],
+        [DS1, 14.95],
+      ].forEach(([a, b]) => ib(0.4, 0.06, b - a, WOODL, sd * (HW - 0.22), FY0 - 0.04, (a + b) / 2, 0.8));
+      [
+        [8.0, DS0],
+        [DS1, 15.0],
+      ].forEach(([a, b]) =>
+        ib(0.3, BCEIL - (FY0 + FH), b - a, WOODL, sd * (HW - 0.1), FY0 + FH, (a + b) / 2, 0.8),
       );
+      [
+        [12.63, DS0],
+        [DS1, 14.75],
+      ].forEach(([a, b]) => ib(0.1, FH, b - a, BEIGE, xw, FY0, (a + b) / 2));
+      [14.86, 12.52, 10.2].forEach((s) => ib(0.24, FH, 0.22, WOODL, sd * (HW - 0.05), FY0, s, 0.8));
+      inPanes.push(pane(2.1, FH, sd * HW, FYC, 11.36, Math.PI / 2));
       ib(0.1, FH, 2.1, BEIGE, sd * (HW - 0.04), FY0, 9.1);
       ib(0.08, 2.05, 0.95, DOORW, sd * (HW - 0.12), 7.45, 9.15);
       ib(0.06, 0.5, 0.4, std(0x1a2731, { roughness: 0.2 }), sd * (HW - 0.17), 8.9, 9.15);
       ib(0.12, 0.04, 0.18, std(0x9aa0a3, { metalness: 0.8, roughness: 0.3 }), sd * (HW - 0.2), 8.45, 9.45);
     });
     // Rückwand mit Tür und zwei Fenstern
-    ib(IW, 1.0, 0.1, BEIGE, 0, 7.42, 8.02);
-    ib(IW, 0.42, 0.1, WOODL, 0, 10.28, 8.02, 0.8);
+    ib(IW, BY0 - 7.42, 0.1, BEIGE, 0, 7.42, 8.02);
+    ib(IW, BCEIL - BY1, 0.1, WOODL, 0, BY1, 8.02, 0.8);
     [
       [-(HW - 0.3), 0.5],
       [0, 2.2],
       [HW - 0.3, 0.5],
-    ].forEach(([x, w]) => ib(w, 1.86, 0.1, BEIGE, x, 8.42, 8.02));
-    pane(1.8, 1.86, -2.0, 9.35, 8.0, Math.PI);
-    pane(1.8, 1.86, 2.0, 9.35, 8.0, Math.PI);
+    ].forEach(([x, w]) => ib(w, BH, 0.1, BEIGE, x, BY0, 8.02));
+    pane(1.8, BH, -2.0, BY0 + BH / 2, 8.0, Math.PI);
+    pane(1.8, BH, 2.0, BY0 + BH / 2, 8.0, Math.PI);
     ib(1.0, 2.1, 0.06, WOODL, 0, 7.42, 8.08, 0.8);
     ib(0.16, 0.04, 0.08, std(0x9aa0a3, { metalness: 0.8, roughness: 0.3 }), 0.35, 8.45, 8.13);
     // Kartentisch, Feuerlöscher, Uhr
@@ -12584,8 +12601,10 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       conS.m.position.z = 0.002;
       g.add(conS.m);
       [-0.85, 0.85].forEach((x) => mesh(new T.BoxGeometry(0.04, 0.2, 0.04), BLKM, g, x, 0.3, -0.07));
-      g.position.set(0.3, 10.2, -14.55);
+      g.position.set(0.3, 9.8, -14.55);
+      g.scale.setScalar(0.8);
       g.rotation.x = 0.3;
+      g.userData.noBD = true;
       interior.add(g);
     }
     // Fahrhebel und Steuerhebel (bewegen sich mit den Reglern)
@@ -12751,6 +12770,144 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         g.position.set(X(WO - 0.3), 11.5, -14.6);
         tilt.add(g);
       }
+      // Tür zur Brücke am Außensteuerstand: weiß, abgerundete Ecken, schmales Fenster, Drückergriffe innen und außen
+      {
+        const dw = 0.92,
+          dh = BCEIL - 7.42 - 0.07,
+          r = 0.16,
+          ww = 0.5,
+          wh = BH,
+          wy = BY0 - 7.42;
+        const rr = (sh, x0, y0, w, h, rad, hole) => {
+          const p = hole ? new T.Path() : sh;
+          p.moveTo(x0 + rad, y0);
+          p.lineTo(x0 + w - rad, y0);
+          p.absarc(x0 + w - rad, y0 + rad, rad, -Math.PI / 2, 0);
+          p.lineTo(x0 + w, y0 + h - rad);
+          p.absarc(x0 + w - rad, y0 + h - rad, rad, 0, Math.PI / 2);
+          p.lineTo(x0 + rad, y0 + h);
+          p.absarc(x0 + rad, y0 + h - rad, rad, Math.PI / 2, Math.PI);
+          p.lineTo(x0, y0 + rad);
+          p.absarc(x0 + rad, y0 + rad, rad, Math.PI, Math.PI * 1.5);
+          return p;
+        };
+        const sh = new T.Shape();
+        rr(sh, -dw / 2, 0, dw, dh, r);
+        sh.holes.push(rr(null, -ww / 2, wy, ww, wh, 0.12, true));
+        const dg = new T.ExtrudeGeometry(sh, {
+          depth: 0.06,
+          bevelEnabled: true,
+          bevelThickness: 0.012,
+          bevelSize: 0.012,
+          bevelSegments: 2,
+          curveSegments: 8,
+        });
+        dg.translate(0, 0, -0.03);
+        const fr = new T.Shape();
+        rr(fr, -dw / 2 - 0.07, -0.001, dw + 0.14, dh + 0.07, r + 0.06);
+        fr.holes.push(rr(null, -dw / 2, 0, dw, dh, r, true));
+        const fg = new T.ExtrudeGeometry(fr, { depth: 0.14, bevelEnabled: false, curveSegments: 8 });
+        fg.translate(0, 0, -0.07);
+        const DOORE = std(0xf6f6f2, { roughness: 0.45 }),
+          GSKT = std(0x1c1e20, { roughness: 0.6 });
+        const g = new T.Group();
+        mesh(dg, DOORE, g, 0, 0, 0);
+        mesh(fg, std(0xeeeeea, { roughness: 0.5 }), g, 0, 0, 0);
+        const gl = new T.Shape();
+        rr(gl, -ww / 2 - 0.02, wy - 0.02, ww + 0.04, wh + 0.04, 0.13);
+        const gg = new T.ShapeGeometry(gl, 8);
+        const gm = mesh(
+          gg,
+          new T.MeshStandardMaterial({
+            color: 0x8fa9b4,
+            roughness: 0.05,
+            metalness: 0.3,
+            transparent: true,
+            opacity: 0.32,
+            side: T.DoubleSide,
+            depthWrite: false,
+          }),
+          g,
+          0,
+          0,
+          0,
+        );
+        gm.renderOrder = 5;
+        const rim = new T.Shape();
+        rr(rim, -ww / 2 - 0.035, wy - 0.035, ww + 0.07, wh + 0.07, 0.14);
+        rim.holes.push(rr(null, -ww / 2 + 0.005, wy + 0.005, ww - 0.01, wh - 0.01, 0.115, true));
+        [-0.04, 0.04].forEach(
+          (z) => (mesh(new T.ShapeGeometry(rim, 8), GSKT, g, 0, 0, z).rotation.y = z < 0 ? Math.PI : 0),
+        );
+        [-1, 1].forEach((f) => {
+          const hx = dw / 2 - 0.12;
+          mesh(new T.BoxGeometry(0.06, 0.16, 0.02), STEEL, g, hx, 1.02, f * 0.045);
+          mesh(
+            new T.CylinderGeometry(0.012, 0.012, 0.06, 8).rotateX(Math.PI / 2),
+            STEEL,
+            g,
+            hx,
+            1.06,
+            f * 0.075,
+          );
+          const lv = mesh(new T.BoxGeometry(0.14, 0.022, 0.026), STEEL, g, hx - 0.065, 1.06, f * 0.105);
+          mesh(
+            new T.CylinderGeometry(0.008, 0.008, 0.03, 6).rotateX(Math.PI / 2),
+            STEEL,
+            g,
+            hx,
+            0.96,
+            f * 0.06,
+          );
+        });
+        [0.25, 1.25, 2.25].forEach((y) =>
+          mesh(new T.CylinderGeometry(0.02, 0.02, 0.14, 8), STEEL, g, -dw / 2 + 0.01, y, 0.035),
+        );
+        g.position.set(X(HW + 0.01), 7.42, -(13.6 + 14.52) / 2);
+        g.rotation.y = sd > 0 ? Math.PI / 2 : -Math.PI / 2;
+        tilt.add(g);
+        mesh(
+          new T.BoxGeometry(0.5, 0.06, 1.1),
+          std(0x8c9092, { roughness: 0.8, metalness: 0.3 }),
+          tilt,
+          X(HW + 0.3),
+          7.47,
+          -(13.6 + 14.52) / 2,
+        );
+      }
+      // Steuerbord-Nock (von vorn gesehen links): nach vorn eine Scheibe wie an der Brücke, zur Seite offen; Backbord-Nock ohne Fenster
+      if (sd > 0) {
+        const y0 = Math.max(BY0, 8.78),
+          y1 = BY1,
+          xa = HW + 0.15,
+          xb = WO - 0.12;
+        sb(WW + 0.1, BTOP - y1, 0.14, W, X(WC), y1, 14.88);
+        if (y0 > 8.79) sb(WW + 0.1, y0 - 8.77, 0.14, W, X(WC), 8.77, 14.88);
+        {
+          const cx = X((xa + xb) / 2);
+          mesh(new T.BoxGeometry(0.22, 0.1, 0.1), WMOT, tilt, cx, y1 + 0.06, -14.99);
+          const pv = new T.Group();
+          pv.position.set(cx, y1 - 0.03, -14.98);
+          pv.rotation.z = 0.4;
+          tilt.add(pv);
+          mesh(new T.CylinderGeometry(0.04, 0.04, 0.06, 12).rotateX(Math.PI / 2), WIPE, pv, 0, 0, 0);
+          [-0.05, 0.05].forEach((o) => mesh(new T.BoxGeometry(0.022, AR, 0.02), WIPE, pv, o, -AR / 2, 0));
+          mesh(new T.BoxGeometry(0.12, 0.03, 0.025), WIPE, pv, 0, -AR, 0);
+          const bl = new T.Group();
+          bl.position.set(0, -AR, 0);
+          bl.rotation.z = -0.4;
+          pv.add(bl);
+          mesh(new T.BoxGeometry(0.028, 2 * BL, 0.028), WIPE, bl, 0, 0, 0);
+          mesh(new T.BoxGeometry(0.014, 2 * BL + 0.02, 0.02), WRUB, bl, 0, 0, -0.022);
+        }
+        sb(xa - HW + 0.02, y1 - y0, 0.14, W, X((HW + xa) / 2), y0, 14.88);
+        sb(WO + 0.05 - xb, y1 - y0, 0.14, W, X((xb + WO + 0.05) / 2), y0, 14.88);
+        const gw = xb - xa,
+          gh = y1 - y0;
+        const m = mesh(new T.PlaneGeometry(gw, gh), GLSF, tilt, X((xa + xb) / 2), (y0 + y1) / 2, -14.9);
+        m.renderOrder = 5;
+        sb(gw + 0.1, 0.05, 0.18, W, X((xa + xb) / 2), y0 - 0.02, 14.9);
+      }
       // Tür mit Bullauge an der Außenwand des Steuerhauses
       extOnly.push(sb(0.08, 2.05, 0.95, W, X(HW + 0.06), 7.45, 9.15));
       const por = mesh(new T.CylinderGeometry(0.17, 0.17, 0.06, 20), GLS, tilt, X(HW + 0.11), 8.95, -9.15);
@@ -12759,10 +12916,29 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       extOnly.push(sb(0.06, 0.04, 0.2, STEEL, X(HW + 0.12), 8.45, 9.45));
     });
 
+    // Brückendach, Mast und alles darüber sowie die Decke innen um BD absenken
+    {
+      const bb = new T.Box3();
+      const mv = [];
+      tilt.children.forEach((o) => {
+        if (o === interior || o.isInstancedMesh || o.isCamera) return;
+        bb.setFromObject(o);
+        if (bb.isEmpty()) return;
+        if (bb.min.y >= 10.3 && bb.min.z >= -16.8 && bb.max.z <= -6.8) mv.push(o);
+      });
+      interior.children.forEach((o) => {
+        if (o.userData.noBD) return;
+        bb.setFromObject(o);
+        if (bb.isEmpty()) return;
+        if (bb.max.y > BCEIL + 0.06) mv.push(o);
+      });
+      mv.forEach((o) => (o.position.y -= BD));
+      window.__bdN = mv.length;
+    }
     // Kameras: Steuerhaus, Nock, außen
     const camB = new T.PerspectiveCamera(60, 1, 0.3, 9500);
     const rig = new T.Group();
-    rig.position.set(-0.55, 9.72, -12.05);
+    rig.position.set(-0.55, 9.45, -12.05);
     rig.add(camB);
     tilt.add(rig);
     const camN = new T.PerspectiveCamera(60, 1, 0.25, 9500);
