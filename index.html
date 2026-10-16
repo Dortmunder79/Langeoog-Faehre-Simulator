@@ -1742,7 +1742,9 @@ input {
         <li>Oben rechts stellen Sie den Zeitraffer ein.</li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">Version 16.10.2026 f · Brückenfenster höher, feinere Wischer, kleinere Ecken</p>
+      <p class="ver">
+        Version 16.10.2026 g · Gleisanlage Inselbahnhof nach Luftbild, Bahnübergang Ortsrand, bunte Menschen
+      </p>
     </div>
   </div>
 </div>
@@ -5647,7 +5649,7 @@ input {
   };
   function stationZone(x, n) {
     const [u, v] = stnUV(x, n);
-    return u > -55 && u < 345 && v > -66 && v < 66;
+    return u > -55 && u < 388 && v > -74 && v < 66;
   }
   function railDist(x, y) {
     let m = 1e9;
@@ -5688,8 +5690,8 @@ input {
     ramp *= ss(25, 110, railDist(x, n));
     {
       const [u, v] = stnUV(x, n);
-      const ou = Math.max(0, -55 - u, u - 345),
-        ov = Math.max(0, -66 - v, v - 66);
+      const ou = Math.max(0, -55 - u, u - 388),
+        ov = Math.max(0, -74 - v, v - 66);
       const o = Math.hypot(ou, ov);
       if (o <= 0) return 0;
       ramp *= ss(0, 90, o);
@@ -8293,12 +8295,12 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       wheelG.rotateY(Math.PI / 2);
       const frameG = new T.BoxGeometry(0.04, 0.05, 1.0);
       const iWh = new T.InstancedMesh(wheelG, std(0x1b1c1e, { roughness: 0.6 }), Math.max(1, NB * 2)),
-        iFr = new T.InstancedMesh(frameG, W, Math.max(1, NB));
+        iFr = new T.InstancedMesh(frameG, W.clone(), Math.max(1, NB));
       let bi = 0;
-      const iLeg = new T.InstancedMesh(legG, W, N * 2),
+      const iLeg = new T.InstancedMesh(legG, W.clone(), N * 2),
         iShoe = new T.InstancedMesh(shoeG, std(0x1d1d1f, { roughness: 0.7 }), N * 2),
-        iTor = new T.InstancedMesh(torsoG, W, N),
-        iArm = new T.InstancedMesh(armG, W, N * 2),
+        iTor = new T.InstancedMesh(torsoG, W.clone(), N),
+        iArm = new T.InstancedMesh(armG, W.clone(), N * 2),
         iHead = new T.InstancedMesh(headG, std(0xe2b99c, { roughness: 0.7 }), N);
       const CL = [
           0x2f4f8f, 0xc23b32, 0xe8d24a, 0x3a7d4f, 0x222222, 0xeeeeee, 0x8a5a9e, 0x1d6fa3, 0xd9792b, 0x6b6b6b,
@@ -8349,6 +8351,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         iTor.setColorAt(i, c1);
         iHead.setMatrixAt(i, M);
       });
+      if (!NB) iFr.setColorAt(0, c1);
       iWh.count = bi * 2;
       iFr.count = bi;
       [iLeg, iShoe, iTor, iArm, iHead, iWh, iFr].forEach((m) => {
@@ -8803,7 +8806,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           r = Math.sqrt(R7()) * 1;
         const x = TOWN.x + Math.cos(a) * r * (TOWN.rx + 180),
           n = TOWN.y + Math.sin(a) * r * (TOWN.ry + 150);
-        if (inPoly(x, n, ISLAND) && railDist(x, n) > 14) trees.push([x, n, 3 + R7() * 4]);
+        if (inPoly(x, n, ISLAND) && railDist(x, n) > 14 && !stationZone(x, n))
+          trees.push([x, n, 3 + R7() * 4]);
       }
       for (let i = 0; i < 120; i++) {
         const x = -700 + R7() * 1400,
@@ -9332,7 +9336,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           I.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
         }
       }
-      if (b.name !== "Feldweg") {
+      if (b.name === "Deichweg") {
         const g = new T.BufferGeometry();
         g.setAttribute("position", new T.Float32BufferAttribute(P, 3));
         g.setIndex(I);
@@ -9422,9 +9426,10 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       const dF = RF.bue[1].d,
         dO = RAIL_L - 330;
       const offAt = (d) => {
-        if (d >= dO) return 54.5;
-        if (d > dO - 130) {
-          const t = (d - (dO - 130)) / 130;
+        const u = RAIL_L - d;
+        if (u <= 300) return 54.5;
+        if (u < 398) {
+          const t = (398 - u) / 98;
           return 16 + ((54.5 - 16) * (1 - Math.cos(Math.PI * t))) / 2;
         }
         if (d >= dF + 45) return 16;
@@ -9523,15 +9528,17 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         dO = RAIL_L - 330,
         dB = RF.bue[2].d;
       const offAt = (d) => {
-        if (d >= dO) return 54.5;
-        if (d > dO - 130) {
-          const t = (d - (dO - 130)) / 130;
+        const u = RAIL_L - d;
+        if (u <= 300) return 54.5;
+        if (u < 398) {
+          const t = (398 - u) / 98;
           return 16 + ((54.5 - 16) * (1 - Math.cos(Math.PI * t))) / 2;
         }
         return 16;
       };
       const RW = [];
-      for (let d = dO + 6; d >= dF + 50; d -= 8) {
+      const dR = RAIL_L - 480;
+      for (let d = dO + 6; d >= dR; d -= 8) {
         const p = railPt(d);
         const o = offAt(d) + 4.6;
         RW.push([p.x - p.ty * o, p.y + p.tx * o]);
@@ -9562,8 +9569,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         scene.add(ic);
       }
       {
-        const p = railPt(dB - 55);
-        const o = offAt(dB - 55) + 30;
+        const p = railPt(dB - 28);
+        const o = offAt(dB - 28) + 13;
         house(
           p.x - p.ty * o,
           p.y + p.tx * o,
@@ -9576,8 +9583,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           Math.atan2(p.ty, p.tx),
           ISL_TOP,
         );
-        const p2 = railPt(dB - 95);
-        const o2 = offAt(dB - 95) + 28;
+        const p2 = railPt(dB - 62);
+        const o2 = offAt(dB - 62) + 12;
         house(
           p2.x - p2.ty * o2,
           p2.y + p2.tx * o2,
@@ -9595,15 +9602,62 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       {
         const R = rng(919);
         const L = [];
-        for (let i = 0; i < 46; i++) {
-          const d = dF + 60 + R() * (RAIL_L - 260 - dF - 60);
+        for (let i = 0; i < 20; i++) {
+          const d = dR + R() * (RAIL_L - 300 - dR);
           const p = railPt(d);
           const o = offAt(d) + 4.6 + (R() - 0.5) * 1.6;
           const bike = R() < 0.55;
           const dirS = R() < 0.5 ? 1 : -1;
           L.push([p.x - p.ty * o, p.y + p.tx * o, 0.11, Math.atan2(p.tx * dirS, -p.ty * dirS), bike ? 1 : 0]);
         }
+        for (let i = 0; i < 34; i++) {
+          const d = dF + 60 + R() * (dR - dF - 60);
+          const p = railPt(d);
+          const dirS = R() < 0.5 ? 1 : -1;
+          const o = offAt(d) + dirS * (1.7 + R() * 0.6);
+          const bike = R() < 0.6; // ab hier ohne Radweg: alle auf der Straße, jeweils rechts
+          L.push([p.x - p.ty * o, p.y + p.tx * o, 0.1, Math.atan2(p.tx * dirS, -p.ty * dirS), bike ? 1 : 0]);
+        }
         makePeople(L);
+      }
+      // Bahnübergang am Ortsrand nach Luftbild: Einmündung Hafenstraße/Um Süd direkt westlich am Gleis, Straße quer über das Gleis und östlich an den Werkstatthallen vorbei
+      {
+        const Q = (o) => {
+          const p = railPt(dB + o * 0.25);
+          return [p.x + p.ty * o, p.y - p.tx * o];
+        };
+        const rampY = (q) => {
+          const rp = railProj(q[0], q[1]);
+          const lift = trackHt(rp.d) + 0.1 - (ISL_TOP + 0.1);
+          return ISL_TOP + 0.1 + lift * Math.max(0, Math.min(1, 1 - (Math.abs(rp.o) - 2.4) / 12));
+        };
+        const X = [];
+        for (let o = -19; o <= 10; o += 1) X.push(Q(o));
+        roadPoly(X, 6.5, rampY, std(0x6b6d6f, { roughness: 0.95 }));
+        // Um Süd nach Westsüdwest
+        const US = [];
+        for (let w = 16; w <= 200; w += 8) {
+          const p = railPt(dB - 4 - (w - 16) * 0.35);
+          US.push([p.x - p.ty * w, p.y + p.tx * w]);
+        }
+        roadPoly(US, 5.5, ISL_TOP + 0.1, std(0x6f7173, { roughness: 0.95 }));
+        // Haltlinien und Gleisplatte im Übergang
+        [-7.5, 7.5].forEach((o) => {
+          const q = Q(o);
+          const p = railPt(dB);
+          const m = mesh(
+            new T.PlaneGeometry(0.4, 3.0),
+            std(0xf2f2ee, { roughness: 0.6 }),
+            null,
+            q[0],
+            rampY(q) + 0.02,
+            -q[1],
+          );
+          m.rotation.x = -Math.PI / 2;
+          m.rotation.z = Math.atan2(p.ty, p.tx) + Math.PI / 2;
+          m.position.x += p.tx * (o < 0 ? -1.6 : 1.6);
+          m.position.z -= p.ty * (o < 0 ? -1.6 : 1.6);
+        });
       }
     }
     // Hinter dem Bahnübergang am Ortsrand (Schniederdamm) östlich: Spielplatz, Sportplatz des TSV, Reitplätze, Vereinsheim, Sturmeck, Hubschrauberlandeplatz
@@ -9831,10 +9885,9 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       }
     }
     // Rad- und Fußweg parallel zur Bahn (Westseite) mit Laternen, Graben auf der Ostseite, Weidezaun
-    ribbon(1250, RAIL_L - 175, 8.2, 11.2, () => ISL_TOP + 0.12, PAVE2, 6);
-    for (let d = 1280; d < RAIL_L - 180; d += 55) {
+    for (let d = 1280; d < RAIL_L - 410; d += 55) {
       const p = railPt(d);
-      const x = p.x - p.ty * 12,
+      const x = p.x - p.ty * 11.5,
         n = p.y + p.tx * 12;
       mesh(
         new T.CylinderGeometry(0.06, 0.08, 4.2, 6),
@@ -10548,36 +10601,43 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     };
 
     {
-      // --- Gleisanlage: Werkstattgleise W1/W2 (Weichen Richtung Hafen), Abstellgleis auf der Nordostseite ---
-      // Gleisharfe nach Luftbild: jede Weiche zweigt nach außen ab, keine Kreuzungen
+      // --- Gleisanlage nach Luftbild: direkt hinter dem Bahnübergang fächert das Streckengleis auf ---
+      // Ostseite: zwei Abstellgleise E1/E2, von E2 zweigen die Werkstattgleise T1/T2 nach Südosten in die Hallen ab (Tore an der Nordseite)
+      // Westseite: zwei Abstellgleise zur Hafenstraße hin. Jede Weiche zweigt nach außen ab, keine Kreuzungen
       const sm = (t) => {
         t = Math.max(0, Math.min(1, t));
         return (1 - Math.cos(Math.PI * t)) / 2;
       };
-      const T1 = (u) => -28 * sm((u - 130) / 70),
-        T2 = (u) => T1(u) - 10 * sm((u - 160) / 60),
-        Y1 = (u) => -5 * sm((u - 160) / 30) * (1 - sm((u - 300) / 40)),
-        Y2 = (u) => Y1(u) - 6 * sm((u - 200) / 30);
+      const E1 = (u) => -4.5 * sm((368 - u) / 30),
+        E2 = (u) => E1(u) - 4.5 * sm((330 - u) / 30),
+        T1 = (u) => -9 - 19 * sm((u - 220) / 55),
+        T2 = (u) => T1(u) - 10 * sm((u - 240) / 50),
+        W1 = (u) => 4.5 * sm((356 - u) / 28),
+        W2 = (u) => W1(u) + 4.5 * sm((322 - u) / 28);
       const path = (f, u0, u1) => {
         const P = [];
         for (let u = u0; u <= u1 + 0.01; u += 3) P.push([u, f(u)]);
         return P;
       };
-      trk(path(T1, 128, 332));
-      trk(path(T2, 158, 332));
-      trk(path(Y1, 158, 342));
-      trk(path(Y2, 198, 300));
-      // Weichenlaternen (Stellböcke) an den Abzweigen
+      trk(path(E1, 120, 368));
+      trk(path(E2, 140, 330));
+      trk(path(T1, 220, 372));
+      trk(path(T2, 240, 372));
+      trk(path(W1, 165, 356));
+      trk(path(W2, 178, 322));
+      // Weichenlaternen (Stellböcke) an den Abzweigen, jeweils außen
       [
-        [130, 2.4],
-        [160, 2.4],
-        [162, T1(162) + 2.4],
-        [200, Y1(200) + 2.4],
+        [368, -2.4],
+        [330, E1(330) - 2.4],
+        [220, -11.4],
+        [240, T1(240) - 2.4],
+        [356, 2.4],
+        [322, W1(322) + 2.4],
       ].forEach(([u, v]) => {
         bx(u - 0.3, u + 0.3, 0, 0.7, v - 0.2, v + 0.2, DARK);
         const l = at(new T.BoxGeometry(0.28, 0.28, 0.28), stdc(0xf2f2ee, { emissive: 0x222222 }), u, 0.9, v);
       });
-      // Prellböcke in der Halle und am Abstellgleis
+      // Prellböcke an den Stumpfgleisen und in der Halle
       const pb = (u, v, dir) => {
         bx(u - 0.25, u + 0.25, 0.3, 1.2, v - 1, v + 1, DARK);
         const RW = signTex(64, 64, (x) => {
@@ -10595,9 +10655,28 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           dir > 0 ? Math.PI / 2 : -Math.PI / 2,
         );
       };
-      pb(331, -28, -1);
-      pb(331, -38, -1);
-      pb(300.5, -11, -1);
+      pb(119.5, -4.5, 1);
+      pb(139.5, -9, 1);
+      pb(164.5, 4.5, 1);
+      pb(177.5, 9, 1);
+      pb(372.5, -28, -1);
+      pb(372.5, -38, -1);
+      // abgestellte Fahrzeuge: Güterwagen auf E2 und W2, zwei Personenwagen auf E1
+      [148, 158, 168].forEach((u) => {
+        const f = IB.bake(IB.makeFlat());
+        f.position.set(u, 0.3 + 0.116, -9);
+        stG.add(f);
+      });
+      [188, 198].forEach((u) => {
+        const f = IB.bake(IB.makeFlat());
+        f.position.set(u, 0.3 + 0.116, 9);
+        stG.add(f);
+      });
+      ["gruen", "gelb"].forEach((c, i) => {
+        const o = IB.bake(IB.makeCoach(IB.COLORS[c]));
+        o.position.set(132 + i * (o.userData.len + 0.6), 0.3 + 0.116, -4.5);
+        stG.add(o);
+      });
     }
 
     {
@@ -11069,9 +11148,9 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     }
 
     {
-      // Lokwerkstatt links (Nordost) nach Luftbild: große Halle aus roten Klinkern mit flachem weißem Dach, zwei Tore zum Bahnhof, Anbau
-      const U0 = 240,
-        U1 = 335,
+      // Lokwerkstatt (Nordost) nach Luftbild: große Halle aus roten Klinkern mit flachem weißem Dach, Südende direkt am Bahnübergang, Tore nach Norden, zweite Halle östlich
+      const U0 = 300,
+        U1 = 375,
         V0 = -46,
         V1 = -20,
         EV = 8.2,
@@ -11141,22 +11220,28 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         );
       bx(U0 + 4, U0 + 14, 0.38, 1.3, V0 + 0.5, V0 + 1.6, stdc(0x6a7a85, { metalness: 0.4, roughness: 0.5 }));
       // Anbau mit weißem Dach
-      bx(285, 332, 0, 5.5, -66, -46, WL);
+      bx(296, 362, 0, 6.5, -70, -46, WL);
       {
-        const r = at(roofGeo(20, 47, 1.4), [WL, RF2], 308.5, 5.45, -56);
+        const r = at(roofGeo(24, 66, 1.6), [WL, RF2], 329, 6.45, -58);
         r.rotation.y = Math.PI / 2;
       }
-      for (let u = 289; u < 330; u += 5) bx(u - 1.4, u + 1.4, 2.4, 4.2, -66.05, -65.95, GLW);
+      for (let u = 300; u < 360; u += 5) bx(u - 1.4, u + 1.4, 2.6, 4.6, -70.05, -69.95, GLW);
+      [
+        [-52, 4],
+        [-62, 4],
+      ].forEach(([v, w]) => {
+        bx(295.6, 296, 0.2, 4.8, v - w / 2, v + w / 2, stdc(0x2f6b8c, { roughness: 0.55, metalness: 0.3 }));
+      });
       // Vorfeld vor den Toren, Ersatzloks, Gepäckwagen
       {
-        const g = new T.PlaneGeometry(22, 24);
-        const m = at(g, CONC, 229, 0.32, -33);
+        const g = new T.PlaneGeometry(22, 30);
+        const m = at(g, CONC, 289, 0.32, -35);
         m.rotation.x = -Math.PI / 2;
         m.castShadow = false;
       }
-      // Rasenfläche mit Hubschrauber-H südlich der Halle
+      // Rasenfläche mit Hubschrauber-H zwischen Gleis und Halle, kurz vor dem Bahnübergang
       {
-        const r = at(new T.RingGeometry(7, 7.8, 40), stdc(0xe8e8e2, { roughness: 0.8 }), 352, 0.07, -26);
+        const r = at(new T.RingGeometry(5.6, 6.2, 40), stdc(0xe8e8e2, { roughness: 0.8 }), 362, 0.07, -12.5);
         r.rotation.x = -Math.PI / 2;
         r.castShadow = false;
         const hh = signTex(128, 128, (x, w, h) => {
@@ -11169,25 +11254,20 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         });
         hh.transparent = true;
         hh.alphaTest = 0.3;
-        const m = at(new T.PlaneGeometry(6, 6), hh, 352, 0.08, -26);
+        const m = at(new T.PlaneGeometry(5, 5), hh, 362, 0.08, -12.5);
         m.rotation.x = -Math.PI / 2;
         m.castShadow = false;
       }
       const l1 = IB.bake(IB.makeLoco());
-      l1.position.set(238.8, 0.3 + 0.116, -28);
+      l1.position.set(296, 0.3 + 0.116, -28);
       l1.rotation.y = Math.PI;
       stG.add(l1);
       const l2 = IB.bake(IB.makeLoco());
-      l2.position.set(285, 0.3 + 0.116, -38);
+      l2.position.set(330, 0.3 + 0.116, -38);
       stG.add(l2);
-      [300, 310].forEach((u) => {
+      [318, 328].forEach((u) => {
         const f = IB.bake(IB.makeFlat());
         f.position.set(u, 0.3 + 0.116, -28);
-        stG.add(f);
-      });
-      [262, 272, 282].forEach((u) => {
-        const f = IB.bake(IB.makeFlat());
-        f.position.set(u, 0.3 + 0.116, -11);
         stG.add(f);
       });
     }
@@ -12538,11 +12618,16 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     }
 
     // Fahrpult: Unterbau, schräge Instrumentenplatten
-    ib(IW - 0.3, 0.72, 1.45, CAB, 0, 7.42, 14.2);
-    [-2.15, 0, 2.15].forEach((x) => {
+    // schmaler als die Brücke, damit die Türen zur Nock frei bleiben
+    ib(5.1, 0.72, 1.45, CAB, 0, 7.42, 14.2);
+    [
+      [-1.82, 1.45],
+      [0, 2.12],
+      [1.82, 1.45],
+    ].forEach(([x, pw]) => {
       const pm = std(0xffffff, { map: panelTex(), roughness: 0.4, metalness: 0.1 });
       const m = mesh(
-        new T.BoxGeometry(2.12, 0.06, 1.32),
+        new T.BoxGeometry(pw, 0.06, 1.32),
         [CONSG, CONSG, pm, CONSG, CONSG, CONSG],
         interior,
         x,
@@ -12554,14 +12639,14 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     ib(IW - 0.2, 0.08, 0.3, CONSG, 0, 8.4, 14.88);
     // Seitenpulte
     [-1, 1].forEach((sd) => {
-      ib(0.7, 0.95, 3.0, CAB, sd * (HW - 0.45), 7.42, 12.4);
+      ib(0.7, 0.95, 2.4, CAB, sd * (HW - 0.45), 7.42, 12.1);
       const m = mesh(
-        new T.BoxGeometry(0.7, 0.06, 3.0),
+        new T.BoxGeometry(0.7, 0.06, 2.4),
         [CONSG, CONSG, std(0xffffff, { map: panelTex(), roughness: 0.4 }), CONSG, CONSG, CONSG],
         interior,
         sd * (HW - 0.45),
         8.4,
-        -12.4,
+        -12.1,
       );
       m.rotation.z = sd * 0.12;
     });
