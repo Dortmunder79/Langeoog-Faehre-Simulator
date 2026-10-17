@@ -1742,7 +1742,7 @@ input {
         <li>Oben rechts stellen Sie den Zeitraffer ein.</li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">Version 16.10.2026 p · Lokfenster über dem Vorbau, Tür bis zum Dach, neues Titelbild</p>
+      <p class="ver">Version 16.10.2026 q · Ruder mit Rudermaschine, feinere Bedienung</p>
     </div>
   </div>
 </div>
@@ -2354,6 +2354,7 @@ input {
       t: T0,
       throttle: 0,
       rudder: 0,
+      rudT: 0,
       bow: 0,
       moored: true,
       releaseT: 0,
@@ -2669,6 +2670,7 @@ input {
   }
 
   function step(dt) {
+    rudderMachine(dt);
     const pr = project(S.x, S.y);
     const hr = S.h * RAD;
     const bx = S.x + Math.sin(hr) * 27,
@@ -4337,7 +4339,10 @@ input {
     x.setTransform(1, 0, 0, 1, 0, 0);
     x.fillStyle = "#07090a";
     x.fillRect(0, 0, W, H);
-    const rud = S.rudder === 0 ? "0°" : (S.rudder < 0 ? "BB " : "STB ") + Math.abs(S.rudder) + "°";
+    const rud =
+      Math.round(S.rudder) === 0
+        ? "0°"
+        : (S.rudder < 0 ? "BB " : "STB ") + Math.abs(Math.round(S.rudder)) + "°";
     const items = [
       ["FAHRT kn", fmt1(Math.abs(S.u) * KN), "#ff9a2c"],
       ["KURS", pad(Math.round(S.h) % 360, 3) + "°", "#ff9a2c"],
@@ -4448,15 +4453,22 @@ input {
       }
       const f = localFrac(e, rail, o.axis),
         hf = o.frac();
-      drag = { id: e.pointerId, off: Math.abs(f - hf) < o.grab ? hf - f : 0, t: now, f0: f, moved: false };
+      drag = {
+        id: e.pointerId,
+        off: Math.abs(f - hf) < o.grab ? hf - f : 0,
+        t: now,
+        f0: f,
+        base: hf,
+        moved: false,
+      };
       el.classList.add("drag");
-      o.set(f + drag.off);
+      if (!o.rel) o.set(f + drag.off);
     });
     el.addEventListener("pointermove", (e) => {
       if (!drag || e.pointerId !== drag.id) return;
       const f = localFrac(e, rail, o.axis);
       if (Math.abs(f - drag.f0) > 0.02) drag.moved = true;
-      o.set(f + drag.off);
+      o.set(o.rel ? drag.base + (f - drag.f0) * o.rel : f + drag.off);
     });
     const end = (e) => {
       if (!drag || (e && e.pointerId !== drag.id)) return;
@@ -4521,12 +4533,22 @@ input {
       syncControls();
     }
   }
+  // Ruder: Regler gibt den Sollwinkel vor, die Rudermaschine dreht mit begrenzter Geschwindigkeit nach (Bugstrahl reagiert weiter sofort)
+  const RUD_RATE = 7; // Grad pro Sekunde
   function setRudder(v) {
     v = Math.max(-35, Math.min(35, Math.round(v)));
-    if (v !== S.rudder) {
-      S.rudder = v;
+    if (v !== S.rudT) {
+      S.rudT = v;
       syncControls();
     }
+  }
+  function rudderMachine(dt) {
+    if (S.rudT === undefined) S.rudT = S.rudder;
+    const d = S.rudT - S.rudder;
+    if (d === 0) return;
+    const r0 = Math.round(S.rudder);
+    S.rudder = Math.abs(d) <= RUD_RATE * dt ? S.rudT : S.rudder + Math.sign(d) * RUD_RATE * dt;
+    if (Math.round(S.rudder) !== r0 || S.rudder === S.rudT) syncControls();
   }
   function setBow(v) {
     v = Math.max(-1, Math.min(1, Math.round(v * 20) / 20));
@@ -4555,13 +4577,14 @@ input {
       setT($("thrTel"), telegraph(S.throttle));
     }
     CX.thr.setAttribute("aria-valuenow", S.throttle);
-    CX.rudK.style.left = ((S.rudder + 35) / 70) * 100 + "%";
-    setT(
-      els.rudOut,
-      S.rudder === 0 ? "Mittschiffs" : Math.abs(S.rudder) + "° " + (S.rudder < 0 ? "BB" : "Stb"),
-    );
-    els.rudOut.style.color = S.rudder < 0 ? "#ff9a94" : S.rudder > 0 ? "#8ff0b8" : "#fff";
-    CX.rud.setAttribute("aria-valuenow", S.rudder);
+    {
+      const rt = S.rudT === undefined ? S.rudder : S.rudT,
+        ra = Math.round(S.rudder);
+      CX.rudK.style.left = ((rt + 35) / 70) * 100 + "%";
+      setT(els.rudOut, ra === 0 ? "Mittschiffs" : Math.abs(ra) + "° " + (ra < 0 ? "BB" : "Stb"));
+      els.rudOut.style.color = ra < 0 ? "#ff9a94" : ra > 0 ? "#8ff0b8" : "#fff";
+      CX.rud.setAttribute("aria-valuenow", rt);
+    }
     const b = Math.round(S.bow * 100);
     CX.bowK.style.left = (S.bow + 1) * 50 + "%";
     setT($("bowOut"), b === 0 ? "0" : b < 0 ? "◀ " + -b + " %" : b + " % ▶");
@@ -4591,17 +4614,18 @@ input {
   mkCtl(CX.rud, CX.rud.querySelector(".cx-rail"), {
     axis: "x",
     grab: 0.08,
-    frac: () => (S.rudder + 35) / 70,
+    rel: 0.6,
+    frac: () => ((S.rudT === undefined ? S.rudder : S.rudT) + 35) / 70,
     set: (f) => setRudder(f * 70 - 35),
     dbl: () => setRudder(0),
     key: (e) => {
       const st = e.shiftKey ? 5 : 1;
       if (e.key === "ArrowLeft") {
-        setRudder(S.rudder - st);
+        setRudder(S.rudT - st);
         return 1;
       }
       if (e.key === "ArrowRight") {
-        setRudder(S.rudder + st);
+        setRudder(S.rudT + st);
         return 1;
       }
       if (e.key === "0" || e.key === "Home") {
@@ -4653,8 +4677,8 @@ input {
     }
     if (k === "w") setThrottle(S.throttle + (e.shiftKey ? 10 : 1));
     else if (k === "s") setThrottle(S.throttle - (e.shiftKey ? 10 : 1));
-    else if (k === "a") setRudder(S.rudder - (e.shiftKey ? 5 : 1));
-    else if (k === "d") setRudder(S.rudder + (e.shiftKey ? 5 : 1));
+    else if (k === "a") setRudder(S.rudT - (e.shiftKey ? 5 : 1));
+    else if (k === "d") setRudder(S.rudT + (e.shiftKey ? 5 : 1));
     else if (k === "q") setBow(-1);
     else if (k === "e") setBow(1);
     else return;
@@ -5345,6 +5369,7 @@ input {
     if (on) LOOKR.lok.pitch = G && G.size[0] < G.size[1] ? -0.02 : -0.12;
     S.throttle = 0;
     S.rudder = 0;
+    S.rudT = 0;
     S.bow = 0;
     syncControls();
     setPane(on ? "lok" : "bruecke");
