@@ -1756,7 +1756,7 @@ input {
         <li>Oben rechts stellen Sie den Zeitraffer ein.</li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">Version 18.10.2026 s · Kids-Modus und neues Startbild</p>
+      <p class="ver">Version 19.10.2026 a · Ton auf dem Handy abgesichert</p>
     </div>
   </div>
 </div>
@@ -2580,8 +2580,14 @@ input {
           u.rate = 1.02;
         }
         u.volume = 1;
-        u.onend = finish;
-        u.onerror = finish;
+        u.onend = () => {
+          finish();
+          setTimeout(audioWake, 120);
+        };
+        u.onerror = () => {
+          finish();
+          setTimeout(audioWake, 120);
+        };
         speechSynthesis.speak(u);
         setTimeout(finish, 2500 + it.txt.length * 95);
       } catch (e) {
@@ -5025,10 +5031,79 @@ input {
   let actx = null,
     AU = null,
     soundOn = true;
+  // Ton auf dem Handy absichern: iOS spielt Web Audio sonst bei Lautlos-Schalter nicht ab und unterbricht den Ton nach Sprachausgabe oder Sperrbildschirm
+  let SIL = null;
+  function mkCtx() {
+    if (!actx) {
+      actx = new (window.AudioContext || window.webkitAudioContext)();
+      actx.onstatechange = () => {
+        if (actx.state !== "running" && actx.state !== "closed") setTimeout(audioWake, 250);
+      };
+    }
+    try {
+      if (navigator.audioSession && navigator.audioSession.type !== "playback")
+        navigator.audioSession.type = "playback";
+    } catch (e) {}
+    try {
+      if (!SIL) {
+        const sr = 8000,
+          n = sr / 2,
+          b = new ArrayBuffer(44 + n),
+          v = new DataView(b);
+        const w = (o, t) => {
+          for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i));
+        };
+        w(0, "RIFF");
+        v.setUint32(4, 36 + n, true);
+        w(8, "WAVEfmt ");
+        v.setUint32(16, 16, true);
+        v.setUint16(20, 1, true);
+        v.setUint16(22, 1, true);
+        v.setUint32(24, sr, true);
+        v.setUint32(28, sr, true);
+        v.setUint16(32, 1, true);
+        v.setUint16(34, 8, true);
+        w(36, "data");
+        v.setUint32(40, n, true);
+        for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+        SIL = new Audio(URL.createObjectURL(new Blob([b], { type: "audio/wav" })));
+        SIL.loop = true;
+        SIL.setAttribute("playsinline", "");
+        SIL.volume = 0.01;
+      }
+      if (SIL.paused) SIL.play().catch(() => {});
+    } catch (e) {}
+    if (actx.state !== "running") {
+      try {
+        actx.resume().catch(() => {});
+      } catch (e) {}
+    }
+    return actx;
+  }
+  function audioWake() {
+    if (!actx) return;
+    if (actx.state !== "running") {
+      try {
+        actx.resume().catch(() => {});
+      } catch (e) {}
+    }
+    if (SIL && SIL.paused && (phase === "run" || isRail())) SIL.play().catch(() => {});
+  }
+  ["pointerdown", "touchend", "keydown"].forEach((ev) =>
+    document.addEventListener(
+      ev,
+      () => {
+        if (actx) mkCtx();
+      },
+      { passive: true, capture: true },
+    ),
+  );
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) audioWake();
+  });
   function audioInit() {
     try {
-      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
-      if (actx.state === "suspended") actx.resume();
+      mkCtx();
       if (AU) return;
       const c = actx;
       const master = c.createGain();
@@ -5222,7 +5297,7 @@ input {
   }
   function horn() {
     try {
-      actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+      mkCtx();
       const t = actx.currentTime;
       const g = actx.createGain();
       g.gain.setValueAtTime(0, t);
