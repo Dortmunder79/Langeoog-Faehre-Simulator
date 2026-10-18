@@ -801,6 +801,13 @@ button {
 .app.railmode #sideBtn {
   display: none;
 }
+.app.kids #bowCtl {
+  display: none !important;
+}
+.app.kids.railmode #hornBtn,
+.app.kids.railmode #stopBtn {
+  display: none !important;
+}
 .choice.wide .seg button {
   font-size: 13px;
 }
@@ -1693,6 +1700,13 @@ input {
           </div>
         </div>
         <div class="choice wide">
+          <span>Spielmodus</span>
+          <div class="seg" data-key="kids">
+            <button data-v="aus" aria-pressed="true">Normal</button
+            ><button data-v="an" aria-pressed="false">Kids-Modus</button>
+          </div>
+        </div>
+        <div class="choice wide">
           <span>Richtung</span>
           <div class="seg" data-key="dir">
             <button data-v="BL" aria-pressed="true">Bensersiel → Langeoog</button
@@ -1742,7 +1756,7 @@ input {
         <li>Oben rechts stellen Sie den Zeitraffer ein.</li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">Version 18.10.2026 q · Plattformtüren ohne Strebe darüber</p>
+      <p class="ver">Version 18.10.2026 s · Kids-Modus und neues Startbild</p>
     </div>
   </div>
 </div>
@@ -1998,7 +2012,7 @@ input {
     if (d <= hw + 40) return -3.0 + ((top + 3.0) * (d - (hw - 5))) / 45;
     return top;
   }
-  const ENV = { weather: "gut", tide: "flut", dir: "BL", mode: "beide" };
+  const ENV = { weather: "gut", tide: "flut", dir: "BL", mode: "beide", kids: "aus" };
   let WAVE_MUL = 1;
   function waterLevel(t) {
     const p = Math.min(1, Math.max(0, (t - T0) / 2700));
@@ -2692,6 +2706,199 @@ input {
     } catch (e) {}
   }
 
+  // ---------- Kids-Modus: Autopilot zum Ab- und Anlegen, Führung in der Fahrrinne ----------
+  const KIDS = () => ENV.kids === "an";
+  const unwrapH = (prev, h) => prev + ((((h - prev) % 360) + 540) % 360) - 180;
+  // Schlüsselposen [x,y,h,stop,avgSpeed]: Lage mit kubischer Hermite-Interpolation, Haltepunkte ohne Geschwindigkeit, Drehung auf der Stelle mit 2,5°/s
+  function mkAuto(kind, keys, v0, r0, vEnd) {
+    let t = 0,
+      hp = null;
+    const K = keys.map((k, i) => {
+      const h = hp === null ? k[2] : unwrapH(hp, k[2]);
+      hp = h;
+      if (i > 0) {
+        const a = keys[i - 1];
+        const dist = Math.hypot(k[0] - a[0], k[1] - a[1]),
+          dh = Math.abs(h - K0h[i - 1]);
+        t += Math.max(4, dist / (k[4] || 1.5), dh / 2.5);
+      }
+      K0h[i] = h;
+      return { x: k[0], y: k[1], h, t, stop: !!k[3] };
+    }, {});
+    return { kind, K, T: 0, v0, r0, vEnd };
+  }
+  const K0h = [];
+  function autoTan(A, i) {
+    const K = A.K,
+      n = K.length;
+    if (K[i].stop) return [0, 0, 0];
+    if (i === 0) return A.v0 ? [A.v0[0], A.v0[1], A.r0 || 0] : [0, 0, 0];
+    if (i === n - 1) return A.vEnd ? [A.vEnd[0], A.vEnd[1], 0] : [0, 0, 0];
+    const a = K[i - 1],
+      b = K[i + 1],
+      dt = b.t - a.t;
+    return [(b.x - a.x) / dt, (b.y - a.y) / dt, (b.h - a.h) / dt];
+  }
+  function autoPose(A, t) {
+    const K = A.K;
+    let i = 1;
+    while (i < K.length - 1 && K[i].t < t) i++;
+    const a = K[i - 1],
+      b = K[i],
+      D = Math.max(1e-3, b.t - a.t);
+    const s = Math.max(0, Math.min(1, (t - a.t) / D));
+    const ta = autoTan(A, i - 1),
+      tb = autoTan(A, i);
+    const h00 = 2 * s * s * s - 3 * s * s + 1,
+      h10 = s * s * s - 2 * s * s + s,
+      h01 = -2 * s * s * s + 3 * s * s,
+      h11 = s * s * s - s * s;
+    return {
+      x: h00 * a.x + h10 * D * ta[0] + h01 * b.x + h11 * D * tb[0],
+      y: h00 * a.y + h10 * D * ta[1] + h01 * b.y + h11 * D * tb[1],
+      h: h00 * a.h + h10 * D * ta[2] + h01 * b.h + h11 * D * tb[2],
+      end: t >= K[K.length - 1].t,
+    };
+  }
+  function kidsUndock() {
+    const lb = ENV.dir === "LB";
+    if (!lb)
+      return mkAuto(
+        "undock",
+        [
+          [-6, 7.6, 90, 1],
+          [-70, 12, 90, 0, 1.0],
+          [-135, 30, 90, 1, 1.0],
+          [-130, 45, 15, 1, 0.4],
+          [-85, 115, 35, 0, 1.6],
+          [-38, 215, 8, 0, 2.0],
+          [-28, 330, 0, 0, 2.2],
+        ],
+        null,
+        0,
+        [0, 2.2],
+      );
+    const e = 137 * RAD;
+    return mkAuto(
+      "undock",
+      [
+        [-5268, 5530, 0, 1],
+        [-5268, 5470, 0, 0, 1.0],
+        [-5266, 5405, 0, 1, 1.0],
+        [-5258, 5395, 143.6, 1, 0.4],
+        [-5200, 5318, 143.6, 0, 1.6],
+        [-5150, 5260, 137, 0, 2.2],
+      ],
+      null,
+      0,
+      [Math.sin(e) * 2.2, Math.cos(e) * 2.2],
+    );
+  }
+  function kidsDock() {
+    const lb = ENV.dir === "LB";
+    const hr = S.h * RAD,
+      v0 = [Math.sin(hr) * S.u, Math.cos(hr) * S.u];
+    const cur = [S.x, S.y, S.h, 0, 2];
+    if (!lb)
+      return mkAuto(
+        "dock",
+        [
+          cur,
+          [-5150, 5260, 320, 0, 2.2],
+          [-5262, 5412, 350, 0, 1.6],
+          [-5268, 5475, 0, 0, 0.9],
+          [-5268, 5530, 0, 1, 0.5],
+        ],
+        v0,
+        S.r,
+      );
+    return mkAuto(
+      "dock",
+      [
+        cur,
+        [-28, 470, 180, 0, 2.2],
+        [-32, 250, 182, 0, 1.8],
+        [-75, 120, 215, 0, 1.3],
+        [-140, 50, 250, 1, 1.0],
+        [-138, 22, 90, 1, 0.4],
+        [-70, 12, 90, 0, 1.0],
+        [-6, 7.6, 90, 1, 0.6],
+      ],
+      v0,
+      S.r,
+    );
+  }
+  function stepAuto(dt) {
+    const A = S.auto;
+    A.T += dt;
+    const p = autoPose(A, A.T);
+    const ox = S.x,
+      oy = S.y,
+      oh = S.h;
+    S.x = p.x;
+    S.y = p.y;
+    S.h = ((p.h % 360) + 360) % 360;
+    const hr = S.h * RAD,
+      vx = (S.x - ox) / Math.max(dt, 1e-3),
+      vy = (S.y - oy) / Math.max(dt, 1e-3);
+    S.u = vx * Math.sin(hr) + vy * Math.cos(hr);
+    S.r = ((((S.h - oh) % 360) + 540) % 360) - 180;
+    S.r /= Math.max(dt, 1e-3);
+    S.eng = Math.max(-1, Math.min(1, S.u / 4));
+    S.t += dt;
+    stepTraffic(dt);
+    const p2 = project(S.x, S.y);
+    S.s = p2.s;
+    S.lat = p2.lat;
+    S.maxU = Math.max(S.maxU, S.u);
+    S.ukc = 3;
+    S.trailAcc += dt;
+    if (S.trailAcc >= 1.5) {
+      S.trailAcc = 0;
+      S.trail.push([S.x - Math.sin(hr) * 28, S.y - Math.cos(hr) * 28, Math.abs(S.u)]);
+      if (S.trail.length > 90) S.trail.shift();
+    }
+    if (!p.end) return;
+    if (A.kind === "undock") {
+      S.auto = null;
+      S.u = 2.2;
+      S.r = 0;
+      S.eng = 0.25;
+      setThrottle(25);
+      setRudder(0);
+      S.rudder = 0;
+      radio(
+        "Kids-Modus: Jetzt steuerst du! Mit dem Ruder lenken, mit dem Fahrhebel schneller oder langsamer. Am Rand der Fahrrinne hilft der Autopilot.",
+      );
+    } else {
+      S.auto = null;
+      S.u = 0.1;
+      S.r = 0;
+      S.eng = 0;
+      setThrottle(0);
+      S.canDock = true;
+      S.dockDone = true;
+      radio("Geschafft! Die Fähre ist im Hafen " + RT().to + " festgemacht.");
+      els.dock.onclick({ detail: 1 });
+    }
+  }
+  // Führung in der Fahrrinne: am Rand lenkt der Autopilot sanft zurück, Wenden gegen die Fahrtrichtung wird verhindert
+  function kidsRudder(rud) {
+    const pr = project(S.x, S.y);
+    const dir = ENV.dir === "LB" ? -1 : 1;
+    const lim = Math.max(6, pr.hw * 0.45);
+    const tp = pointAt(S.s + dir * 140);
+    const th = Math.atan2(tp.x - S.x, tp.y - S.y) / RAD;
+    const e = ((th - S.h + 540) % 360) - 180;
+    const auto = Math.max(-35, Math.min(35, e * 2.2));
+    const ss = (a, b, v) => {
+      const t = Math.max(0, Math.min(1, (v - a) / (b - a)));
+      return t * t * (3 - 2 * t);
+    };
+    const w = Math.max(ss(lim * 0.45, lim, Math.abs(pr.lat)), ss(45, 85, Math.abs(e)));
+    S.kidsAssist = w > 0.15;
+    return rud * (1 - w) + auto * w;
+  }
   function step(dt) {
     rudderMachine(dt);
     const pr = project(S.x, S.y);
@@ -2709,6 +2916,20 @@ input {
       S.t += dt;
       stepTraffic(dt);
       return;
+    }
+    if (S.auto) {
+      stepAuto(dt);
+      return;
+    }
+    const kids = KIDS();
+    if (kids) {
+      S.ukc = Math.max(S.ukc, 1);
+      if ((ENV.dir !== "LB" && S.s > L - 480) || (ENV.dir === "LB" && S.s < 760)) {
+        S.auto = kidsDock();
+        radio("Kids-Modus: Hafen in Sicht. Der Autopilot legt jetzt an.");
+        stepAuto(dt);
+        return;
+      }
     }
     S.grounded = false;
     if (S.ukc < 0) {
@@ -2730,7 +2951,37 @@ input {
       return;
     }
     const shallow = S.ukc < 0.5 ? 1 + (0.5 - Math.max(0, S.ukc)) * 1.5 : 1;
-    const du = kin(S, dt, S.throttle, S.rudder, S.grounded, shallow, current(pr), S.bow);
+    const du = kin(
+      S,
+      dt,
+      S.throttle,
+      kids ? kidsRudder(S.rudder) : S.rudder,
+      S.grounded,
+      shallow,
+      kids ? { x: 0, y: 0 } : current(pr),
+      kids ? 0 : S.bow,
+    );
+    if (kids) {
+      const pz = project(S.nx, S.ny);
+      if ((pz.s < HARB_A || pz.s > HARB_B) && S.u > LIMIT * 0.92) S.u = LIMIT * 0.92;
+      // feste Führung: nie weiter als 45 % der halben Rinnenbreite von der Mitte, Bug höchstens 35° von der Fahrtrichtung weg
+      const lim = Math.max(6, pz.hw * 0.45);
+      if (Math.abs(pz.lat) > lim) {
+        const ex = pz.lat - Math.sign(pz.lat) * lim;
+        S.nx -= pz.ty * ex;
+        S.ny += pz.tx * ex;
+        S.kidsAssist = true;
+      }
+      const dr = ENV.dir === "LB" ? -1 : 1,
+        tp = pointAt(pz.s + dr * 140),
+        th = Math.atan2(tp.x - S.nx, tp.y - S.ny) / RAD,
+        e = ((S.h - th + 540) % 360) - 180;
+      if (Math.abs(e) > 35) {
+        S.h = (S.h - Math.sign(e) * Math.min(Math.abs(e) - 35, 8 * dt) + 360) % 360;
+        S.r *= 0.5;
+        S.kidsAssist = true;
+      }
+    }
     if (du < -0.06 && S.u > 0.5) S.comfort -= (-du - 0.06) * 25 * dt;
     if (Math.abs(S.r) > 1.7 && Math.abs(S.u) > 3) S.comfort -= (Math.abs(S.r) - 1.7) * 0.5 * dt;
     S.comfort = Math.max(0, Math.min(100, S.comfort));
@@ -2745,7 +2996,14 @@ input {
       [S.nx + fx * 20 - fy * 6, S.ny + fy * 20 + fx * 6],
     ];
     const hp = pts.findIndex((p) => hitLand(p[0], p[1]));
-    if (hp >= 0) {
+    if (hp >= 0 && kids) {
+      const pz = project(S.x, S.y);
+      S.u *= 0.5;
+      S.nx = S.x - pz.ty * Math.sign(pz.lat) * 0.6;
+      S.ny = S.y + pz.tx * Math.sign(pz.lat) * 0.6;
+      S.x = S.nx;
+      S.y = S.ny;
+    } else if (hp >= 0) {
       const q = pts[hp];
       const part = [
         "Der Bug",
@@ -2779,7 +3037,7 @@ input {
     }
     stepTraffic(dt);
     {
-      const hv = trafficHit();
+      const hv = kids ? null : trafficHit();
       if (hv) {
         gameOver(
           "Zusammenstoß",
@@ -2822,6 +3080,11 @@ input {
             : "Inselbahn Langeoog: Der Anschlusszug fährt pünktlich um 11:05.",
         ),
       );
+    if (kids) {
+      S.speeding = false;
+      S.canDock = false;
+      return;
+    }
     const tg = TGT();
     S.canDock =
       Math.hypot(S.x - tg.x, S.y - tg.y) < 22 &&
@@ -3205,8 +3468,22 @@ input {
         if (phase === "rail") speak("Bitte einsteigen, Türen schließen. Abfahrt!", "pa");
       }, 300);
     }
-    const thr = Math.max(0, r.lev) / 100,
+    let thr = Math.max(0, r.lev) / 100,
       brk = r.emerg ? 1.25 : Math.max(0, -r.lev) / 100;
+    if (KIDS() && r.departOK) {
+      const dist = r.dir * (r.target - r.d),
+        vS = Math.sqrt(2 * 0.42 * Math.max(0, dist - 0.4)),
+        vL = Math.min(railLimit(r.d) / 3.6 - 0.15, vS); // Kids: bremst selbst vor dem Halt und hält die Geschwindigkeit ein
+      if (r.v > vL) {
+        thr = 0;
+        brk = Math.max(brk, Math.min(1, (r.v - vL) * 1.6 + 0.25));
+      }
+      if (dist < 0.6 && r.moved) {
+        thr = 0;
+        brk = 1;
+        if (r.v < 0.5) r.v = 0;
+      }
+    }
     if (!r.departOK) {
       if (thr > 0.05 && !r.falseStart) {
         r.falseStart = true;
@@ -5185,7 +5462,11 @@ input {
   function applyEnv() {
     const w = ENV.weather === "schlecht";
     WAVE_MUL = w ? 2.4 : 1;
+    document.querySelector(".app").classList.toggle("kids", KIDS());
     $("envNote").textContent =
+      (KIDS()
+        ? "Kids-Modus: Die Fähre legt nach „Rampe hoch“ von selbst ab und am Ziel von selbst an, unterwegs lenkst du und der Autopilot hält dich in der Fahrrinne. Die Inselbahn bremst an beiden Bahnhöfen von selbst. "
+        : "") +
       envText() +
       " " +
       {
@@ -5441,6 +5722,7 @@ input {
   }
   function showFinal(rows, title, eyebrow, text) {
     phase = "train";
+    if (KIDS()) rows = rows.filter((r) => r[1] >= 0);
     const total = Math.max(
       0,
       rows.reduce((a, b) => a + b[1], 0),
@@ -5463,7 +5745,7 @@ input {
             ? "Steuermann"
             : "Leichtmatrose";
     let best = 0;
-    const key = "inselfaehre-best-" + ENV.mode;
+    const key = "inselfaehre-best-" + ENV.mode + (KIDS() ? "-kids" : "");
     try {
       best = +localStorage.getItem(key) || 0;
       if (total > best) localStorage.setItem(key, String(total));
@@ -5602,6 +5884,12 @@ input {
             : S.throttle !== 0
               ? ["crit", "Schiff hängt an Laderampe und Gangway: erst „Rampe hoch“"]
               : ["ok", "Am Liegeplatz: „Rampe hoch“ macht das Schiff frei"];
+      else if (S.auto)
+        a = [
+          "ok",
+          S.auto.kind === "undock" ? "Autopilot legt ab … gleich darfst du steuern" : "Autopilot legt an …",
+        ];
+      else if (KIDS() && S.kidsAssist) a = ["warn", "Rand der Fahrrinne: der Autopilot lenkt zurück"];
       else if (S.grounded) a = ["crit", "Auf Grund: zurück ins Fahrwasser"];
       else if (S.canDock) a = ["ok", "Liegeplatz erreicht: festmachen"];
       else if (trafficAhead()) a = ["warn", trafficAhead()];
@@ -9056,17 +9344,17 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
               )
                 return;
               if ([...Array(15)].some((_, i) => Math.abs(u - (-900 + i * 130)) < 9)) return;
-              const big = o0 < 20 && R() < 0.12;
+              const big = o0 < 20 && R() < 0.12 && false;
               houses.push([
                 x,
                 n,
-                big ? 18 + R() * 8 : 8.5 + R() * 3.5,
-                big ? 12 : 8.5 + R() * 2.5,
-                big ? 8.5 + R() * 3 : 4.2 + R() * 2,
+                big ? 18 + R() * 8 : 8 + R() * 3,
+                big ? 12 : 7.5 + R() * 2.5,
+                big ? 8.5 + R() * 3 : 3.0 + R() * 1.4,
                 big ? 4 : (R() * 4) | 0,
                 ang,
               ]);
-              if (R() < 0.3) trees.push([x + 6, n + sd * 7]);
+              /* nur kleine Inselhäuser */ if (R() < 0.3) trees.push([x + 6, n + sd * 7]);
             }),
           );
         }
@@ -10172,7 +10460,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         return ISL_TOP + 0.1 + lift * Math.max(0, Math.min(1, 1 - (Math.abs(rp.o) - 2.4) / 12));
       };
       roadPoly(HS, 5.5, rampY, std(0x6b6d6f, { roughness: 0.95 }));
-      // Café Golfstube westlich am Bahnübergang, Haus im Wäldchen östlich
+      // Café Golfstube westlich am Bahnübergang (östlich kein Haus)
       // Café Golfstuben (nach Foto): Klinker-Erdgeschoss, steiles dunkles Ziegeldach mit großem weißem Glasgiebel zur Straße, Vorbau mit verglaster Dachterrasse, Gaube, Holzzaun
       {
         const p = railPt(dF + 30),
@@ -10292,20 +10580,6 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           m.rotation.x = -Math.PI / 2;
         }
       }
-      house(
-        ...(() => {
-          const p = railPt(dF - 70);
-          return [p.x + p.ty * 32, p.y - p.tx * 32];
-        })(),
-        10,
-        9,
-        4,
-        4,
-        BRICKY,
-        ROOFD,
-        0.3,
-        ISL_TOP,
-      );
       // Wäldchen westlich der Hafenstraße zwischen Bahnübergang und Ort (Ringschloot)
       {
         const R = rng(4242);
@@ -10395,35 +10669,31 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         ic.castShadow = true;
         scene.add(ic);
       }
+      // kleine Inselhäuser (eingeschossig, steiles Satteldach) rechts der Straße vor dem Bahnübergang Ortsrand
       {
-        const p = railPt(dB - 28);
-        const o = offAt(dB - 28) + 13;
-        house(
-          p.x - p.ty * o,
-          p.y + p.tx * o,
-          26,
-          13,
-          9.5,
-          4.5,
-          std(0xf2efe8, { roughness: 0.8 }),
-          ROOFD,
-          Math.atan2(p.ty, p.tx),
-          ISL_TOP,
-        );
-        const p2 = railPt(dB - 62);
-        const o2 = offAt(dB - 62) + 12;
-        house(
-          p2.x - p2.ty * o2,
-          p2.y + p2.tx * o2,
-          14,
-          11,
-          6.5,
-          4.5,
-          BRICK,
-          ROOFR,
-          Math.atan2(p2.ty, p2.tx),
-          ISL_TOP,
-        );
+        const WHT2 = std(0xf2efe8, { roughness: 0.8 });
+        [
+          [-22, 12, 9, 7.5, WHT2, ROOFD, 0],
+          [-38, 13, 8, 7, BRICK, ROOFR, 1],
+          [-53, 12.5, 9.5, 8, BRICKY, ROOFR, 0],
+          [-69, 13, 8, 7, WHT2, ROOFR, 1],
+          [-84, 12, 9, 7.5, BRICK, ROOFD, 0],
+        ].forEach(([dd, oo, w, dp, wm, rm, tw]) => {
+          const p = railPt(dB + dd);
+          const o = offAt(dB + dd) + oo;
+          house(
+            p.x - p.ty * o,
+            p.y + p.tx * o,
+            w,
+            dp,
+            3.0,
+            4.2,
+            wm,
+            rm,
+            Math.atan2(p.ty, p.tx) + (tw ? Math.PI / 2 : 0),
+            ISL_TOP,
+          );
+        });
       }
       // Menschen: Fußgänger und Radfahrer auf dem Radweg an der Hafenstraße
       {
@@ -10807,7 +11077,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           const Rr = rng(kind.length * 97 + W);
           const pick = (a) => a[(Rr() * a.length) | 0];
           if (kind === "reed") {
-            for (let i = 0; i < 1100; i++) {
+            for (let i = 0; i < 360; i++) {
               const bx = Rr() * W,
                 ht = H * (0.55 + Rr() * 0.45),
                 lean = (Rr() - 0.4) * 30;
@@ -10820,7 +11090,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
                 "#9c7b3b",
                 "#6d6a38",
               ]);
-              x.lineWidth = 1.5 + Rr() * 2;
+              x.lineWidth = 1 + Rr() * 1.4;
               x.beginPath();
               x.moveTo(bx, H);
               x.quadraticCurveTo(bx + lean * 0.3, H - ht * 0.5, bx + lean, H - ht);
@@ -10833,7 +11103,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
               }
             }
           } else if (kind === "herb") {
-            for (let i = 0; i < 240; i++) {
+            for (let i = 0; i < 150; i++) {
               const bx = Rr() * W,
                 ht = H * (0.35 + Rr() * 0.6);
               x.strokeStyle = pick(["#5f6f45", "#6f7d4a", "#7a7550", "#56653e"]);
@@ -10852,7 +11122,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
               }
             }
           } else if (kind === "scrub") {
-            for (let i = 0; i < 700; i++) {
+            for (let i = 0; i < 260; i++) {
               const bx = Rr() * W,
                 ht = H * (0.25 + Rr() * 0.75);
               x.strokeStyle = pick(["#6b7f3e", "#8a9450", "#a59766", "#5f7a3a", "#b8a878", "#7d8a45"]);
@@ -10862,14 +11132,14 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
               x.quadraticCurveTo(bx + (Rr() - 0.5) * 20, H - ht * 0.6, bx + (Rr() - 0.5) * 30, H - ht);
               x.stroke();
             }
-            for (let i = 0; i < 260; i++) {
+            for (let i = 0; i < 90; i++) {
               x.fillStyle = pick(["#4e6a33", "#5d7a3c", "#6b8040", "#46602e"]);
               x.beginPath();
-              x.arc(Rr() * W, H * (0.45 + Rr() * 0.55), 3 + Rr() * 6, 0, 7);
+              x.arc(Rr() * W, H * (0.5 + Rr() * 0.5), 2 + Rr() * 5, 0, 7);
               x.fill();
             }
           } else {
-            for (let i = 0; i < 650; i++) {
+            for (let i = 0; i < 230; i++) {
               const bx = Rr() * W,
                 ht = H * (0.3 + Rr() * 0.7);
               x.strokeStyle = pick(["#4f6a35", "#55703a", "#6f7a40", "#3f5a2e", "#7a7d45"]);
@@ -10884,6 +11154,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         m.alphaTest = 0.45;
         m.transparent = false;
         m.roughness = 1;
+        m.side = T.FrontSide;
         m.map.wrapS = T.RepeatWrapping;
         return m;
       };
@@ -10891,30 +11162,75 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         HERB = plantTex("herb", 512, 256),
         SCRUB = plantTex("scrub", 512, 128),
         RUSH = plantTex("rush", 512, 96);
-      const vstrip = (pts, h, mat, uM) => {
-        if (pts.length < 2) return;
+      // räumliche Büschel: drei gekreuzte Halmflächen je Büschel, zufällig gedreht, Größe und Farbe variiert; Normalen nach oben für ruhige Beleuchtung
+      const clumpG = (() => {
         const P = [],
           U = [],
-          I = [];
-        let L0 = 0;
-        pts.forEach((q, i) => {
-          if (i) L0 += Math.hypot(q[0] - pts[i - 1][0], q[1] - pts[i - 1][1]);
-          const y0 = gy(q) - 0.08;
-          P.push(q[0], y0, -q[1], q[0], y0 + h * (q[2] || 1), -q[1]);
-          U.push(L0 / uM, 0, L0 / uM, 1);
-          if (i) {
-            const a = (i - 1) * 2;
-            I.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
-          }
-        });
+          I = [],
+          N = [];
+        for (let k = 0; k < 3; k++) {
+          const a = (k * Math.PI) / 3,
+            c = Math.cos(a) * 0.5,
+            sn = Math.sin(a) * 0.5,
+            b = P.length / 3;
+          [
+            [-c, 0, -sn, 0],
+            [c, 0, sn, 1],
+            [-c, 1, -sn, 0],
+            [c, 1, sn, 1],
+          ].forEach(([x, y, z, u]) => {
+            P.push(x, y, z);
+            U.push(k / 3 + u / 3, y);
+            N.push(0, 1, 0);
+          });
+          I.push(b, b + 1, b + 2, b + 1, b + 3, b + 2, b, b + 2, b + 1, b + 1, b + 2, b + 3);
+        }
         const g = new T.BufferGeometry();
         g.setAttribute("position", new T.Float32BufferAttribute(P, 3));
         g.setAttribute("uv", new T.Float32BufferAttribute(U, 2));
+        g.setAttribute("normal", new T.Float32BufferAttribute(N, 3));
         g.setIndex(I);
-        g.computeVertexNormals();
-        const m = new T.Mesh(g, mat);
-        m.receiveShadow = true;
-        scene.add(m);
+        return g;
+      })();
+      const CL = new Map(),
+        TINT = ["#ffffff", "#ecebe0", "#f6f0dc", "#dedfcf", "#e9e2cc"];
+      const vstrip = (pts, h, mat, uM) => {
+        if (pts.length < 2) return;
+        let list = CL.get(mat);
+        if (!list) {
+          list = [];
+          CL.set(mat, list);
+        }
+        for (let i = 1; i < pts.length; i++) {
+          const a = pts[i - 1],
+            b = pts[i];
+          const L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+          if (L < 1e-3) continue;
+          const px = -(b[1] - a[1]) / L,
+            pn = (b[0] - a[0]) / L;
+          const k = Math.max(1, Math.ceil(L / 0.7));
+          for (let j = 0; j < k; j++) {
+            const t = (j + R()) / k,
+              f = (a[2] || 1) + ((b[2] || 1) - (a[2] || 1)) * t,
+              j2 = (R() - 0.5) * 0.9;
+            const x = a[0] + (b[0] - a[0]) * t + px * j2,
+              n = a[1] + (b[1] - a[1]) * t + pn * j2;
+            const hh = h * f * (0.7 + R() * 0.5);
+            if (hh < 0.1) continue;
+            const w = 0.25 + hh * 0.7 + R() * 0.25;
+            list.push({
+              x,
+              y: gy([x, n]) - 0.05,
+              n,
+              sx: w,
+              sy: hh,
+              sz: w * (0.8 + R() * 0.4),
+              ry: R() * 6.283,
+              rz: (R() - 0.5) * 0.12,
+              c: TINT[(R() * TINT.length) | 0],
+            });
+          }
+        }
       };
       const band = (o0, wob, h, mat, uM, seed, dStep, gapP, hf) => {
         const Rb = rng(seed);
@@ -10935,15 +11251,15 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         }
         flush();
       };
-      band(-4.0, 0.4, 0.75, SCRUB, 2.2, 11);
-      band(-4.9, 0.5, 0.95, SCRUB, 2.6, 12);
-      band(-3.3, 0.3, 0.5, SCRUB, 1.8, 13); // verbuschter Streifen am Gleis
-      band(-6.8, 0.7, 0.7, HERB, 2.0, 21, 2.0, 0.06, (d, Rb) => {
+      band(-4.0, 0.5, 0.4, SCRUB, 2.2, 11, 2.5, 0.08);
+      band(-4.9, 0.6, 0.5, SCRUB, 2.6, 12, 2.5, 0.15);
+      band(-3.3, 0.4, 0.3, SCRUB, 1.8, 13, 2.5, 0.1); // verbuschter Streifen am Gleis
+      band(-6.8, 0.7, 0.6, HERB, 2.0, 21, 2.0, 0.06, (d, Rb) => {
         const n = 0.5 + 0.5 * Math.sin(d * 0.031 + 1.3) * Math.cos(d * 0.017) + (Rb() - 0.5) * 0.35;
         return n < 0.12 ? 0 : Math.min(1, Math.max(0.14, n));
       }); // Stauden 0,1 bis 0,7 m, stellenweise gar nicht                                               // hohe Stauden
-      band(-9.3, 0.4, 1.4, REED, 3.0, 31, 2.5, 0.04);
-      band(-10.3, 0.5, 1.6, REED, 3.2, 32, 2.5, 0.08); // Schilf am Graben vor dem Zaun
+      band(-9.3, 0.5, 1.1, REED, 3.0, 31, 2.5, 0.04);
+      band(-10.3, 0.6, 1.25, REED, 3.2, 32, 2.5, 0.08); // Schilf am Graben vor dem Zaun
       for (let d = D0; d < D1; d += 1.6) {
         const o = -(3.8 + R() * 2.2);
         if (!ok(d, o) || R() < 0.7) continue;
@@ -10974,7 +11290,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         if (P.length) fences.push(P);
       };
       [-58, -118].forEach((o) => lineAlong(o, 6));
-      [-30, -58, -88, -118, -160].forEach((o, k) => band(o - 1.5, 0.8, 0.6, RUSH, 2.0, 40 + k, 3));
+      [-30, -58, -88, -118, -160].forEach((o, k) => band(o - 1.5, 0.8, 0.45, RUSH, 2.0, 40 + k, 3, 0.2));
       const cross = [];
       for (let d = D0 + 60; d < D1 - 20; d += 95 + R() * 70) cross.push(d);
       cross.forEach((d, k) => {
@@ -10986,7 +11302,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         if (P.length > 1) fences.push(P);
         for (let o = -14; o >= -210; o -= 3) {
           if (!ok(d + 1.5, o)) {
-            vstrip(RP, 0.6, RUSH, 2.0);
+            vstrip(RP, 0.45, RUSH, 2.0);
             RP.length = 0;
             continue;
           }
@@ -11006,9 +11322,10 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
             });
           }
         }
-        vstrip(RP, 0.6, RUSH, 2.0);
+        vstrip(RP, 0.45, RUSH, 2.0);
       });
       inst(bushG, VMAT, hedge, true);
+      CL.forEach((list, mat) => inst(clumpG, mat, list, false));
       // Zaunpfähle und Drähte (auch am vorhandenen Zaun entlang der Strecke)
       {
         const nF = fences.length;
@@ -16698,9 +17015,9 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
               sg.rotation.y = Math.atan2(p.ty, p.tx) + Math.PI / 2;
               sg.material.side = T.DoubleSide;
             }
-            // Wartehäuschen mittig vor den Spitzdachhäusern (nach Foto): Glaskasten mit weißen Rahmen, blaue Stahlstützen, steiles Satteldach, Giebel mit Begrüßung
+            // Wartehäuschen etwa in Bahnsteigmitte (nach Foto): Glaskasten mit weißen Rahmen, blaue Stahlstützen, steiles Satteldach, Giebel mit Begrüßung
             {
-              const p = railPt(6);
+              const p = railPt(63);
               const g = new T.Group();
               g.position.set(p.x - p.ty * 4.25, ISL_TOP + 0.6, -(p.y + p.tx * 4.25));
               g.rotation.y = Math.atan2(-p.tx, p.ty);
@@ -18171,6 +18488,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       if (S.releaseT <= 0) {
         S.releaseT = 0;
         S.moored = false;
+        if (KIDS()) S.auto = kidsUndock();
         radio("Rampe und Gangway oben, Leinen los. Das Schiff ist frei.");
         try {
           navigator.vibrate && navigator.vibrate(60);
