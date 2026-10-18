@@ -1742,7 +1742,7 @@ input {
         <li>Oben rechts stellen Sie den Zeitraffer ein.</li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">Version 18.10.2026 a · Lokwerkstatt nach Foto, Doppelbänke und Mülleimer am Hafen</p>
+      <p class="ver">Version 18.10.2026 q · Plattformtüren ohne Strebe darüber</p>
     </div>
   </div>
 </div>
@@ -2149,8 +2149,8 @@ input {
   ];
   const LAND = [MAINLAND, MOLE_E, MOLE_W, ISLAND, ...LG_DAMS];
   // Inselbahn Langeoog (Meterspur, 2,6 km): Hafenbahnhof → kurzer Bogen nach Nordwesten → durch die Deichscharte →
-  // fast gerade nach Norden durch die Weiden → leichter Knick → Nordnordwest in den Inselbahnhof am Ortsrand
-  // Einfahrt in den Inselbahnhof: die letzten 350 m schnurgerade nach Nordwesten (wie auf dem Luftbild)
+  // fast gerade nach Norden durch die Weiden → am Bahnübergang Feldweg (Café Golfstuben) eine leichte Kurve (R ≈ 320 m) → Nordnordwest in den Inselbahnhof am Ortsrand
+  // Inselbahnhof nach Foto: Bahnsteig gerade, am Bahnsteigsende eine leichte Kurve (R ≈ 290 m), danach schnurgerade an der Lokwerkstatt vorbei über den Bahnübergang Ortsrand Richtung Hafen
   const RAIL_CP = [
     [-5320, 5588],
     [-5320, 5700],
@@ -2160,13 +2160,26 @@ input {
     [-5392, 5960],
     [-5395, 6060],
     [-5372, 6300],
-    [-5345, 6700],
-    [-5336, 6950],
-    [-5420, 7350],
-    [-5529, 7790],
-    [-5591, 7868.5],
-    [-5668.5, 7966.6],
-    [-5746, 8064.75],
+    [-5391.61, 6854.57],
+    [-5393.73, 6914.54],
+    [-5407.02, 6973.04],
+    [-5601.4, 7828.82],
+    [-5603.62, 7838.57],
+    [-5606.0, 7848.28],
+    [-5608.71, 7857.9],
+    [-5611.75, 7867.43],
+    [-5615.12, 7876.84],
+    [-5618.8, 7886.14],
+    [-5622.8, 7895.3],
+    [-5627.12, 7904.33],
+    [-5631.73, 7913.19],
+    [-5636.65, 7921.9],
+    [-5641.87, 7930.43],
+    [-5647.37, 7938.78],
+    [-5653.16, 7946.93],
+    [-5659.22, 7954.89],
+    [-5665.42, 7962.73],
+    [-5746.0, 8064.75],
   ];
   const chaikin = (cp, n) => {
     let p = cp.map((q) => q.slice());
@@ -2231,9 +2244,9 @@ input {
     return {
       deich: dD,
       bue: [
-        { d: dD + 95, name: "Deichweg" },
-        { d: 1350, name: "Feldweg" },
-        { d: RAIL_L - 395, name: "Ortsrand" },
+        { d: dD + 30, name: "Störtebekerstraße" },
+        { d: railProj(-5393.73, 6914.54).d, name: "Feldweg" },
+        { d: RAIL_L - 385, name: "Ortsrand" },
       ],
       hStop: 6,
       tStop: RAIL_L - 6,
@@ -2243,6 +2256,16 @@ input {
     };
   })();
   const TOWN = { x: -6020, y: 8090, rx: 640, ry: 330, wt: [-6290, 8290] };
+  // Hafenstraße am Bahnübergang Feldweg (nach Luftbild): kreuzt das Gleis spitzwinklig, nördlich 13°, südlich 26°; Bahn Rechts-, Straße leichte Linkskurve (Richtung Hafen)
+  function roadOffF(d) {
+    const dF = RF.bue[1].d;
+    if (d >= dF) {
+      const t = Math.min(1, (d - dF) / 138);
+      return 16 * (2 * t - t * t);
+    }
+    const t = Math.min(1, (dF - d) / 66);
+    return -(16 * (2 * t - t * t) + Math.min(24, Math.max(0, dF - 66 - d) * 0.05));
+  }
   // Flugplatz direkt hinter dem Bahnübergang am Ortsrand: Abfertigung ca. 230 m weiter, 170 m östlich der Bahn; Bahn 05/23 (055°)
   const AIRP = (() => {
     const p = railPt(RAIL_L - 620);
@@ -5666,11 +5689,39 @@ input {
     const t = railPt(RAIL_L - 20);
     return { x: TSTN.x, y: TSTN.y, tx: t.tx, ty: t.ty };
   })();
-  const stnW = (u, v) => [STN.x - STN.tx * u - STN.ty * v, STN.y - STN.ty * u + STN.tx * v];
+  // Bogen am Bahnsteigsende: der Bahnhofsrahmen ist bis u = U1 gerade, biegt dann auf L Metern um A nach Südwesten ab (alles dahinter folgt: Gleisfächer, Werkstatt, Bahnübergang)
+  const SBEND = { U1: 140, L: 130, A: 0.445172641 };
+  SBEND.R = SBEND.L / SBEND.A;
+  const stnBend = (u, v) => {
+    const { U1, L, R } = SBEND;
+    if (u <= U1) return [u, v];
+    const s = Math.min(u - U1, L),
+      p = s / R,
+      e = u - U1 - s;
+    return [U1 + (R - v) * Math.sin(p) + e * Math.cos(p), R - (R - v) * Math.cos(p) + e * Math.sin(p)];
+  };
+  const stnBendAng = (u) => Math.max(0, Math.min(SBEND.A, (u - SBEND.U1) / SBEND.R));
+  const stnBendInv = (u, v) => {
+    const { U1, L, R, A } = SBEND;
+    if (u <= U1) return [u, v];
+    const dx = u - U1,
+      dy = R - v,
+      p = Math.atan2(dx, dy);
+    if (p <= A) return [U1 + R * p, R - Math.hypot(dx, dy)];
+    const bx = U1 + R * Math.sin(A),
+      by = R - R * Math.cos(A),
+      qx = u - bx,
+      qy = v - by;
+    return [U1 + L + qx * Math.cos(A) + qy * Math.sin(A), -qx * Math.sin(A) + qy * Math.cos(A)];
+  };
+  const stnW = (u0, v0) => {
+    const [u, v] = stnBend(u0, v0);
+    return [STN.x - STN.tx * u - STN.ty * v, STN.y - STN.ty * u + STN.tx * v];
+  };
   const stnUV = (x, n) => {
     const dx = x - STN.x,
       dy = n - STN.y;
-    return [-(dx * STN.tx + dy * STN.ty), -dx * STN.ty + dy * STN.tx];
+    return stnBendInv(-(dx * STN.tx + dy * STN.ty), -dx * STN.ty + dy * STN.tx);
   };
   function stationZone(x, n) {
     const [u, v] = stnUV(x, n);
@@ -5689,7 +5740,7 @@ input {
       const t = Math.max(0, Math.min(1, (v - a) / (b - a)));
       return t * t * (3 - 2 * t);
     };
-    return ss(150, 215, d) * (1 - ss(RAIL_L - 430, RAIL_L - 365, d));
+    return ss(RF.deich + 45, RF.deich + 110, d) * (1 - ss(RAIL_L - 430, RAIL_L - 365, d));
   }
   function trackHt(d) {
     return ISL_TOP + 0.3 + 0.5 * embW(d);
@@ -6147,22 +6198,143 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       const g = new T.Group();
       const RED = std(opts.color || 0xcb1f1c, { roughness: 0.32, metalness: 0.15 });
       // Rahmen, Pufferbohlen, Kupplung, Radsätze
-      mesh(box(6.2, 0.42, 2.0), BLACK, g, 0, 0.82, 0);
+      mesh(box(6.2, 0.42, 1.7), BLACK, g, 0, 0.82, 0);
       mesh(box(6.5, 0.06, 2.42), BLACK, g, 0, 1.06, 0);
       [-3.3, 3.3].forEach((x) => {
         mesh(box(0.22, 0.5, 2.3), BLACK, g, x, 0.82, 0);
         mesh(box(0.38, 0.22, 0.32), STEEL, g, x + Math.sign(x) * 0.25, 0.78, 0);
       });
-      // zwei Drehgestelle mit je zwei Achsen
-      [-1.85, 1.85].forEach((x) => {
-        [-0.55, 0.55].forEach((o) => axle(g, x + o, 0.3));
+      // Fahrwerk nach Foto: zwei Radsätze fest im Rahmen, schwarze Rahmenwange mit Aussparungen für Räder und Trittstufen,
+      // Achslagerdeckel, Luftbehälter unter dem Führerhaus, Bremsventile, Typenschild, weiße Leuchtpunkte, Trittstufen mit hellen Kanten
+      {
+        const AX = 1.6,
+          EDGE = std(0xd9dadb, { roughness: 0.5, metalness: 0.3 }),
+          DK = std(0x161718, { roughness: 0.7 }),
+          TANK = std(0x2a2c2e, { roughness: 0.45, metalness: 0.35 });
+        [-AX, AX].forEach((x) => axle(g, x, 0.36)); // Raddurchmesser 0,72 m
+        const segs = (cuts, x0, x1) => {
+          const out = [];
+          let a = x0;
+          cuts
+            .sort((p, q) => p[0] - q[0])
+            .forEach(([c0, c1]) => {
+              if (c0 > a) out.push([a, c0]);
+              a = Math.max(a, c1);
+            });
+          if (x1 > a) out.push([a, x1]);
+          return out;
+        };
+        const recEnd = [
+            [-3.1, -2.45],
+            [2.45, 3.1],
+          ],
+          recDoor = [[-1.12, -0.46]],
+          recWheel = [
+            [-AX - 0.46, -AX + 0.46],
+            [AX - 0.46, AX + 0.46],
+          ];
         [-1, 1].forEach((z) => {
-          mesh(box(1.75, 0.26, 0.08), BLACK, g, x, 0.36, z * 0.62);
-          [-0.55, 0.55].forEach((o) => mesh(box(0.26, 0.3, 0.12), BLACK, g, x + o, 0.34, z * 0.63));
-          mesh(new T.CylinderGeometry(0.06, 0.06, 0.2, 8), STEEL, g, x, 0.58, z * 0.62);
+          const zf = z * 0.9;
+          segs([...recEnd, ...recDoor], -3.1, 3.1).forEach(([a, b]) =>
+            mesh(box(b - a, 0.47, 0.05), BLACK, g, (a + b) / 2, 0.8, zf),
+          ); // obere Rahmenwange
+          segs([...recEnd, ...recDoor, ...recWheel], -3.1, 3.1).forEach(([a, b]) =>
+            mesh(box(b - a, 0.4, 0.05), BLACK, g, (a + b) / 2, 0.37, zf),
+          ); // untere Schürze zwischen den Rädern
+          [...recEnd, ...recDoor].forEach(([a, b]) =>
+            mesh(box(b - a, 0.9, 0.04), DK, g, (a + b) / 2, 0.6, z * 0.7),
+          ); // Rückwand der Nischen
+          // Trittstufen mit hellen Kanten: an den Enden zwei, unter der Führerhaustür drei
+          const tread = (xc, w, y) => {
+            mesh(box(w, 0.035, 0.22), DK, g, xc, y, z * 0.81);
+            mesh(box(w, 0.035, 0.03), EDGE, g, xc, y + 0.005, z * 0.92);
+          };
+          [-1, 1].forEach((e) => {
+            [0.56, 0.28].forEach((y) => tread(e * 2.78, 0.6, y));
+            [2.47, 3.08].forEach((x) => mesh(box(0.035, 0.9, 0.24), BLACK, g, e * x, 0.6, z * 0.82));
+          });
+          [0.88, 0.61, 0.34].forEach((y) => tread(-0.79, 0.62, y));
+          [-1.11, -0.47].forEach((x) => mesh(box(0.035, 0.9, 0.24), BLACK, g, x, 0.6, z * 0.82));
+          // Achslager mit rundem Deckel und Führung
+          [-AX, AX].forEach((x) => {
+            mesh(box(0.26, 0.3, 0.1), BLACK, g, x, 0.4, z * 0.95);
+            mesh(new T.CylinderGeometry(0.13, 0.13, 0.05, 18).rotateX(Math.PI / 2), DK, g, x, 0.36, z * 1.01);
+            mesh(
+              new T.CylinderGeometry(0.05, 0.05, 0.03, 10).rotateX(Math.PI / 2),
+              STEEL,
+              g,
+              x,
+              0.36,
+              z * 1.04,
+            );
+            [-0.15, 0.15].forEach((o) => mesh(box(0.04, 0.34, 0.08), BLACK, g, x + o, 0.45, z * 0.95));
+          });
+          // Luftbehälter unter dem Führerhaus (groß oben, klein darunter), Bremsventile hinter dem Rad
+          mesh(
+            new T.CylinderGeometry(0.12, 0.12, 1.15, 16).rotateZ(Math.PI / 2),
+            TANK,
+            g,
+            0.42,
+            0.86,
+            z * 0.99,
+          );
+          [-0.15, 1.0].forEach((x) => mesh(new T.SphereGeometry(0.12, 12, 8), TANK, g, x, 0.86, z * 0.99));
+          mesh(
+            new T.CylinderGeometry(0.075, 0.075, 0.6, 12).rotateZ(Math.PI / 2),
+            TANK,
+            g,
+            0.5,
+            0.5,
+            z * 0.98,
+          );
+          [0.4, 0.62].forEach((x) => mesh(box(0.06, 0.12, 0.06), STEEL, g, x, 0.62, z * 0.98));
+          [
+            [1.08, 0.46],
+            [1.0, 0.58],
+            [1.12, 0.62],
+          ].forEach(([x, y]) => {
+            mesh(new T.CylinderGeometry(0.035, 0.035, 0.12, 8), CHROME, g, x, y, z * 0.99);
+            mesh(box(0.08, 0.05, 0.05), STEEL, g, x, y - 0.08, z * 0.98);
+          });
+          {
+            const r = mesh(box(0.5, 0.03, 0.03), BLACK, g, 2.1, 0.1, z * 0.94);
+            r.rotation.z = 0.15;
+          } // Bremsgestänge
+          // Typenschild und weiße Leuchtpunkte an der Rahmenwange
+          {
+            const c = document.createElement("canvas");
+            c.width = 128;
+            c.height = 80;
+            const x = c.getContext("2d");
+            x.fillStyle = "#e9e9e4";
+            x.fillRect(0, 0, 128, 80);
+            x.fillStyle = "#555";
+            for (let k = 0; k < 6; k++) x.fillRect(10, 10 + k * 11, 70 + ((k * 37) % 40), 4);
+            const pl = mesh(
+              new T.PlaneGeometry(0.42, 0.26),
+              std(0xffffff, { map: tex(c), roughness: 0.6 }),
+              g,
+              2.0,
+              0.82,
+              z * 0.93,
+            );
+            if (z < 0) pl.rotation.y = Math.PI;
+          }
+          [
+            [2.42, 0.76],
+            [-2.42, 0.8],
+          ].forEach(([x, y]) =>
+            mesh(
+              new T.CylinderGeometry(0.055, 0.055, 0.03, 14).rotateX(Math.PI / 2),
+              std(0xf4f4f0, { roughness: 0.4, emissive: 0x222222 }),
+              g,
+              x,
+              y,
+              z * 0.935,
+            ),
+          );
         });
-        mesh(box(0.5, 0.14, 1.3), BLACK, g, x, 0.55, 0);
-      });
+      }
       [-1, 1].forEach((z) => {
         mesh(box(5.2, 0.32, 0.12), BLACK, g, 0, 0.62, z * 0.72);
         mesh(box(0.7, 0.35, 0.36), BLACK, g, 0.3, 0.72, z * 0.82);
@@ -6335,10 +6507,6 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           [-1, 1].forEach((sd) => {
             const xs = e * 3.0,
               zs = sd * 1.06;
-            [0.74, 0.44].forEach((y, k) =>
-              mesh(box(0.42, 0.03, 0.26 - k * 0.04), GRT, g, xs, y, zs + sd * k * 0.02),
-            );
-            [-0.22, 0.22].forEach((o) => mesh(box(0.03, 0.5, 0.26), BLACK, g, xs + o, 0.62, zs));
             mesh(box(0.5, 0.05, 0.32), GRT, g, e * 3.0, 1.1, sd * 1.05);
             [e * 3.2, e * 2.74].forEach((xp) => {
               mesh(new T.CylinderGeometry(0.022, 0.022, 0.95, 8), BLACK, g, xp, 1.58, sd * 1.15);
@@ -6469,14 +6637,46 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       // Glocke/Horn auf dem Vorbau, Auspuff
       mesh(new T.SphereGeometry(0.14, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2), BLACK, g, hx + 1.2, 2.5, -0.25);
       mesh(new T.CylinderGeometry(0.05, 0.05, 0.12, 8), BLACK, g, hx + 1.2, 2.47, -0.25);
-      mesh(new T.CylinderGeometry(0.13, 0.14, 1.45, 16), RED, g, CXc + CLc / 2 + 0.14, 3.1, 0);
-      mesh(new T.CylinderGeometry(0.15, 0.15, 0.06, 16), RED, g, CXc + CLc / 2 + 0.14, 3.84, 0);
+      {
+        const DKS = std(0x1a1112, { roughness: 0.8 });
+        const stack = (x0, x1, y0, y1, w, tp) => {
+          const e = Math.sign(x1 - x0),
+            x1t = x1 - e * (tp || 0),
+            xc = (x0 + x1t) / 2,
+            L = Math.abs(x1t - x0);
+          {
+            const sh = new T.Shape();
+            sh.moveTo(x0, y0);
+            sh.lineTo(x1, y0);
+            sh.lineTo(x1t, y1);
+            sh.lineTo(x0, y1);
+            sh.closePath();
+            const sg = new T.ExtrudeGeometry(sh, { depth: w, bevelEnabled: false });
+            sg.translate(0, 0, -w / 2);
+            mesh(sg, RED, g, 0, 0, 0);
+          } // Außenseite zum Führerhaus hin angeschrägt
+          mesh(box(L + 0.05, 0.04, w + 0.05), RED, g, xc, y1 + 0.02, 0);
+          mesh(box(L - 0.12, 0.012, w - 0.1), DKS, g, xc, y1 + 0.046, 0); // Deckel mit Austrittsöffnung
+          [-1, 1].forEach((sd) =>
+            mesh(
+              box(0.012, y1 - y0 - 0.2, 0.012),
+              std(0x8e1512, { roughness: 0.4 }),
+              g,
+              x0 + Math.sign(x1 - x0) * 0.02,
+              (y0 + y1) / 2,
+              sd * (w / 2 + 0.003),
+            ),
+          );
+        }; // Kantenfuge
+        stack(CXc + CLc / 2, CXc + CLc / 2 + 0.65, 2.45, 3.5, 0.28, 0.17);
+        stack(CXc - CLc / 2, CXc - CLc / 2 - 0.45, 2.25, 3.5, 0.28);
+      }
       // Führerhaus
       const cx = CXc,
         cl = CLc,
         cw = 2.2,
         cb = 1.09,
-        ch = 2.4;
+        ch = 2.22; // Führerhaus nach Foto etwas niedriger
       const cabTexF = (mir) => {
         const c = document.createElement("canvas");
         c.width = 512;
@@ -6488,7 +6688,9 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           x.fillRect(0, 0, 512, 512);
           x.strokeStyle = "rgba(0,0,0,.45)";
           x.lineWidth = 3;
-          x.strokeRect(mir ? 512 - 228 : 52, 30, 176, 470);
+          x.strokeRect(mir ? 512 - 190 : 6, 24, 184, 476);
+          x.fillStyle = "#f2f0ea";
+          x.fillRect(mir ? 512 - 170 : 30, 462, 140, 6);
           x.fillStyle = "#f4f0e6";
           x.textAlign = "center";
           x.font = "42px " + FRAK;
@@ -6567,8 +6769,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         return m;
       };
       const fH = [
-        { u: -0.56, v: 3.0 - cb, w: 0.8, h: 0.74, r: 0.1 },
-        { u: 0.56, v: 3.0 - cb, w: 0.8, h: 0.74, r: 0.1 },
+        { u: -0.56, v: 2.93 - cb, w: 0.8, h: 0.6, r: 0.1 },
+        { u: 0.56, v: 2.93 - cb, w: 0.8, h: 0.6, r: 0.1 },
       ]; // Fensterunterkante über der Vorbauoberkante
       cwall(
         cw,
@@ -6583,8 +6785,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         cwall(
           cl,
           [
-            { u: sd * 0.45, v: 2.8 - cb, w: 0.6, h: 1.08, r: 0.08 },
-            { u: sd * -0.55, v: 2.85 - cb, w: 0.3, h: 0.86, r: 0.07 },
+            { u: sd * 0.47, v: 2.73 - cb, w: 1.28, h: 0.8, r: 0.09 },
+            { u: sd * -0.69, v: 2.69 - cb, w: 0.58, h: 0.7, r: 0.08 },
           ],
           sd > 0 ? CABW : CABW2,
           cx,
@@ -6608,8 +6810,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         f.rotation.y = ry;
       };
       [-0.56, 0.56].forEach((z) => {
-        rwin(0.8, 0.74, 0.1, cx + cl / 2 + 0.012, 3.0, z, Math.PI / 2);
-        rwin(0.8, 0.74, 0.1, cx - cl / 2 - 0.012, 3.0, z, -Math.PI / 2);
+        rwin(0.8, 0.6, 0.1, cx + cl / 2 + 0.012, 2.93, z, Math.PI / 2);
+        rwin(0.8, 0.6, 0.1, cx - cl / 2 - 0.012, 2.93, z, -Math.PI / 2);
         // Scheibenwischer oben am Rahmen gelagert, liegt auf der Scheibe
         const xf = cx + cl / 2;
         mesh(
@@ -6617,20 +6819,23 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           BLACK,
           g,
           xf + 0.04,
-          3.33,
+          3.26,
           z + 0.24,
         );
         const pv = new T.Group();
-        pv.position.set(xf + 0.075, 3.33, z + 0.24);
+        pv.position.set(xf + 0.075, 3.26, z + 0.24);
         pv.rotation.x = -0.55;
         g.add(pv);
-        mesh(box(0.018, 0.5, 0.022), BLACK, pv, 0, -0.25, 0);
-        const bl = mesh(box(0.022, 0.42, 0.03), BLACK, pv, -0.012, -0.5, 0);
+        mesh(box(0.018, 0.4, 0.022), BLACK, pv, 0, -0.2, 0);
+        const bl = mesh(box(0.022, 0.34, 0.03), BLACK, pv, -0.012, -0.4, 0);
         bl.rotation.x = 0.55;
       });
       rwin(0.24, 0.46, 0.1, cx + cl / 2 + 0.012, 2.25, 0.9, Math.PI / 2);
       mesh(new T.CylinderGeometry(0.012, 0.012, 0.9, 4), BLACK, g, cx - 0.6, cb + ch + 0.5, -0.6);
-      mesh(box(0.5, 0.12, 0.35), WHITE, g, cx + 0.3, cb + ch + 0.12, 0.2);
+      [
+        [0.38, 0.5],
+        [-0.6, 0.57],
+      ].forEach(([x, w]) => mesh(box(w, 0.13, 0.4), WHITE, g, x, cb + ch + 0.12, 0));
       [-0.5, 0.5].forEach((z) =>
         mesh(
           new T.CylinderGeometry(0.07, 0.07, 0.06, 12).rotateZ(Math.PI / 2),
@@ -6642,20 +6847,16 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         ),
       );
       [-1, 1].forEach((sd) => {
-        rwin(0.6, 1.08, 0.08, cx + 0.45, 2.8, sd * (cw / 2 + 0.012), sd > 0 ? 0 : Math.PI); // großes Seitenfenster vorn, senkrecht geteilt
-        mesh(box(0.04, 1.08, 0.03), ALU, g, cx + 0.45 + 0.08, 2.8, sd * (cw / 2 + 0.03));
-        rwin(0.3, 0.86, 0.07, cx - 0.55, 2.85, sd * (cw / 2 + 0.012), sd > 0 ? 0 : Math.PI); // schmales Türfenster
+        rwin(1.28, 0.8, 0.09, cx + 0.47, 2.73, sd * (cw / 2 + 0.012), sd > 0 ? 0 : Math.PI); // großes Seitenfenster vorn, senkrecht geteilt
+        mesh(box(0.05, 0.8, 0.03), ALU, g, cx + 0.47, 2.73, sd * (cw / 2 + 0.03));
+        rwin(0.58, 0.7, 0.08, cx - 0.69, 2.69, sd * (cw / 2 + 0.012), sd > 0 ? 0 : Math.PI); // schmales Türfenster
         // Tür hinten: Fugen, Griff, Griffstangen beidseits, Trittstufen
         const zo = sd * (cw / 2 + 0.006);
-        [cx - 0.97, cx - 0.13].forEach((x0) => mesh(box(0.025, 2.38, 0.01), BLACK, g, x0, 2.3, zo)); // Tür reicht bis unters Dach
-        mesh(box(0.16, 0.04, 0.05), CHROME, g, cx - 0.25, 2.2, sd * (cw / 2 + 0.03));
-        [cx - 1.06, cx - 0.04].forEach((x0) =>
+        [cx - 1.14, cx - 0.3].forEach((x0) => mesh(box(0.025, 2.2, 0.01), BLACK, g, x0, 2.2, zo)); // Tür reicht bis unters Dach
+        mesh(box(0.16, 0.04, 0.05), CHROME, g, cx - 0.43, 2.16, sd * (cw / 2 + 0.03));
+        [cx - 1.2, cx - 0.24].forEach((x0) =>
           mesh(new T.CylinderGeometry(0.025, 0.025, 1.3, 6), BLACK, g, x0, 2.0, sd * (cw / 2 + 0.08)),
         );
-        mesh(box(0.6, 0.05, 0.3), BLACK, g, cx - 0.55, 0.5, sd * 1.12);
-        mesh(box(0.6, 0.05, 0.3), BLACK, g, cx - 0.55, 0.8, sd * 1.12);
-        mesh(box(0.04, 0.6, 0.04), BLACK, g, cx - 0.83, 0.65, sd * 1.24);
-        mesh(box(0.04, 0.6, 0.04), BLACK, g, cx - 0.27, 0.65, sd * 1.24);
       });
       g.userData.len = 6.9;
       return g;
@@ -6684,7 +6885,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         x.fillRect(0, sill, 2048, 6);
         x.fillRect(0, 10, 2048, 5);
         // Fenster: abwechselnd breit und schmal
-        const ws = [0.62, 1.05, 0.62, 0.62, 1.05, 0.62, 0.62, 1.05, 0.62, 0.62, 1.05, 0.62];
+        const ws = [0.5, 1.15, 0.5, 0.5, 1.15, 0.5, 0.5, 1.15, 0.5, 0.5, 1.15, 0.5];
         let tot = ws.reduce((a, b) => a + b, 0);
         const gap = (L - 0.8 - tot) / (ws.length - 1);
         let px = 0.4;
@@ -6707,6 +6908,15 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           x.fill();
           x.fillStyle = "rgba(255,255,255,.18)";
           x.fillRect(X + 4, Y + Hh * 0.08, W - 8, 3);
+          if (w < 0.8) {
+            const ky = Y + Hh * 0.26;
+            x.fillStyle = "rgba(160,190,205,.28)";
+            x.fillRect(X, Y, W, ky - Y);
+            x.fillStyle = "#f1f1ee";
+            x.fillRect(X - 2, ky - 4, W + 4, 9); // Kippfenster oben: Kämpfer, Griff
+            x.fillStyle = "#c9cbc8";
+            x.fillRect(X + W / 2 - 6, ky - 13, 12, 5);
+          }
           px += w + gap;
         });
         // senkrechte Rippen im unteren Feld
@@ -6789,34 +6999,114 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         }
       }
       mesh(bg, [BODY, BODY, BODY, BODY, SIDE, SIDE], g, 0, B + H / 2, 0);
-      [-1, 1].forEach((e) => {
-        const dx = e * (L / 2 + 0.012);
-        const dg = mesh(box(0.03, 1.75, 0.72), BODY, g, dx, B + 0.9, 0);
-        const dw = mesh(box(0.035, 0.75, 0.5), GLASS, g, dx, B + 1.45, 0);
-        [-0.72, 0.72].forEach((z) => mesh(box(0.035, 0.7, 0.42), GLASS, g, dx, B + 1.45, z));
-      });
+      // Stirnwand zur Plattform (nach Foto): glatte Wand mit Hinweisschild, Tür nach innen mit großem Fenster
+      {
+        const sc = document.createElement("canvas");
+        sc.width = 128;
+        sc.height = 64;
+        const sx2 = sc.getContext("2d");
+        sx2.fillStyle = hex;
+        sx2.fillRect(0, 0, 128, 64);
+        sx2.strokeStyle = "#f4f4f0";
+        sx2.lineWidth = 3;
+        sx2.strokeRect(46, 4, 36, 22);
+        sx2.beginPath();
+        sx2.moveTo(48, 24);
+        sx2.lineTo(80, 6);
+        sx2.stroke();
+        sx2.fillStyle = "#f4f4f0";
+        for (let k = 0; k < 3; k++) sx2.fillRect(14, 34 + k * 9, 100, 4);
+        const SIGN = std(0xffffff, { map: tex(sc), roughness: 0.4 });
+        const DOORF = std(new T.Color(color).multiplyScalar(0.75).getHex(), { roughness: 0.4 });
+        [-1, 1].forEach((e) => {
+          const dx = e * (L / 2 + 0.015),
+            zc = 0.12;
+          mesh(box(0.03, 1.92, 0.76), BODY, g, dx, B + 0.98, zc);
+          mesh(box(0.04, 0.82, 0.54), GLASS, g, dx, B + 1.42, zc);
+          [
+            [0.03, 1.92, -0.38],
+            [0.03, 1.92, 0.38],
+          ].forEach(([a, b2, z]) => mesh(box(0.045, b2, a), DOORF, g, dx, B + 0.98, zc + z));
+          mesh(box(0.045, 0.03, 0.76), DOORF, g, dx, B + 1.94, zc);
+          mesh(box(0.06, 0.03, 0.12), CHROME, g, dx + e * 0.02, B + 1.0, zc + 0.28);
+          const sg = mesh(new T.PlaneGeometry(0.62, 0.31), SIGN, g, dx + e * 0.02, B + 1.85, -0.55);
+          sg.rotation.y = (e * Math.PI) / 2;
+        });
+      }
       // Weißes Dach, an den Enden über die Plattformen gezogen
       mesh(roofGeo(W + 0.42, 0.13, L + 2.2, 0.1), WHITE, g, 0, B + H + 0.06, 0);
       mesh(box(L + 2.2, 0.06, W + 0.42), WHITE, g, 0, B + H + 0.03, 0);
+      // erhöhter Dachaufsatz (Laternendach) nach Foto: schmaler als das Dach, seitlich leicht schräg, an den Enden abgewalmt
+      {
+        const lg = new T.CylinderGeometry(0.8, 1, 0.38, 4, 1);
+        lg.rotateY(Math.PI / 4);
+        lg.scale((L - 0.4) / Math.SQRT2, 1, 1.62 / Math.SQRT2);
+        mesh(lg, std(0xf4f5f3, { roughness: 0.55, flatShading: true }), g, 0, B + H + 0.33, 0);
+        mesh(box(L - 0.5, 0.025, 0.04), std(0xd6d8d6, { roughness: 0.5 }), g, 0, B + H + 0.18, 0.79);
+        mesh(box(L - 0.5, 0.025, 0.04), std(0xd6d8d6, { roughness: 0.5 }), g, 0, B + H + 0.18, -0.79);
+      }
       // Plattformen mit Geländer und Trittstufen
-      const RAILC = std(color, { roughness: 0.35, metalness: 0.2 });
+      const RAILC = std(color, { roughness: 0.35, metalness: 0.2 }),
+        LEGC = std(0x8c9093, { roughness: 0.4, metalness: 0.6 });
       [-1, 1].forEach((e) => {
         const px = e * (L / 2 + 0.55);
         mesh(box(1.1, 0.06, W), BLACK, g, px, B + 0.02, 0);
         [-1, 1].forEach((sd) => {
           const z = sd * (W / 2 - 0.03);
-          mesh(box(0.05, 1.05, 0.05), RAILC, g, e * (L / 2 + 1.05), B + 0.55, z);
-          mesh(box(0.05, 2.3, 0.05), RAILC, g, e * (L / 2 + 0.02), B + 1.15, z);
-          mesh(box(1.05, 0.05, 0.05), RAILC, g, px, B + 1.05, z);
-          mesh(box(1.05, 0.04, 0.04), RAILC, g, px, B + 0.55, z);
-          mesh(box(0.05, 0.05, 0.6), RAILC, g, e * (L / 2 + 1.07), B + 1.05, sd * 0.85);
+          mesh(box(0.05, H, 0.05), RAILC, g, e * (L / 2 + 1.05), B + H / 2, z);
+          mesh(box(0.05, 2.3, 0.05), RAILC, g, e * (L / 2 + 0.02), B + 1.15, z); // Eckstangen bis unters Dach
+          // Blechtür zum Öffnen (oben offen: die Tür ist der obere Abschluss, keine Strebe darüber) im Plattformzugang: Blechfüllung in Wagenfarbe mit umlaufendem Rand, Scharniere am Wagenkasten, Griff außen
+          {
+            const dw = 0.9,
+              dx0 = e * (L / 2 + 0.07),
+              dg = new T.Group();
+            dg.position.set(dx0, B + 0.06, z);
+            g.add(dg);
+            mesh(box(dw, 0.9, 0.025), RAILC, dg, (e * dw) / 2, 0.47, 0);
+            [
+              [dw, 0.04, 0.03, 0.03],
+              [dw, 0.04, 0.03, 0.91],
+              [0.04, 0.9, e * 0.02, 0.47],
+              [0.04, 0.9, e * (dw - 0.02), 0.47],
+            ].forEach(([a, b2, xx, yy]) =>
+              mesh(box(a, b2, 0.045), RAILC, dg, (e * dw) / 2 + (a < 0.1 ? xx - (e * dw) / 2 : 0), yy, 0),
+            );
+            mesh(
+              box(dw - 0.16, 0.012, 0.03),
+              std(new T.Color(color).multiplyScalar(0.8).getHex(), { roughness: 0.4 }),
+              dg,
+              (e * dw) / 2,
+              0.5,
+              sd * 0.016,
+            );
+            [0.2, 0.75].forEach((yy) =>
+              mesh(new T.CylinderGeometry(0.025, 0.025, 0.1, 8), STEEL, dg, e * 0.01, yy, sd * 0.02),
+            );
+            mesh(box(0.03, 0.12, 0.03), CHROME, dg, e * (dw - 0.1), 0.78, sd * 0.035);
+            mesh(box(0.08, 0.025, 0.025), CHROME, dg, e * (dw - 0.1), 0.84, sd * 0.05);
+          }
           mesh(box(0.55, 0.05, 0.28), BLACK, g, px, 0.62, sd * (W / 2 + 0.05));
           mesh(box(0.04, 0.42, 0.04), BLACK, g, px - 0.25, 0.8, sd * (W / 2 + 0.05));
           mesh(box(0.04, 0.42, 0.04), BLACK, g, px + 0.25, 0.8, sd * (W / 2 + 0.05));
         });
-        // Stirnseitiges Gitter in der Mitte
-        mesh(box(0.05, 1.0, 0.05), RAILC, g, e * (L / 2 + 1.07), B + 0.52, 0);
+        // Plattformende geschlossen (nach Foto): Blechwand mit Rahmenrohren, oben schmales Holzbrett auf der Brüstung, darunter helle Holzleiste
+        {
+          const xe = e * (L / 2 + 1.08),
+            WD1 = std(0x6e4a36, { roughness: 0.6 }),
+            WD2 = std(0xd9a86a, { roughness: 0.6 });
+          mesh(box(0.035, 0.95, W - 0.06), RAILC, g, xe, B + 0.5, 0);
+          [-1.1, -0.55, 0, 0.55, 1.1].forEach((z) =>
+            mesh(box(0.05, 0.95, 0.05), RAILC, g, xe + e * 0.03, B + 0.5, z),
+          );
+          mesh(box(0.05, 0.05, W), RAILC, g, xe + e * 0.03, B + 0.06, 0);
+          mesh(box(0.05, 0.05, W), RAILC, g, xe + e * 0.03, B + 0.78, 0);
+          mesh(box(0.2, 0.05, W + 0.08), WD1, g, xe + e * 0.03, B + 1.0, 0);
+          [-0.82, 0, 0.82].forEach((z) => mesh(box(0.03, 0.18, 0.5), WD2, g, xe + e * 0.035, B + 0.88, z));
+        }
       });
+      // Dachkante in Wagenfarbe rundum
+      [-1, 1].forEach((sd) => mesh(box(L + 2.2, 0.08, 0.03), RAILC, g, 0, B + H + 0.02, sd * (W / 2 + 0.22)));
+      [-1, 1].forEach((e) => mesh(box(0.03, 0.08, W + 0.44), RAILC, g, e * (L / 2 + 1.1), B + H + 0.02, 0));
       // Inneneinrichtung schemenhaft: Holzbänke
       const WOOD = std(0xb98a52, { roughness: 0.55 }),
         LEG = std(0x8c9093, { roughness: 0.4, metalness: 0.6 });
@@ -6879,7 +7169,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         cl = 2.35,
         cw = 2.2,
         fl = 1.12,
-        top = 3.42,
+        top = 3.24,
         x0 = cx - cl / 2 + 0.06,
         x1 = cx + cl / 2 - 0.06,
         zw = cw / 2 - 0.06,
@@ -6956,8 +7246,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         return hold;
       };
       const fwin = [
-        { u: -0.56, v: 3.0 - fl, w: 0.78, h: 0.72, r: 0.09 },
-        { u: 0.56, v: 3.0 - fl, w: 0.78, h: 0.72, r: 0.09 },
+        { u: -0.56, v: 2.93 - fl, w: 0.78, h: 0.58, r: 0.09 },
+        { u: 0.56, v: 2.93 - fl, w: 0.78, h: 0.58, r: 0.09 },
       ];
       wall(2 * zw, H0, [...fwin, { u: 0.9, v: 2.25 - fl, w: 0.22, h: 0.44, r: 0.09 }], (h) => {
         h.position.set(x1 + 0.03, fl, 0);
@@ -6973,8 +7263,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           cl - 0.12,
           H0,
           [
-            { u: uf(cx + 0.45), v: 2.8 - fl, w: 0.58, h: 1.06, r: 0.07 },
-            { u: uf(cx - 0.55), v: 2.85 - fl, w: 0.28, h: 0.84, r: 0.06 },
+            { u: uf(cx + 0.47), v: 2.73 - fl, w: 1.26, h: 0.78, r: 0.08 },
+            { u: uf(cx - 0.69), v: 2.69 - fl, w: 0.56, h: 0.68, r: 0.07 },
           ],
           (h) => {
             h.position.set(cx, fl, sd * (zw + 0.03));
@@ -7029,13 +7319,13 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           std(0x22313a, { roughness: 0.3, metalness: 0.2, transparent: true, opacity: 0.75 }),
           null,
           x1 - 0.2,
-          3.36,
+          3.18,
           0.5,
         );
         vis.rotation.z = -0.25;
       }
       // Mittelsäule mit Wappen und Fahrplantafel
-      sm(box(0.05, 1.0, 0.3), CRM2, null, x1 - 0.01, 2.92, 0);
+      sm(box(0.05, 0.82, 0.3), CRM2, null, x1 - 0.01, 2.83, 0);
       const shield = cv(128, 160, (x, w, h) => {
         x.fillStyle = "#c8a24a";
         x.fillRect(0, 0, w, h);
@@ -7058,7 +7348,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         std(0xffffff, { map: shield }),
         null,
         x1 - 0.045,
-        3.28,
+        3.12,
         0,
       ).rotation.y = -Math.PI / 2;
       const tt = cv(160, 200, (x, w, h) => {
@@ -7072,7 +7362,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         x.fillText("Fahrplan", 30, 26);
         for (let i = 0; i < 11; i++) x.fillRect(20, 40 + i * 13, 50 + ((i * 37) % 60), 3);
       });
-      sm(new T.PlaneGeometry(0.17, 0.21), std(0xffffff, { map: tt }), null, x1 - 0.045, 3.05, 0).rotation.y =
+      sm(new T.PlaneGeometry(0.17, 0.21), std(0xffffff, { map: tt }), null, x1 - 0.045, 2.88, 0).rotation.y =
         -Math.PI / 2;
       // Innenscheiben: ganz leicht spiegelnd
       const GL = std(0x9fb8c4, {
@@ -7083,7 +7373,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         depthWrite: false,
       });
       [-0.56, 0.56].forEach((z) => {
-        sm(box(0.01, 0.72, 0.78), GL, null, x1 + 0.06, 3.0, z);
+        sm(box(0.01, 0.58, 0.78), GL, null, x1 + 0.06, 2.93, z);
       });
       // Instrumentenpult rechts vor dem Fahrer
       const pz0 = 0.06,
@@ -7277,12 +7567,12 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         0.6,
       );
       // Funkgerät über dem Pult
-      sm(box(0.22, 0.09, 0.3), DGR, null, x1 - 0.18, top - 0.08, 0.72);
+      sm(box(0.22, 0.09, 0.3), DGR, null, cx - 0.55, top - 0.08, 0.72);
       sm(
         box(0.005, 0.03, 0.12),
         new T.MeshStandardMaterial({ color: 0x7fe08a, emissive: 0x3f8a46, emissiveIntensity: 0.9 }),
         null,
-        x1 - 0.29,
+        cx - 0.44,
         top - 0.07,
         0.72,
       );
@@ -7341,7 +7631,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       const baked = K.bake(ST);
       g.remove(ST);
       g.add(baked);
-      g.userData = { thrL, brkL, spd, PG, eye: new T.Vector3(cx + 0.02, 3.03, 0.56) };
+      g.userData = { thrL, brkL, spd, PG, eye: new T.Vector3(cx + 0.02, 2.93, 0.56) };
       return g;
     };
 
@@ -7358,7 +7648,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         H0 = top - fl;
       mesh(box(L - 0.1, 0.03, W - 0.12), std(0x8e9293, { roughness: 0.9 }), g, 0, fl, 0);
       // Fenster an derselben Stelle wie auf der Außenhaut
-      const ws = [0.62, 1.05, 0.62, 0.62, 1.05, 0.62, 0.62, 1.05, 0.62, 0.62, 1.05, 0.62];
+      const ws = [0.5, 1.15, 0.5, 0.5, 1.15, 0.5, 0.5, 1.15, 0.5, 0.5, 1.15, 0.5];
       const tot = ws.reduce((a, b) => a + b, 0);
       const gap = (L - 0.8 - tot) / (ws.length - 1);
       const holes = [];
@@ -9552,6 +9842,116 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         );
       }
     }
+    // ===== Senke zwischen den Deichen (nach Luftbild): vom Deichtor bis zur Fußgängerbrücke am Hafenbahnhof liegt das Gleis ebenerdig zwischen zwei rund 4 m hohen Deichen =====
+    const DKH = 4.0,
+      DKS = 9,
+      DKC = 3,
+      DKD0 = 92,
+      DKD1 = RF.deich - 2;
+    const dkSm = (t) => {
+      t = Math.max(0, Math.min(1, t));
+      return t * t * (3 - 2 * t);
+    };
+    const dkSidW = (d) => (d < 128 ? 8 : (8 * (1 + Math.cos(Math.PI * Math.min(1, (d - 128) / 72)))) / 2),
+      dkSidE = (d) => (d < 110 ? 8 : (8 * (1 + Math.cos(Math.PI * Math.min(1, (d - 110) / 80)))) / 2); // Abstellgleise am Hafenbahnhof
+    const dkBase = (d) =>
+      d >= RF.deich - 14 ? 3.6 : d >= RF.deich - 40 ? 5.5 - 1.9 * dkSm((d - (RF.deich - 40)) / 26) : 5.5;
+    const dkToe = (d, sd) => Math.max(dkBase(d), (sd > 0 ? dkSidW(d) : dkSidE(d)) + 2.8); // Abstand Böschungsfuß vom Hauptgleis, sd>0 = West
+    const dkCap = (d) =>
+      d < DKD0 || d > DKD1 ? 0 : (dkSm((d - DKD0) / 8) * (1.5 + 2.5 * dkSm((d - 105) / 110))) / DKH; // nach Foto: kurz vor den Weichen 4 m, zur Brücke am Bahnsteig auf 1,5 m abfallend
+    const dkProf = (o, toe) =>
+      o < toe
+        ? 0
+        : o < toe + DKS
+          ? (o - toe) / DKS
+          : o < toe + DKS + DKC
+            ? 1
+            : o < toe + 2 * DKS + DKC
+              ? (toe + 2 * DKS + DKC - o) / DKS
+              : 0;
+    const sideDikeY = (x, n) => {
+      const rp = railProj(x, n);
+      if (rp.d < DKD0 || rp.d > DKD1) return 0;
+      return DKH * dkCap(rp.d) * dkProf(Math.abs(rp.o), dkToe(rp.d, rp.o > 0 ? 1 : -1));
+    };
+    {
+      const GR = std(0x6d9447, { map: TX.detail, roughness: 1, side: T.DoubleSide });
+      [1, -1].forEach((sd) => {
+        const P = [],
+          I = [],
+          U = [];
+        let k = 0;
+        for (let d = DKD0; ; d += 3) {
+          const dd = Math.min(d, DKD1);
+          const p = railPt(dd);
+          const toe = dkToe(dd, sd),
+            c = dkCap(dd);
+          [
+            [toe - 0.3, -0.06],
+            [toe + DKS, DKH * c],
+            [toe + DKS + DKC, DKH * c],
+            [toe + 2 * DKS + DKC + 0.3, -0.06],
+          ].forEach(([o, h]) => {
+            const oo = o * sd;
+            P.push(p.x - p.ty * oo, ISL_TOP - 0.05 + h, -(p.y + p.tx * oo));
+            U.push(o / 4, dd / 4);
+          });
+          if (k > 0) {
+            const a = (k - 1) * 4;
+            for (let j = 0; j < 3; j++) I.push(a + j, a + 4 + j, a + j + 1, a + j + 1, a + 4 + j, a + 5 + j);
+          }
+          k++;
+          if (dd >= DKD1) break;
+        }
+        const g = new T.BufferGeometry();
+        g.setAttribute("position", new T.Float32BufferAttribute(P, 3));
+        g.setAttribute("uv", new T.Float32BufferAttribute(U, 2));
+        g.setIndex(I);
+        g.computeVertexNormals();
+        const m = new T.Mesh(g, GR);
+        m.receiveShadow = true;
+        m.castShadow = true;
+        scene.add(m);
+      });
+      // Weg auf der westlichen Deichkrone: von der Brücke bis zum Deichtor, dann über den Hauptdeich hinunter zum Platz am Bahnübergang
+      {
+        const PM = std(0x9a968e, { roughness: 0.95 });
+        const P = [],
+          I = [],
+          U = [];
+        let k = 0;
+        const DP1 = RF.deich + 16;
+        const mainH = (a) => -0.3 + 4.3 * Math.max(0, Math.min(1, (12 - Math.abs(a)) / 10));
+        for (let d = 100; ; d += 2) {
+          const dd = Math.min(d, DP1);
+          const p = railPt(dd);
+          const toe = dkToe(Math.min(dd, RF.deich - 6), 1);
+          const o0 = toe + DKS + 0.5,
+            o1 = toe + DKS + 2.5;
+          const y =
+            ISL_TOP + 0.06 + Math.max(0, dd <= DKD1 ? DKH * dkCap(dd) - 0.05 : 0, mainH(dd - RF.deich));
+          [o0, o1].forEach((o, j) => {
+            P.push(p.x - p.ty * o, y, -(p.y + p.tx * o));
+            U.push(j, dd / 3);
+          });
+          if (k > 0) {
+            const a = (k - 1) * 2;
+            I.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+          }
+          k++;
+          if (dd >= DP1) break;
+        }
+        const g = new T.BufferGeometry();
+        g.setAttribute("position", new T.Float32BufferAttribute(P, 3));
+        g.setAttribute("uv", new T.Float32BufferAttribute(U, 2));
+        g.setIndex(I);
+        g.computeVertexNormals();
+        const m = new T.Mesh(g, PM);
+        m.material.side = T.DoubleSide;
+        m.receiveShadow = true;
+        scene.add(m);
+      }
+    }
     // Bahnübergänge: Weg quer über das Gleis, Andreaskreuze
     const XMAT = signTex(128, 128, (x, w, h) => {
       x.clearRect(0, 0, w, h);
@@ -9571,6 +9971,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     XMAT.transparent = true;
     XMAT.alphaTest = 0.5;
     RF.bue.forEach((b) => {
+      if (b.name === "Störtebekerstraße") return;
       const p = railPt(b.d);
       const lx = -p.ty,
         ln = p.tx;
@@ -9675,30 +10076,96 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       scene.add(m);
       return m;
     };
+    // Großer Bahnübergang Störtebekerstraße direkt vor dem Deichtor (nach Luftbild): breite Straße kreuzt schräg (40°), westlich großer gepflasterter Platz am Deichweg, östlich folgt die Straße dem Deichfuß
+    {
+      const dc = RF.bue[0].d;
+      const Lw = (a, o) => {
+        const p = railPt(dc + a);
+        return [p.x - p.ty * o, p.y + p.tx * o];
+      };
+      const th = (40 * Math.PI) / 180,
+        ca = Math.cos(th),
+        sa = Math.sin(th);
+      const rampY = (q) => {
+        const rp = railProj(q[0], q[1]);
+        const lift = trackHt(rp.d) + 0.1 - (ISL_TOP + 0.1);
+        return ISL_TOP + 0.1 + lift * Math.max(0, Math.min(1, 1 - (Math.abs(rp.o) - 2.4) / 12));
+      };
+      const W = [];
+      for (let s = 72; s >= 0; s -= 4) W.push([s * ca, s * sa]);
+      const E = [];
+      for (let s = 2; s <= 12; s += 2) E.push([-s * ca, -s * sa]);
+      {
+        const P0 = [-12 * ca, -12 * sa],
+          A2 = -14,
+          kk = (P0[0] - A2) / ca,
+          C = [A2, P0[1] - sa * kk],
+          P2 = [A2, C[1] - 8];
+        for (let t = 0.125; t < 1.001; t += 0.125) {
+          const u = 1 - t;
+          E.push([
+            u * u * P0[0] + 2 * u * t * C[0] + t * t * P2[0],
+            u * u * P0[1] + 2 * u * t * C[1] + t * t * P2[1],
+          ]);
+        }
+        for (let o = P2[1] - 6; o >= -190; o -= 8) E.push([A2, o]);
+      }
+      roadPoly(
+        [...W, ...E].map(([a, o]) => Lw(a, o)),
+        7.5,
+        rampY,
+        std(0x77797a, { roughness: 0.95 }),
+      );
+      roadPoly([Lw(-16, 13), Lw(8, 13)], 18, ISL_TOP + 0.075, std(0x9c9890, { roughness: 0.95 })); // gepflasterter Platz westlich am Deichfuß
+      // Haltlinien und Andreaskreuze an beiden Zufahrten
+      [
+        [12 * ca, 12 * sa],
+        [-8 * ca, -8 * sa],
+      ].forEach(([a, o]) => {
+        const q = Lw(a, o),
+          c = Lw(0, 0);
+        let vx = c[0] - q[0],
+          vy = c[1] - q[1];
+        const l = Math.hypot(vx, vy);
+        vx /= l;
+        vy /= l;
+        const x = q[0] + vy * 4.8,
+          n = q[1] - vx * 4.8;
+        mesh(new T.CylinderGeometry(0.05, 0.05, 2.6, 6), std(0xf2f2f2), null, x, ISL_TOP + 1.3, -n);
+        const sg = mesh(new T.PlaneGeometry(1.3, 1.3), XMAT, null, x, ISL_TOP + 2.2, -n);
+        sg.rotation.y = Math.atan2(-vx, vy);
+        const hl = mesh(
+          new T.PlaneGeometry(3.4, 0.4),
+          std(0xf2f2ee, { roughness: 0.6 }),
+          null,
+          q[0] + vy * 1.9,
+          rampY(q) + 0.02,
+          -(q[1] - vx * 1.9),
+        );
+        hl.rotation.x = -Math.PI / 2;
+        hl.rotation.z = Math.atan2(vy, vx) + Math.PI / 2;
+      });
+      RF.stoJoin = [Lw(-14, -40)];
+    }
     {
       const HS = [];
       const dF = RF.bue[1].d,
         dO = RAIL_L - 330;
       const offAt = (d) => {
         const u = RAIL_L - d;
-        if (u <= 300) return 54.5;
-        if (u < 398) {
-          const t = (398 - u) / 98;
+        if (u <= 290) return 54.5;
+        if (u < 388) {
+          const t = (388 - u) / 98;
           return 16 + ((54.5 - 16) * (1 - Math.cos(Math.PI * t))) / 2;
         }
-        if (d >= dF + 45) return 16;
-        if (d >= dF - 45) return (16 * (d - dF)) / 45;
-        return -16 - Math.min(24, (dF - 45 - d) * 0.05);
+        return roadOffF(d);
       };
-      for (let d = dO + 8; d >= RF.deich + 150; d -= d > dF - 60 && d < dF + 60 ? 3 : 8) {
+      for (let d = dO + 8; d >= RF.deich + 150; d -= d > dF - 80 && d < dF + 150 ? 3 : 8) {
         const p = railPt(d);
         const o = offAt(d);
         HS.push([p.x - p.ty * o, p.y + p.tx * o]);
       }
-      {
-        const p = railPt(RF.bue[0].d);
-        HS.push([p.x + p.ty * 28, p.y - p.tx * 28]);
-      }
+      RF.stoJoin.forEach((q) => HS.push(q));
       const rampY = (q) => {
         const rp = railProj(q[0], q[1]);
         const lift = trackHt(rp.d) + 0.1 - (ISL_TOP + 0.1);
@@ -9706,20 +10173,125 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       };
       roadPoly(HS, 5.5, rampY, std(0x6b6d6f, { roughness: 0.95 }));
       // Café Golfstube westlich am Bahnübergang, Haus im Wäldchen östlich
-      house(
-        ...(() => {
-          const p = railPt(dF + 28);
-          return [p.x - p.ty * 34, p.y + p.tx * 34];
-        })(),
-        13,
-        10,
-        4.2,
-        4.5,
-        BRICK,
-        ROOFD,
-        Math.atan2(railPt(dF).ty, railPt(dF).tx),
-        ISL_TOP,
-      );
+      // Café Golfstuben (nach Foto): Klinker-Erdgeschoss, steiles dunkles Ziegeldach mit großem weißem Glasgiebel zur Straße, Vorbau mit verglaster Dachterrasse, Gaube, Holzzaun
+      {
+        const p = railPt(dF + 30),
+          o = 21;
+        const g = new T.Group();
+        g.position.set(p.x - p.ty * o, ISL_TOP, -(p.y + p.tx * o));
+        g.rotation.y = Math.atan2(p.ty, p.tx);
+        scene.add(g); // lokal: x längs der Straße, +z zur Straße
+        const RD = std(0x4a4441, { roughness: 0.8 }),
+          WT = std(0xf4f4f0, { roughness: 0.5 }),
+          GLc = std(0x2f3d44, { roughness: 0.15, metalness: 0.3 }),
+          GLt = new T.MeshStandardMaterial({
+            color: 0xa9c0c8,
+            transparent: true,
+            opacity: 0.35,
+            roughness: 0.05,
+            depthWrite: false,
+          });
+        mesh(tbox(12, 3.0, 9, 2), BRICK, g, 0, 1.5, 0);
+        {
+          const r = mesh(roofGeo(12, 9, 6.0), [WT, RD], g, 0, 3.0, 0);
+        }
+        // Glasgiebel: weiße Rahmen, große Scheiben, Schild
+        mesh(new T.PlaneGeometry(3.4, 2.6), GLc, g, 0, 5.1, 4.92);
+        [-1.7, -0.57, 0.57, 1.7].forEach((x) =>
+          mesh(new T.BoxGeometry(0.08, 2.6, 0.06), WT, g, x, 5.1, 4.95),
+        );
+        [3.8, 6.4].forEach((y) => mesh(new T.BoxGeometry(3.5, 0.08, 0.06), WT, g, 0, y, 4.95));
+        {
+          const c = document.createElement("canvas");
+          c.width = 256;
+          c.height = 40;
+          const x = c.getContext("2d");
+          x.fillStyle = "#f4f4ee";
+          x.fillRect(0, 0, 256, 40);
+          x.strokeStyle = "#1f6b3a";
+          x.lineWidth = 3;
+          x.strokeRect(2, 2, 252, 36);
+          x.fillStyle = "#1f6b3a";
+          x.font = "bold 24px Arial";
+          x.textAlign = "center";
+          x.fillText("GOLFSTUBEN", 128, 29);
+          const t = new T.CanvasTexture(c);
+          t.encoding = T.sRGBEncoding;
+          mesh(new T.PlaneGeometry(2.6, 0.4), std(0xffffff, { map: t }), g, 0, 3.45, 4.96);
+        }
+        // Vorbau zur Straße mit Fenstern, flachem Ziegeldach und Glasterrasse obenauf
+        mesh(tbox(10, 2.7, 4.6, 2), BRICK, g, 0, 1.35, 6.8);
+        {
+          const rf = mesh(new T.BoxGeometry(10.6, 0.25, 5.2), RD, g, 0, 2.82, 6.8);
+        }
+        mesh(new T.BoxGeometry(10.1, 0.18, 4.7), WT, g, 0, 2.6, 6.8);
+        [-3.6, -1.2, 1.2, 3.6].forEach((x) => {
+          mesh(new T.BoxGeometry(1.6, 1.2, 0.06), GLc, g, x, 1.5, 9.12);
+          mesh(new T.BoxGeometry(1.7, 1.3, 0.04), WT, g, x, 1.5, 9.1);
+        });
+        {
+          const tg = new T.Group();
+          tg.position.set(-1, 2.95, 6.6);
+          g.add(tg);
+          [
+            [6, 0, 1.7],
+            [6, 0, -1.7],
+          ].forEach(([w, x, z]) => {
+            mesh(new T.PlaneGeometry(w, 1.3), GLt, tg, x, 0.7, z);
+          });
+          [-3, 3].forEach((x) => {
+            const m = mesh(new T.PlaneGeometry(3.4, 1.3), GLt, tg, x, 0.7, 0);
+            m.rotation.y = Math.PI / 2;
+          });
+          for (let x = -3; x <= 3; x += 1)
+            [-1.7, 1.7].forEach((z) => mesh(new T.BoxGeometry(0.06, 1.4, 0.06), WT, tg, x, 0.7, z));
+          [-1.7, 1.7].forEach((z) => mesh(new T.BoxGeometry(6.1, 0.08, 0.08), WT, tg, 0, 1.4, z));
+          [-2, 0, 2].forEach((x) => {
+            mesh(new T.CylinderGeometry(0.03, 0.03, 2.2, 6), WT, tg, x, 1.1, -0.6);
+            mesh(new T.ConeGeometry(0.9, 0.6, 8), std(0x2e6fc2, { roughness: 0.6 }), tg, x, 2.2, -0.6);
+          });
+        }
+        // Gaube auf der Dachseite, Holztreppe, Holzzaun an der Straße
+        {
+          mesh(new T.BoxGeometry(3.4, 1.5, 2.6), WT, g, 4.4, 4.6, -0.6);
+          mesh(new T.BoxGeometry(3.6, 0.15, 2.9), RD, g, 4.4, 5.42, -0.6);
+          for (let k = -1; k <= 1; k++)
+            mesh(new T.BoxGeometry(0.06, 1.0, 0.8), GLc, g, 6.12, 4.6, -0.6 + k * 0.85);
+        }
+        {
+          const st = mesh(
+            new T.BoxGeometry(1.0, 0.1, 4.2),
+            std(0x9a8a70, { roughness: 0.85 }),
+            g,
+            5.6,
+            1.6,
+            4.8,
+          );
+          st.rotation.x = -0.6;
+        }
+        const FW = std(0x5a3e2c, { roughness: 0.9 });
+        for (let x = -9; x <= 9; x += 2.25) mesh(new T.BoxGeometry(0.12, 1.1, 0.12), FW, g, x, 0.55, 11.2);
+        [0.45, 0.9].forEach((y) => mesh(new T.BoxGeometry(18.2, 0.14, 0.05), FW, g, 0, y, 11.2));
+        const CR = new T.IcosahedronGeometry(1, 1),
+          TRc = std(0x3f6230, { roughness: 1, flatShading: true });
+        [
+          [-9, 0, 4],
+          [-10, -8, 5],
+          [0, -11, 5.5],
+          [9, -9, 4.5],
+          [10, 2, 3.5],
+          [-6, 9, 2.2],
+          [7, 9.5, 2],
+        ].forEach(([x, z, sz]) => {
+          const t = mesh(CR, TRc, g, x, sz * 0.85, z);
+          t.scale.set(sz * 1.1, sz, sz * 1.1);
+        });
+        const PAV = std(0x9a7a6a, { roughness: 0.9 });
+        {
+          const m = mesh(new T.PlaneGeometry(10, 3.4), PAV, g, 0, 0.04, 10.0);
+          m.rotation.x = -Math.PI / 2;
+        }
+      }
       house(
         ...(() => {
           const p = railPt(dF - 70);
@@ -9742,6 +10314,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           for (let k = 0; k < 2; k++) {
             const o = 24 + R() * 70;
             if (R() < 0.35) continue;
+            if (Math.abs(d - (dF + 52)) < 16 && Math.abs(o - 31) < 15) continue;
             const p = railPt(d + R() * 4);
             tr.push([p.x - p.ty * o, p.y + p.tx * o, 3 + R() * 3]);
           }
@@ -9783,12 +10356,12 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         dB = RF.bue[2].d;
       const offAt = (d) => {
         const u = RAIL_L - d;
-        if (u <= 300) return 54.5;
-        if (u < 398) {
-          const t = (398 - u) / 98;
+        if (u <= 290) return 54.5;
+        if (u < 388) {
+          const t = (388 - u) / 98;
           return 16 + ((54.5 - 16) * (1 - Math.cos(Math.PI * t))) / 2;
         }
-        return 16;
+        return roadOffF(d);
       };
       const RW = [];
       const dR = RAIL_L - 480;
@@ -10156,17 +10729,21 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     ribbon(
       RF.deich + 40,
       1240,
-      -4.2,
-      -6.4,
+      -9.6,
+      -11.4,
       () => ISL_TOP - 0.22,
       std(0x3f5a3a, { roughness: 0.6, metalness: 0.1 }),
       8,
     );
     {
       const posts = [];
+      const dFz = RF.bue[1].d,
+        offR = (d) => roadOffF(d);
       for (let d = RF.deich + 60; d < RAIL_L - 260; d += 4.5) {
         [-12.5, 13.5].forEach((o) => {
           if (o > 0 && d > 1240) return;
+          if (Math.abs(o - offR(d)) < 4.2) return;
+          if (RF.bue.some((b) => Math.abs(d - b.d) < 6)) return;
           const p = railPt(d);
           posts.push([p.x - p.ty * o, p.y + p.tx * o]);
         });
@@ -10183,6 +10760,301 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         im.setMatrixAt(i, o.matrix);
       });
       scene.add(im);
+    }
+    // Salzwiesen östlich der Strecke (links in Fahrtrichtung Hafen) vom Flugplatz bis zum Bahnübergang am Deichtor, nach Foto:
+    // verbuschter Streifen am Gleis, hohe Stauden (Blutweiderich), Schilf am Graben vor dem Weidezaun, dahinter Weiden mit Grüppen, Binsenreihen, weiteren Zäunen und einer Buschreihe
+    {
+      const R = rng(4242);
+      const D0 = RF.deich + 45,
+        D1 = RAIL_L - 650;
+      const E = (d, o) => {
+        const p = railPt(d);
+        return [p.x - p.ty * o, p.y + p.tx * o];
+      };
+      const ok = (d, o) => {
+        if (RF.bue.some((b) => Math.abs(d - b.d) < 9)) return false;
+        if (Math.abs(o - roadOffF(d)) < 5.5) return false;
+        const q = E(d, o);
+        return airOut(q[0], q[1]) > 0;
+      };
+      const gy = (q) => groundY(q[0], q[1]);
+      const o3 = new T.Object3D(),
+        col = new T.Color();
+      const inst = (geo, mat, list, shadow) => {
+        if (!list.length) return;
+        const im = new T.InstancedMesh(geo, mat, list.length);
+        list.forEach((it, i) => {
+          o3.position.set(it.x, it.y, -it.n);
+          o3.rotation.set(it.rx || 0, it.ry || 0, it.rz || 0);
+          o3.scale.set(it.sx, it.sy, it.sz);
+          o3.updateMatrix();
+          im.setMatrixAt(i, o3.matrix);
+          col.set(it.c).convertSRGBToLinear();
+          im.setColorAt(i, col);
+        });
+        im.castShadow = !!shadow;
+        im.receiveShadow = true;
+        scene.add(im);
+      };
+      const scrub = [],
+        hedge = [];
+      const VMAT = std(0xffffff, { roughness: 1, flatShading: true });
+      const bushG = new T.IcosahedronGeometry(1, 1);
+      // Pflanzenbänder als senkrechte Streifen mit Halm-Textur (Alpha-Test): dicht wie auf dem Foto statt einzelner Kegel
+      const plantTex = (kind, w, h) => {
+        const m = signTex(w, h, (x, W, H) => {
+          x.clearRect(0, 0, W, H);
+          const Rr = rng(kind.length * 97 + W);
+          const pick = (a) => a[(Rr() * a.length) | 0];
+          if (kind === "reed") {
+            for (let i = 0; i < 1100; i++) {
+              const bx = Rr() * W,
+                ht = H * (0.55 + Rr() * 0.45),
+                lean = (Rr() - 0.4) * 30;
+              x.strokeStyle = pick([
+                "#a6803d",
+                "#b8924a",
+                "#8f6a34",
+                "#c4a25d",
+                "#7e6a35",
+                "#9c7b3b",
+                "#6d6a38",
+              ]);
+              x.lineWidth = 1.5 + Rr() * 2;
+              x.beginPath();
+              x.moveTo(bx, H);
+              x.quadraticCurveTo(bx + lean * 0.3, H - ht * 0.5, bx + lean, H - ht);
+              x.stroke();
+              if (Rr() < 0.25) {
+                x.fillStyle = pick(["#8a6a45", "#6f5236", "#a4865a"]);
+                x.beginPath();
+                x.ellipse(bx + lean, H - ht + 8, 4, 12, 0.2, 0, 7);
+                x.fill();
+              }
+            }
+          } else if (kind === "herb") {
+            for (let i = 0; i < 240; i++) {
+              const bx = Rr() * W,
+                ht = H * (0.35 + Rr() * 0.6);
+              x.strokeStyle = pick(["#5f6f45", "#6f7d4a", "#7a7550", "#56653e"]);
+              x.lineWidth = 1.5 + Rr() * 1.5;
+              x.beginPath();
+              x.moveTo(bx, H);
+              x.lineTo(bx + (Rr() - 0.5) * 14, H - ht);
+              x.stroke();
+              if (Rr() < 0.45) {
+                x.fillStyle = pick(["#8a6f86", "#9b7a95", "#7d6178", "#a68aa0", "#8a7a6a"]);
+                for (let k = 0; k < 9; k++) {
+                  x.beginPath();
+                  x.arc(bx + (Rr() - 0.5) * 6, H - ht + k * 5, 2.6, 0, 7);
+                  x.fill();
+                }
+              }
+            }
+          } else if (kind === "scrub") {
+            for (let i = 0; i < 700; i++) {
+              const bx = Rr() * W,
+                ht = H * (0.25 + Rr() * 0.75);
+              x.strokeStyle = pick(["#6b7f3e", "#8a9450", "#a59766", "#5f7a3a", "#b8a878", "#7d8a45"]);
+              x.lineWidth = 1 + Rr() * 2;
+              x.beginPath();
+              x.moveTo(bx, H);
+              x.quadraticCurveTo(bx + (Rr() - 0.5) * 20, H - ht * 0.6, bx + (Rr() - 0.5) * 30, H - ht);
+              x.stroke();
+            }
+            for (let i = 0; i < 260; i++) {
+              x.fillStyle = pick(["#4e6a33", "#5d7a3c", "#6b8040", "#46602e"]);
+              x.beginPath();
+              x.arc(Rr() * W, H * (0.45 + Rr() * 0.55), 3 + Rr() * 6, 0, 7);
+              x.fill();
+            }
+          } else {
+            for (let i = 0; i < 650; i++) {
+              const bx = Rr() * W,
+                ht = H * (0.3 + Rr() * 0.7);
+              x.strokeStyle = pick(["#4f6a35", "#55703a", "#6f7a40", "#3f5a2e", "#7a7d45"]);
+              x.lineWidth = 1.2 + Rr() * 1.5;
+              x.beginPath();
+              x.moveTo(bx, H);
+              x.lineTo(bx + (Rr() - 0.5) * 16, H - ht);
+              x.stroke();
+            }
+          }
+        });
+        m.alphaTest = 0.45;
+        m.transparent = false;
+        m.roughness = 1;
+        m.map.wrapS = T.RepeatWrapping;
+        return m;
+      };
+      const REED = plantTex("reed", 512, 256),
+        HERB = plantTex("herb", 512, 256),
+        SCRUB = plantTex("scrub", 512, 128),
+        RUSH = plantTex("rush", 512, 96);
+      const vstrip = (pts, h, mat, uM) => {
+        if (pts.length < 2) return;
+        const P = [],
+          U = [],
+          I = [];
+        let L0 = 0;
+        pts.forEach((q, i) => {
+          if (i) L0 += Math.hypot(q[0] - pts[i - 1][0], q[1] - pts[i - 1][1]);
+          const y0 = gy(q) - 0.08;
+          P.push(q[0], y0, -q[1], q[0], y0 + h * (q[2] || 1), -q[1]);
+          U.push(L0 / uM, 0, L0 / uM, 1);
+          if (i) {
+            const a = (i - 1) * 2;
+            I.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
+          }
+        });
+        const g = new T.BufferGeometry();
+        g.setAttribute("position", new T.Float32BufferAttribute(P, 3));
+        g.setAttribute("uv", new T.Float32BufferAttribute(U, 2));
+        g.setIndex(I);
+        g.computeVertexNormals();
+        const m = new T.Mesh(g, mat);
+        m.receiveShadow = true;
+        scene.add(m);
+      };
+      const band = (o0, wob, h, mat, uM, seed, dStep, gapP, hf) => {
+        const Rb = rng(seed);
+        let P = [];
+        const flush = () => {
+          if (P.length > 1) vstrip(P, h, mat, uM);
+          P = [];
+        };
+        for (let d = D0; d < D1; d += dStep || 2.5) {
+          const o = o0 + Math.sin(d * 0.045 + seed) * wob + (Rb() - 0.5) * wob * 0.6;
+          const f = hf ? hf(d, Rb) : 0.7 + Rb() * 0.5;
+          if (!ok(d, o) || Rb() < (gapP || 0) || f <= 0) {
+            flush();
+            continue;
+          }
+          const q = E(d, o);
+          P.push([q[0], q[1], f]);
+        }
+        flush();
+      };
+      band(-4.0, 0.4, 0.75, SCRUB, 2.2, 11);
+      band(-4.9, 0.5, 0.95, SCRUB, 2.6, 12);
+      band(-3.3, 0.3, 0.5, SCRUB, 1.8, 13); // verbuschter Streifen am Gleis
+      band(-6.8, 0.7, 0.7, HERB, 2.0, 21, 2.0, 0.06, (d, Rb) => {
+        const n = 0.5 + 0.5 * Math.sin(d * 0.031 + 1.3) * Math.cos(d * 0.017) + (Rb() - 0.5) * 0.35;
+        return n < 0.12 ? 0 : Math.min(1, Math.max(0.14, n));
+      }); // Stauden 0,1 bis 0,7 m, stellenweise gar nicht                                               // hohe Stauden
+      band(-9.3, 0.4, 1.4, REED, 3.0, 31, 2.5, 0.04);
+      band(-10.3, 0.5, 1.6, REED, 3.2, 32, 2.5, 0.08); // Schilf am Graben vor dem Zaun
+      for (let d = D0; d < D1; d += 1.6) {
+        const o = -(3.8 + R() * 2.2);
+        if (!ok(d, o) || R() < 0.7) continue;
+        const q = E(d, o);
+        const sz = 0.25 + R() * 0.3;
+        scrub.push({
+          x: q[0],
+          y: ISL_TOP + sz * 0.5,
+          n: q[1],
+          sx: sz * 1.4,
+          sy: sz * 0.9,
+          sz: sz * 1.3,
+          ry: R() * 6,
+          c: ["#5f7a3a", "#6b7f3e", "#7d8a45", "#4e6a33"][(R() * 4) | 0],
+        });
+      }
+      // Weiden: Längsgräben mit Binsen und Zäunen, Querzäune in unregelmäßigen Abständen, eine Buschreihe
+      const fences = [];
+      const lineAlong = (o, step) => {
+        const P = [];
+        for (let d = D0 + 10; d < D1; d += step) {
+          if (ok(d, o)) P.push(E(d, o));
+          else if (P.length) {
+            fences.push(P.slice());
+            P.length = 0;
+          }
+        }
+        if (P.length) fences.push(P);
+      };
+      [-58, -118].forEach((o) => lineAlong(o, 6));
+      [-30, -58, -88, -118, -160].forEach((o, k) => band(o - 1.5, 0.8, 0.6, RUSH, 2.0, 40 + k, 3));
+      const cross = [];
+      for (let d = D0 + 60; d < D1 - 20; d += 95 + R() * 70) cross.push(d);
+      cross.forEach((d, k) => {
+        const P = [],
+          RP = [];
+        for (let o = -14; o >= -210; o -= 6) {
+          if (ok(d, o)) P.push(E(d, o));
+        }
+        if (P.length > 1) fences.push(P);
+        for (let o = -14; o >= -210; o -= 3) {
+          if (!ok(d + 1.5, o)) {
+            vstrip(RP, 0.6, RUSH, 2.0);
+            RP.length = 0;
+            continue;
+          }
+          const q = E(d + 1.6 + Math.sin(o * 0.2) * 0.4, o);
+          RP.push([q[0], q[1], 0.8 + R() * 0.4]);
+          if (k % 4 === 2 && R() < 0.6) {
+            const s = 0.9 + R() * 1.3;
+            hedge.push({
+              x: q[0],
+              y: gy(q) + s * 0.6,
+              n: q[1],
+              sx: s * 1.25,
+              sy: s,
+              sz: s * 1.15,
+              ry: R() * 6,
+              c: ["#4f6a35", "#5d7a3c", "#6b7a40", "#3f5a2e"][(R() * 4) | 0],
+            });
+          }
+        }
+        vstrip(RP, 0.6, RUSH, 2.0);
+      });
+      inst(bushG, VMAT, hedge, true);
+      // Zaunpfähle und Drähte (auch am vorhandenen Zaun entlang der Strecke)
+      {
+        const nF = fences.length;
+        const near = [];
+        for (let d = RF.deich + 60; d < D1; d += 4.5) {
+          if (Math.abs(-12.5 - roadOffF(d)) < 4.2 || RF.bue.some((b) => Math.abs(d - b.d) < 6)) {
+            if (near.length) fences.push(near.splice(0));
+            continue;
+          }
+          near.push(E(d, -12.5));
+        }
+        if (near.length) fences.push(near);
+        const posts = [],
+          W = [];
+        fences.forEach((P, fi) => {
+          P.forEach((q, i) => {
+            if (fi < nF) posts.push(q);
+            if (i) {
+              const a = P[i - 1];
+              if (Math.hypot(q[0] - a[0], q[1] - a[1]) < 9)
+                [0.55, 0.95].forEach((h) => W.push(a[0], gy(a) + h, -a[1], q[0], gy(q) + h, -q[1]));
+            }
+          });
+        });
+        const pm = new T.InstancedMesh(
+          new T.CylinderGeometry(0.055, 0.065, 1.25, 5),
+          std(0x7a6a55, { roughness: 0.9 }),
+          posts.length,
+        );
+        posts.forEach((q, i) => {
+          o3.position.set(q[0], gy(q) + 0.62, -q[1]);
+          o3.rotation.set(0, 0, (R() - 0.5) * 0.06);
+          o3.scale.set(1, 1, 1);
+          o3.updateMatrix();
+          pm.setMatrixAt(i, o3.matrix);
+        });
+        scene.add(pm);
+        const wg = new T.BufferGeometry();
+        wg.setAttribute("position", new T.Float32BufferAttribute(W, 3));
+        scene.add(
+          new T.LineSegments(
+            wg,
+            new T.LineBasicMaterial({ color: 0xb9bdb8, transparent: true, opacity: 0.7 }),
+          ),
+        );
+      }
     }
     // Pferde und Schafe auf den Weiden und am Deich (instanziert: je Tierart und Material ein Mesh)
     {
@@ -10700,144 +11572,180 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     // Holzbrücke nach Luftbild und Foto: Rampe westlich am Abstellgleis von Süden hoch, gebogen quer über alle drei Gleise und den Bahnsteig, östlich kurz nach Norden auf den Wall
     {
       const G0 = ISL_TOP;
-      const P = [];
-      for (let n = 5648; n < 5690; n += 2) P.push([-5337.5, n, G0 + 0.15 + ((n - 5648) / 42) * 5.35]);
-      for (let k = 0; k <= 24; k++) {
-        const t = k / 24;
-        P.push([-5337.5 + 33.5 * t, 5690, G0 + 5.5 + 0.8 * Math.sin(Math.PI * t)]);
-      }
-      for (let n = 5692; n <= 5710; n += 2) P.push([-5304, n, G0 + 5.5 - ((n - 5690) / 20) * 2.8]);
-      // Gehrungsnormalen je Punkt
-      const NR = P.map((q, i) => {
-        const a = P[Math.max(0, i - 1)],
-          b = P[Math.min(P.length - 1, i + 1)];
-        const t1 = [q[0] - a[0], q[1] - a[1]],
-          t2 = [b[0] - q[0], b[1] - q[1]];
-        const nz = (v) => {
-          const l = Math.hypot(v[0], v[1]) || 1;
-          return [v[0] / l, v[1] / l];
+      const P0 = [],
+        PB = [];
+      // nach Luftbild: Zugang von der westlichen Deichkrone (oberhalb der Strecke), Bogen über Gleise und Bahnsteig, östlich auf die Deichkrone; dazu die Rampe westlich am Abstellgleis von Süden
+      // Brückenarme folgen der Deichkrone und laufen von 5,5 m auf die (zur Brücke hin niedrigere) Krone hinab
+      const legX = (n, sd) => -5320 - sd * (dkToe(n - 5588, sd) + DKS + 1.5),
+        legY = (n, sd) => {
+          const ye = G0 + sideDikeY(legX(5738, sd), 5738) + 0.08,
+            t = Math.min(1, (n - 5690) / 48);
+          return G0 + 5.5 + (ye - G0 - 5.5) * dkSm(t) * 1.0;
         };
-        const a1 = nz(i ? t1 : t2),
-          a2 = nz(i < P.length - 1 ? t2 : t1);
-        const n1 = [-a1[1], a1[0]],
-          n2 = [-a2[1], a2[0]];
-        let m = nz([n1[0] + n2[0], n1[1] + n2[1]]);
-        const sc = 1 / Math.max(0.5, m[0] * n1[0] + m[1] * n1[1]);
-        return [m[0] * sc, m[1] * sc];
-      });
-      const LEN = [0];
-      for (let i = 1; i < P.length; i++)
-        LEN.push(
-          LEN[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1], P[i][2] - P[i - 1][2]),
-        );
-      const strip = (fn, mat, uS) => {
-        const V = [],
-          U = [],
-          I = [];
-        P.forEach((q, i) => {
-          const [a, b] = fn(q, NR[i]);
-          V.push(...a, ...b);
-          U.push(LEN[i] / uS, 0, LEN[i] / uS, 1);
-          if (i) {
-            const k = (i - 1) * 2;
-            I.push(k, k + 1, k + 2, k + 1, k + 3, k + 2);
-          }
+      for (let n = 5738; n > 5690; n -= 2) P0.push([legX(n, 1), n, legY(n, 1)]);
+      const xW = legX(5690, 1),
+        xE = legX(5690, -1);
+      for (let k = 0; k <= 26; k++) {
+        const t = k / 26;
+        P0.push([xW + (xE - xW) * t, 5690, G0 + 5.5 + 0.8 * Math.sin(Math.PI * t)]);
+      }
+      for (let n = 5692; n <= 5738; n += 2) P0.push([legX(n, -1), n, legY(n, -1)]);
+      for (let n = 5648; n <= 5688; n += 2) PB.push([-5337.5, n, G0 + 0.15 + ((n - 5648) / 40.75) * 5.35]);
+      PB.push([-5337.5, 5688.75, G0 + 5.5]);
+      const buildBridge = (P, PIERS, KP) => {
+        // Gehrungsnormalen je Punkt
+        const NR = P.map((q, i) => {
+          const a = P[Math.max(0, i - 1)],
+            b = P[Math.min(P.length - 1, i + 1)];
+          const t1 = [q[0] - a[0], q[1] - a[1]],
+            t2 = [b[0] - q[0], b[1] - q[1]];
+          const nz = (v) => {
+            const l = Math.hypot(v[0], v[1]) || 1;
+            return [v[0] / l, v[1] / l];
+          };
+          const a1 = nz(i ? t1 : t2),
+            a2 = nz(i < P.length - 1 ? t2 : t1);
+          const n1 = [-a1[1], a1[0]],
+            n2 = [-a2[1], a2[0]];
+          let m = nz([n1[0] + n2[0], n1[1] + n2[1]]);
+          const sc = 1 / Math.max(0.5, m[0] * n1[0] + m[1] * n1[1]);
+          return [m[0] * sc, m[1] * sc];
         });
-        const g = new T.BufferGeometry();
-        g.setAttribute("position", new T.Float32BufferAttribute(V, 3));
-        g.setAttribute("uv", new T.Float32BufferAttribute(U, 2));
-        g.setIndex(I);
-        g.computeVertexNormals();
-        const m = new T.Mesh(g, mat);
-        m.castShadow = true;
-        m.receiveShadow = true;
-        scene.add(m);
-        return m;
-      };
-      const pt = (q, nr, lat, dy) => [q[0] + nr[0] * lat, q[2] + dy, -(q[1] + nr[1] * lat)];
-      const WOOD = std(0xa8a49b, { roughness: 0.85, side: T.DoubleSide }),
-        WOODD = std(0x8c887f, { roughness: 0.9, side: T.DoubleSide });
-      const slat = signTex(256, 64, (x, w, h) => {
-        x.clearRect(0, 0, w, h);
-        x.fillStyle = "#b9b5ab";
-        x.fillRect(0, 0, w, 7);
-        x.fillRect(0, h - 6, w, 6);
-        for (let i = 0; i < 16; i++) x.fillRect(i * 16 + 3, 0, 8, h);
-        x.fillStyle = "rgba(60,55,50,.25)";
-        for (let i = 0; i < 16; i++) x.fillRect(i * 16 + 9, 0, 2, h);
-      });
-      slat.transparent = false;
-      slat.alphaTest = 0.5;
-      slat.side = T.DoubleSide;
-      slat.map.wrapS = T.RepeatWrapping;
-      slat.roughness = 0.85;
-      strip((q, nr) => [pt(q, nr, -1.25, 0), pt(q, nr, 1.25, 0)], WOOD, 1.5); // Belag
-      strip((q, nr) => [pt(q, nr, -1.3, -0.6), pt(q, nr, 1.3, -0.6)], WOODD, 1.5); // Unterseite
-      [-1, 1].forEach((sd) => {
-        strip((q, nr) => [pt(q, nr, sd * 1.32, -0.62), pt(q, nr, sd * 1.32, 0.08)], WOODD, 2.5); // Randträger (Bogen)
-        strip((q, nr) => [pt(q, nr, sd * 1.27, 0.08), pt(q, nr, sd * 1.27, 1.12)], slat, 2.0); // Geländer mit senkrechten Latten
-        strip((q, nr) => [pt(q, nr, sd * 1.36, 1.12), pt(q, nr, sd * 1.18, 1.12)], WOOD, 2);
-        strip((q, nr) => [pt(q, nr, sd * 1.36, 1.04), pt(q, nr, sd * 1.36, 1.14)], WOOD, 2);
-      });
-      // Pfosten im Geländer, Stützen mit Querjoch
-      {
-        const posts = [],
-          piers = [];
-        for (let i = 0; i < P.length; i += 2)
-          [-1, 1].forEach((sd) => posts.push(pt(P[i], NR[i], sd * 1.3, 0)));
-        const near = (x, n) => {
-          let bi = 0,
-            bd = 1e9;
+        const LEN = [0];
+        for (let i = 1; i < P.length; i++)
+          LEN.push(
+            LEN[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1], P[i][2] - P[i - 1][2]),
+          );
+        const strip = (fn, mat, uS, kp) => {
+          const V = [],
+            U = [],
+            I = [];
           P.forEach((q, i) => {
-            const d = Math.hypot(q[0] - x, q[1] - n);
-            if (d < bd) {
-              bd = d;
-              bi = i;
+            const [a, b] = fn(q, NR[i]);
+            V.push(...a, ...b);
+            U.push(LEN[i] / uS, 0, LEN[i] / uS, 1);
+            if (i && (!kp || (kp(i) && kp(i - 1)))) {
+              const k = (i - 1) * 2;
+              I.push(k, k + 1, k + 2, k + 1, k + 3, k + 2);
             }
           });
-          return bi;
+          const g = new T.BufferGeometry();
+          g.setAttribute("position", new T.Float32BufferAttribute(V, 3));
+          g.setAttribute("uv", new T.Float32BufferAttribute(U, 2));
+          g.setIndex(I);
+          g.computeVertexNormals();
+          const m = new T.Mesh(g, mat);
+          m.castShadow = true;
+          m.receiveShadow = true;
+          scene.add(m);
+          return m;
         };
+        const pt = (q, nr, lat, dy) => [q[0] + nr[0] * lat, q[2] + dy, -(q[1] + nr[1] * lat)];
+        const WOOD = std(0xa8a49b, { roughness: 0.85, side: T.DoubleSide }),
+          WOODD = std(0x8c887f, { roughness: 0.9, side: T.DoubleSide });
+        const slat = signTex(256, 64, (x, w, h) => {
+          x.clearRect(0, 0, w, h);
+          x.fillStyle = "#b9b5ab";
+          x.fillRect(0, 0, w, 7);
+          x.fillRect(0, h - 6, w, 6);
+          for (let i = 0; i < 16; i++) x.fillRect(i * 16 + 3, 0, 8, h);
+          x.fillStyle = "rgba(60,55,50,.25)";
+          for (let i = 0; i < 16; i++) x.fillRect(i * 16 + 9, 0, 2, h);
+        });
+        slat.transparent = false;
+        slat.alphaTest = 0.5;
+        slat.side = T.DoubleSide;
+        slat.map.wrapS = T.RepeatWrapping;
+        slat.roughness = 0.85;
+        strip((q, nr) => [pt(q, nr, -1.25, 0), pt(q, nr, 1.25, 0)], WOOD, 1.5); // Belag
+        strip((q, nr) => [pt(q, nr, -1.3, -0.6), pt(q, nr, 1.3, -0.6)], WOODD, 1.5); // Unterseite
+        [-1, 1].forEach((sd) => {
+          strip((q, nr) => [pt(q, nr, sd * 1.32, -0.62), pt(q, nr, sd * 1.32, 0.08)], WOODD, 2.5); // Randträger (Bogen)
+          const kp = (i) => !KP || KP(pt(P[i], NR[i], sd * 1.27, 0));
+          strip((q, nr) => [pt(q, nr, sd * 1.27, 0.08), pt(q, nr, sd * 1.27, 1.12)], slat, 2.0, kp); // Geländer mit senkrechten Latten
+          strip((q, nr) => [pt(q, nr, sd * 1.36, 1.12), pt(q, nr, sd * 1.18, 1.12)], WOOD, 2, kp);
+          strip((q, nr) => [pt(q, nr, sd * 1.36, 1.04), pt(q, nr, sd * 1.36, 1.14)], WOOD, 2, kp);
+        });
+        // Pfosten im Geländer, Stützen mit Querjoch
+        {
+          const posts = [],
+            piers = [];
+          for (let i = 0; i < P.length; i += 2)
+            [-1, 1].forEach((sd) => {
+              const q = pt(P[i], NR[i], sd * 1.3, 0);
+              if (!KP || KP(q)) posts.push(q);
+            });
+          const near = (x, n) => {
+            let bi = 0,
+              bd = 1e9;
+            P.forEach((q, i) => {
+              const d = Math.hypot(q[0] - x, q[1] - n);
+              if (d < bd) {
+                bd = d;
+                bi = i;
+              }
+            });
+            return bi;
+          };
+          PIERS.forEach(([x, n]) => {
+            const i = near(x, n);
+            piers.push([P[i], NR[i]]);
+          });
+          const pg = new T.BoxGeometry(0.16, 1.2, 0.16);
+          const ip = new T.InstancedMesh(pg, WOODD, posts.length);
+          const o = new T.Object3D();
+          posts.forEach((p, i) => {
+            o.position.set(p[0], p[1] + 0.6, p[2]);
+            o.updateMatrix();
+            ip.setMatrixAt(i, o.matrix);
+          });
+          ip.castShadow = true;
+          scene.add(ip);
+          const COL = std(0x8d8f8e, { roughness: 0.8 });
+          piers.forEach(([q, nr]) => {
+            const h = q[2] - 0.6 - G0;
+            const yb = G0 + Math.max(0, bankH(q[0], q[1]));
+            const hh = q[2] - 0.6 - yb;
+            if (hh < 0.3) return;
+            [-0.95, 0.95].forEach((l) => {
+              const a = pt(q, nr, l, 0);
+              mesh(new T.BoxGeometry(0.36, hh, 0.36), COL, null, a[0], yb + hh / 2, a[2]);
+            });
+            const a = pt(q, nr, 0, -0.75);
+            const j = mesh(new T.BoxGeometry(2.5, 0.3, 0.4), WOODD, null, a[0], a[1], a[2]);
+            j.rotation.y = Math.atan2(nr[1], nr[0]);
+          });
+        }
+      };
+      buildBridge(
+        P0,
+        [
+          [legX(5728, 1), 5728],
+          [legX(5716, 1), 5716],
+          [legX(5704, 1), 5704],
+          [xW, 5690],
+          [-5333.2, 5690],
+          [-5325.7, 5690],
+          [-5316, 5690],
+          [-5307, 5690],
+          [xE, 5690],
+          [legX(5704, -1), 5704],
+          [legX(5716, -1), 5716],
+          [legX(5728, -1), 5728],
+        ],
+        (q) => !(Math.abs(q[0] + 5337.5) < 2.6 && -q[2] < 5689.8),
+      );
+      buildBridge(
+        PB,
         [
           [-5337.5, 5656],
           [-5337.5, 5663],
           [-5337.5, 5670],
           [-5337.5, 5675],
           [-5337.5, 5683],
-          [-5337.5, 5690],
-          [-5333.2, 5690],
-          [-5325.7, 5690],
-          [-5316, 5690],
-          [-5304, 5690],
-          [-5304, 5699],
-        ].forEach(([x, n]) => {
-          const i = near(x, n);
-          piers.push([P[i], NR[i]]);
-        });
-        const pg = new T.BoxGeometry(0.16, 1.2, 0.16);
-        const ip = new T.InstancedMesh(pg, WOODD, posts.length);
-        const o = new T.Object3D();
-        posts.forEach((p, i) => {
-          o.position.set(p[0], p[1] + 0.6, p[2]);
-          o.updateMatrix();
-          ip.setMatrixAt(i, o.matrix);
-        });
-        ip.castShadow = true;
-        scene.add(ip);
-        const COL = std(0x8d8f8e, { roughness: 0.8 });
-        piers.forEach(([q, nr]) => {
-          const h = q[2] - 0.6 - G0;
-          const yb = q[0] > -5306.5 ? G0 + Math.max(0, bankH(q[0], q[1])) : G0;
-          const hh = q[2] - 0.6 - yb;
-          if (hh < 0.3) return;
-          [-0.95, 0.95].forEach((l) => {
-            const a = pt(q, nr, l, 0);
-            mesh(new T.BoxGeometry(0.36, hh, 0.36), COL, null, a[0], yb + hh / 2, a[2]);
-          });
-          const a = pt(q, nr, 0, -0.75);
-          const j = mesh(new T.BoxGeometry(2.5, 0.3, 0.4), WOODD, null, a[0], a[1], a[2]);
-          j.rotation.y = Math.atan2(nr[1], nr[0]);
-        });
-      }
+        ],
+        null,
+      );
       // runder Pflasterauslauf am Rampenfuß
       {
         const r = mesh(
@@ -10851,45 +11759,9 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         r.rotation.x = -Math.PI / 2;
         r.receiveShadow = true;
       }
-      // Grasböschung östlich des dritten Gleises, auf der die Brücke endet
+      // Pfeiler auf den Deichen
       function bankH(x, n) {
-        const c = (t) => Math.max(0, Math.min(1, t));
-        const s = (t) => {
-          t = c(t);
-          return t * t * (3 - 2 * t);
-        };
-        return 2.7 * s((x + 5308.5) / 3) * s((-5290 - x) / 5) * s((n - 5684) / 7) * s((5735 - n) / 10);
-      }
-      {
-        const NX = 36,
-          NN = 60,
-          x0 = -5309,
-          x1 = -5289,
-          n0 = 5683,
-          n1 = 5736;
-        const V = [],
-          I = [],
-          U = [];
-        for (let j = 0; j <= NN; j++)
-          for (let i = 0; i <= NX; i++) {
-            const x = x0 + ((x1 - x0) * i) / NX,
-              n = n0 + ((n1 - n0) * j) / NN;
-            V.push(x, G0 + 0.02 + bankH(x, n), -n);
-            U.push(x / 3, n / 3);
-          }
-        for (let j = 0; j < NN; j++)
-          for (let i = 0; i < NX; i++) {
-            const a = j * (NX + 1) + i;
-            I.push(a, a + 1, a + NX + 1, a + 1, a + NX + 2, a + NX + 1);
-          }
-        const g = new T.BufferGeometry();
-        g.setAttribute("position", new T.Float32BufferAttribute(V, 3));
-        g.setAttribute("uv", new T.Float32BufferAttribute(U, 2));
-        g.setIndex(I);
-        g.computeVertexNormals();
-        const m = new T.Mesh(g, std(0x6a9445, { map: TX.detail, roughness: 1, side: T.DoubleSide }));
-        m.receiveShadow = true;
-        scene.add(m);
+        return sideDikeY(x, n);
       }
     }
 
@@ -11042,22 +11914,22 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         H3 = (u) => H2(u) - 8 * sm((u - 245) / 45),
         H4 = (u) => H3(u) - 13 * sm((u - 255) / 40),
         SL = (u) => H4(u) - 13 * sm((u - 262) / 26),
-        W1 = (u) => 4.5 * sm((356 - u) / 28),
-        W2 = (u) => W1(u) + 4.5 * sm((322 - u) / 28);
+        W1 = (u) => 4.5 * sm((356 - u) / 28) + 13 * sm((232 - u) / 52),
+        W2 = (u) => W1(u) + 9 * sm((322 - u) / 30); // W1/W2 enden in zwei Toren im Südgiebel des Güterschuppens
       const path = (f, u0, u1) => {
         const P = [];
         for (let u = u0; u <= u1 + 0.01; u += 3) P.push([u, f(u)]);
         return P;
       };
-      trk(path(E1, 120, 368));
+      trk(path(E1, 2, 368));
       trk(path(E2, 140, 330));
       trk(path(H1, 200, 372));
       trk(path(H2, 225, 372));
       trk(path(H3, 245, 372));
       trk(path(H4, 255, 346));
       trk(path(SL, 262, 292));
-      trk(path(W1, 165, 356));
-      trk(path(W2, 178, 322));
+      trk(path(W1, 150, 356));
+      trk(path(W2, 150, 322));
       // Weichenlaternen (Stellböcke) an den Abzweigen, jeweils außen
       [
         [368, -2.4],
@@ -11091,10 +11963,10 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           dir > 0 ? Math.PI / 2 : -Math.PI / 2,
         );
       };
-      pb(119.5, -4.5, 1);
+      pb(1.5, -4.5, 1);
       pb(139.5, -9, 1);
-      pb(164.5, 4.5, 1);
-      pb(177.5, 9, 1);
+      pb(150.5, 17.5, 1);
+      pb(150.5, 26.5, 1);
       pb(372.5, -26, -1);
       pb(372.5, -34, -1);
       pb(372.5, -42, -1);
@@ -11106,9 +11978,13 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         f.position.set(u, 0.3 + 0.116, -9);
         stG.add(f);
       });
-      [188, 198].forEach((u) => {
+      [
+        [162, 26.5],
+        [172, 26.5],
+        [166, 17.5],
+      ].forEach(([u, v]) => {
         const f = IB.bake(IB.makeFlat());
-        f.position.set(u, 0.3 + 0.116, 9);
+        f.position.set(u, 0.3 + 0.116, v);
         stG.add(f);
       });
       ["gruen", "gelb"].forEach((c, i) => {
@@ -11122,7 +11998,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       // --- Bahnsteig, Vorplatz, Gehweg, Straße ---
       slab(2, 150, 1.35, 7.6, PL, KLINKER);
       bx(2, 150, PL, PL + 0.01, 1.9, 2.05, WLINE); // Bahnsteig mit weißer Sicherheitslinie
-      slab(-30, 158, 7.4, 33, PL, KLINKER);
+      slab(-30, 124.4, 7.4, 33, PL, KLINKER);
+      slab(124.4, 158, 7.4, 12.9, PL, KLINKER);
       slab(55, 158, 33, 50, PL, KLINKER);
       slab(-30, -1.4, -14, 7.4, PL, KLINKER); // Vorplatz um Prellbock und Gebäude, Gehweg vor der Fassade
       // Rundes Pflastermuster auf dem Vorplatz (wie auf dem Foto)
@@ -11294,10 +12171,10 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       // Zaun und Hecke hinter dem Prellbock und entlang der Nordostseite
       {
         const F = stdc(0xdfe3e2, { metalness: 0.4, roughness: 0.5 });
-        bx(-1.6, -1.4, 0, 1.2, -3.5, 1.0, F);
-        bx(-1.5, 60, 1.1, 1.16, -3.6, -3.5, F);
-        for (let u = -1.5; u <= 60; u += 2.5) bx(u - 0.03, u + 0.03, 0, 1.15, -3.58, -3.52, F);
-        bx(-1.5, 60, 0, 1.7, -5.2, -3.9, stdc(0x3f6a2f, { roughness: 1 }));
+        bx(-1.6, -1.4, 0, 1.2, -7.4, 1.0, F);
+        bx(-1.5, 60, 1.1, 1.16, -7.5, -7.4, F);
+        for (let u = -1.5; u <= 60; u += 2.5) bx(u - 0.03, u + 0.03, 0, 1.15, -7.48, -7.42, F);
+        bx(-1.5, 60, 0, 1.7, -9.2, -7.9, stdc(0x3f6a2f, { roughness: 1 }));
       }
       // Fahnenmast mit Langeoog-Flagge
       {
@@ -11534,7 +12411,13 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         bx(u - 0.9, u + 0.9, PL + 0.9, PL + 1.0, 12.8, 13, WHT);
       }
       // Güterschuppen: kurzer Klinkerbau mit drei großen Schiebetoren zum Gleis, Laderampe
-      bx(124.4, 152, PL, 6.0, 13, 31, BRK);
+      bx(124.4, 152, 0, 6.0, 13, 31, BRK);
+      // zwei Tore im Südgiebel, in denen die beiden Abstellgleise enden
+      [17.5, 26.5].forEach((v) => {
+        bx(151.95, 152.07, 0, 4.6, v - 2, v + 2, stdc(0x1a1c1e, { roughness: 0.9 }));
+        bx(151.9, 152.15, 4.6, 4.85, v - 2.2, v + 2.2, stdc(0x4a5a63, { metalness: 0.5, roughness: 0.4 }));
+        bx(152.07, 152.15, 0.05, 4.5, v + 2.05, v + 3.95, stdc(0x3f5a3a, { roughness: 0.7 }));
+      });
       {
         const r = at(roofGeo(18, 27.6, 3.0), [BRK, TILE], 138.2, 5.95, 22);
         r.rotation.y = Math.PI / 2;
@@ -11953,6 +12836,137 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     }
     {
       // Bahnhof zu wenigen Meshes zusammenfassen (gleiches Material = ein Zeichenaufruf)
+      {
+        const P0 = stG.position.clone(),
+          R0 = stG.rotation.y;
+        stG.position.set(0, 0, 0);
+        stG.rotation.y = 0;
+        stG.updateMatrixWorld(true);
+        const bb = new T.Box3(),
+          M = new T.Matrix4(),
+          Mi = new T.Matrix4(),
+          Q = new T.Matrix4(),
+          v3 = new T.Vector3();
+        const rigidM = (cu, cv) => {
+          const [nu, nv] = stnBend(cu, cv),
+            ph = stnBendAng(cu);
+          return new T.Matrix4()
+            .makeTranslation(nu, 0, nv)
+            .multiply(new T.Matrix4().makeRotationY(-ph))
+            .multiply(new T.Matrix4().makeTranslation(-cu, 0, -cv));
+        };
+        const subdiv = (g) => {
+          const at = Object.keys(g.attributes).map((k) => [k, g.attributes[k]]);
+          let tris = [];
+          const pos = g.attributes.position;
+          const nv = pos.count;
+          for (let i = 0; i < nv; i += 3) {
+            tris.push(
+              [0, 1, 2].map((j) =>
+                at.map(([k, a]) => {
+                  const o = [];
+                  for (let c = 0; c < a.itemSize; c++) o.push(a.array[(i + j) * a.itemSize + c]);
+                  return o;
+                }),
+              ),
+            );
+          }
+          const out = [];
+          let guard = 0;
+          while (tris.length && guard++ < 200000) {
+            const t = tris.pop();
+            const P = t.map((q) => q[0]);
+            const mx = Math.max(P[0][0], P[1][0], P[2][0]);
+            const el = [
+              [0, 1],
+              [1, 2],
+              [2, 0],
+            ].map(([a, b]) => Math.hypot(P[a][0] - P[b][0], P[a][2] - P[b][2]));
+            let k = el.indexOf(Math.max(...el));
+            if (mx <= SBEND.U1 || el[k] <= 6) {
+              out.push(t);
+              continue;
+            }
+            const a = k,
+              b = (k + 1) % 3,
+              c = (k + 2) % 3;
+            const m = t[a].map((A2, ai) => A2.map((x, ci) => (x + t[b][ai][ci]) / 2));
+            tris.push([t[a], m, t[c]], [m, t[b], t[c]]);
+          }
+          const ng = new T.BufferGeometry();
+          at.forEach(([k, a], ai) => {
+            const arr = new Float32Array(out.length * 3 * a.itemSize);
+            let o = 0;
+            out.forEach((t) =>
+              t.forEach((vv) =>
+                vv[ai].forEach((x) => {
+                  arr[o++] = x;
+                }),
+              ),
+            );
+            ng.setAttribute(k, new T.BufferAttribute(arr, a.itemSize));
+          });
+          return ng;
+        };
+        const bendGeo = (g, split) => {
+          g = g.index ? g.toNonIndexed() : g;
+          if (split) g = subdiv(g);
+          const p = g.attributes.position,
+            n = g.attributes.normal;
+          for (let i = 0; i < p.count; i++) {
+            const x = p.getX(i),
+              z = p.getZ(i);
+            if (x <= SBEND.U1) continue;
+            const [nu, nvv] = stnBend(x, z);
+            p.setX(i, nu);
+            p.setZ(i, nvv);
+            if (n) {
+              const ph = stnBendAng(x),
+                c = Math.cos(ph),
+                s2 = Math.sin(ph),
+                nx = n.getX(i),
+                nz = n.getZ(i);
+              n.setX(i, nx * c - nz * s2);
+              n.setZ(i, nx * s2 + nz * c);
+            }
+          }
+          return g;
+        };
+        [...stG.children].forEach((c) => {
+          bb.setFromObject(c);
+          if (bb.isEmpty() || bb.max.x <= SBEND.U1) return;
+          if (c.isInstancedMesh) {
+            c.updateMatrix();
+            Mi.copy(c.matrix).invert();
+            for (let i = 0; i < c.count; i++) {
+              const m0 = new T.Matrix4();
+              c.getMatrixAt(i, m0);
+              Q.multiplyMatrices(c.matrix, m0);
+              v3.setFromMatrixPosition(Q);
+              const W1 = rigidM(v3.x, v3.z).multiply(Q);
+              c.setMatrixAt(i, Mi.clone().multiply(W1));
+            }
+            c.instanceMatrix.needsUpdate = true;
+            return;
+          }
+          const big = bb.max.x - bb.min.x > 20 || bb.max.z - bb.min.z > 20;
+          if (c.isMesh && big && !c.children.length) {
+            c.updateMatrix();
+            const g = bendGeo(c.geometry.clone().applyMatrix4(c.matrix), !Array.isArray(c.material));
+            c.geometry = g;
+            c.position.set(0, 0, 0);
+            c.rotation.set(0, 0, 0);
+            c.scale.set(1, 1, 1);
+            return;
+          }
+          const cu = (bb.min.x + bb.max.x) / 2,
+            cv = (bb.min.z + bb.max.z) / 2;
+          c.applyMatrix4(rigidM(cu, cv));
+        });
+        stG.position.copy(P0);
+        stG.rotation.y = R0;
+        stG.updateMatrixWorld(true);
+      }
       let n0 = 0;
       stG.traverse((o) => {
         if (o.isMesh) n0++;
@@ -13877,7 +14891,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         HW8 = 8.6,
         HD = 22,
         HN0 = -14;
-      const hallMat = (i) => (i < 3 ? [BRICKD, BRICKD] : i < 5 ? [WOODH, SLATS] : [WOODH, WOODH]);
+      const hallMat = (i) =>
+        i === 1 || i === 2 ? [BRICKD, BRICKD] : i === 3 || i === 4 ? [WOODH, SLATS] : [WOODH, WOODH];
       for (let i = 0; i < 8; i++) {
         const [wm, gm] = hallMat(i);
         const g = new T.Group();
@@ -13952,6 +14967,34 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           -HN0 - 0.08,
         );
         lg.rotation.y = Math.PI;
+        {
+          mesh(
+            new T.PlaneGeometry(2.6, 1.3),
+            std(0x2b3a40, { roughness: 0.6 }),
+            null,
+            hx(0),
+            ISL_TOP + 5.5,
+            -HN0 - 0.07,
+          ).rotation.y = Math.PI;
+          const h1 = mesh(
+            new T.PlaneGeometry(2.4, 0.6),
+            signM("HAVEN", 110, "#ffffff"),
+            null,
+            hx(0),
+            ISL_TOP + 5.75,
+            -HN0 - 0.09,
+          );
+          h1.rotation.y = Math.PI;
+          const h2 = mesh(
+            new T.PlaneGeometry(2.4, 0.4),
+            signM("FISCH & BURGER", 70, "#ffffff"),
+            null,
+            hx(0),
+            ISL_TOP + 5.2,
+            -HN0 - 0.09,
+          );
+          h2.rotation.y = Math.PI;
+        }
       }
       // --- Vorfeld (Ladeplatz) zwischen Kaje und Gebäude, Platz und Parkplätze im Süden
       flat(77, 14, PAVE, 23.5, -7);
@@ -13960,11 +15003,11 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       flat(60, 250, ASPH, 95, 140, ISL_TOP + 0.02);
       // Gepäckwagen, Zugmaschine, Getränke-Lkw, Kiosk, Bauzäune
       [
-        [-4, -9.5, 0xe8c21c],
-        [1, -9.5, 0xd64a9a],
-        [13, -9.5, 0x2f6fb5],
-        [18, -9.5, 0x9aa0a3],
-        [-10, -9.5, 0xe8c21c],
+        [53, -6.5, 0xe8c21c],
+        [57, -6.5, 0xd64a9a],
+        [61, -6.5, 0x2f6fb5],
+        [57, -2, 0x9aa0a3],
+        [61, -2, 0xe8c21c],
       ].forEach(([x, n, c]) => {
         const g = new T.Group();
         mesh(new T.BoxGeometry(2.4, 2.0, 3.2), std(0x6f7377, { roughness: 0.6 }), g, 0, 1.45, 0);
@@ -14002,12 +15045,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         const sm = signM("GETRÄNKE", 110, "#1d4f9a");
         const s = mesh(new T.PlaneGeometry(6, 0.8), sm, g, 1.27, 2.6, 0);
         s.rotation.y = Math.PI / 2;
-        g.position.set(32, ISL_TOP, 9);
+        g.position.set(66, ISL_TOP, 9);
         scene.add(g);
-      }
-      {
-        const m = mesh(tbox(2.6, 2.4, 2.2, 1), TEAL2, null, 24, ISL_TOP + 1.2, 8);
-        mesh(new T.BoxGeometry(1, 0.8, 0.08), WIN, null, 24, ISL_TOP + 1.5, 6.88);
       }
       {
         const fc = document.createElement("canvas");
@@ -14044,8 +15083,175 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           const m = mesh(g, FM, null, (x1 + x2) / 2, ISL_TOP + 1, -(n1 + n2) / 2);
           m.rotation.y = Math.atan2(n2 - n1, x2 - x1);
         };
-        fence(-14, -12.6, 40, -12.6);
-        fence(40, -12.6, 40, 4);
+        fence(64, -12.6, 64, 4);
+      }
+      // --- Vorplatz nach Foto: dunkles Fischgrätpflaster, Terrasse mit Stufen und Cortenstahl-Pflanzbeet vor den Giebeln, Kassencontainer, Absperrgitter, Mastleuchten, Anhänger und Mulde
+      {
+        const HB = (() => {
+          const c = document.createElement("canvas");
+          c.width = 128;
+          c.height = 128;
+          const x = c.getContext("2d");
+          x.fillStyle = "#4a4c50";
+          x.fillRect(0, 0, 128, 128);
+          const R = rng(77);
+          for (let j = -2; j < 10; j++)
+            for (let i = -2; i < 10; i++) {
+              const v = (60 + R() * 30) | 0;
+              x.fillStyle = `rgb(${v},${v + 2},${v + 6})`;
+              const px = i * 16 + j * 8,
+                py = j * 16;
+              if ((i + j) % 2) {
+                x.fillRect(px + 1, py + 1, 30, 14);
+              } else {
+                x.fillRect(px + 1, py + 1, 14, 30);
+              }
+            }
+          const t = new T.CanvasTexture(c);
+          t.encoding = T.sRGBEncoding;
+          t.wrapS = t.wrapT = T.RepeatWrapping;
+          return std(0xffffff, { map: t, roughness: 0.9 });
+        })();
+        flat(78, 13.4, HB, 24.5, -7.3, ISL_TOP + 0.035);
+        const TER = std(0x6b6c6e, { roughness: 0.9 }),
+          STP = std(0x8d8e8f, { roughness: 0.85 });
+        mesh(new T.BoxGeometry(70, 0.6, 3.6), TER, null, 26, ISL_TOP + 0.3, -(-12.2));
+        for (let k = 0; k < 3; k++)
+          mesh(
+            new T.BoxGeometry(70, 0.2 * (3 - k), 0.4),
+            STP,
+            null,
+            26,
+            ISL_TOP + 0.1 * (3 - k),
+            -(-10.2 + 0.4 * k) - 0.2,
+          );
+        {
+          const CO = std(0x8a4a2a, { roughness: 0.8, metalness: 0.3 }),
+            GR = std(0x9aa860, { roughness: 1, flatShading: true });
+          mesh(new T.BoxGeometry(18, 0.6, 1.6), CO, null, 36, ISL_TOP + 0.9, -(-12.9));
+          for (let i = 0; i < 22; i++) {
+            const g = mesh(
+              new T.ConeGeometry(0.35, 0.9, 5),
+              GR,
+              null,
+              27.5 + i * 0.8,
+              ISL_TOP + 1.6,
+              -(-12.9 + (i % 2 ? 0.35 : -0.35)),
+            );
+            g.rotation.z = ((i % 3) - 1) * 0.15;
+          }
+        }
+        // Kassencontainer: zwei türkise Container, dazwischen Durchgang mit Drehkreuzen, Dach mit Solarmodulen
+        {
+          const g = new T.Group();
+          g.position.set(22, ISL_TOP, -(-6.4));
+          scene.add(g);
+          const TC = std(0x58c3cc, { roughness: 0.5, metalness: 0.2 }),
+            FRM = std(0xc9cdd0, { metalness: 0.6, roughness: 0.35 }),
+            SOL = std(0x22324a, { roughness: 0.25, metalness: 0.5 });
+          [-3.3, 3.3].forEach((x) => {
+            mesh(new T.BoxGeometry(2.4, 2.6, 6), TC, g, x, 1.3, 0);
+            for (let z = -2.5; z <= 2.5; z += 0.5) mesh(new T.BoxGeometry(2.42, 2.5, 0.04), TC, g, x, 1.3, z);
+            mesh(new T.BoxGeometry(0.06, 1.0, 1.6), WIN, g, x - Math.sign(x) * 1.22, 1.6, -1.2);
+            mesh(
+              new T.BoxGeometry(0.06, 2.0, 0.9),
+              std(0x3a9aa6, { roughness: 0.5 }),
+              g,
+              x - Math.sign(x) * 1.22,
+              1.0,
+              1.6,
+            );
+          });
+          mesh(new T.BoxGeometry(9.2, 0.22, 6.4), FRM, g, 0, 2.75, 0);
+          [-3.4, 0, 3.4].forEach((x) => {
+            const p = mesh(new T.BoxGeometry(2.9, 0.04, 6.0), SOL, g, x, 2.88, 0);
+            p.rotation.z = 0.05;
+          });
+          [-1.1, 0, 1.1].forEach((x) => {
+            mesh(new T.BoxGeometry(0.25, 1.0, 0.5), FRM, g, x, 0.5, 0);
+            mesh(new T.BoxGeometry(0.03, 0.03, 0.5), FRM, g, x + 0.3, 0.9, 0.1);
+          });
+        }
+        // Absperrgitter (verzinkt) als Wartespuren
+        {
+          const BF = std(0xb9bdc0, { metalness: 0.7, roughness: 0.35 });
+          const bar = (x1, n1, x2, n2) => {
+            const L = Math.hypot(x2 - x1, n2 - n1),
+              k = Math.max(1, Math.round(L / 2.5));
+            for (let i = 0; i < k; i++) {
+              const a = i / k,
+                b = (i + 1) / k;
+              const xa = x1 + (x2 - x1) * a,
+                na = n1 + (n2 - n1) * a,
+                xb = x1 + (x2 - x1) * b,
+                nb = n1 + (n2 - n1) * b;
+              const g = new T.Group();
+              g.position.set((xa + xb) / 2, ISL_TOP, -(na + nb) / 2);
+              g.rotation.y = Math.atan2(nb - na, xb - xa);
+              scene.add(g);
+              const w = L / k - 0.1;
+              [0.12, 1.08].forEach((y) => mesh(new T.BoxGeometry(w, 0.04, 0.04), BF, g, 0, y, 0));
+              [-w / 2, w / 2].forEach((x) => mesh(new T.BoxGeometry(0.04, 1.1, 0.04), BF, g, x, 0.55, 0));
+              for (let j = 1; j < 12; j++)
+                mesh(new T.BoxGeometry(0.015, 0.96, 0.015), BF, g, -w / 2 + (j * w) / 12, 0.6, 0);
+              [-w / 2 + 0.2, w / 2 - 0.2].forEach((x) =>
+                mesh(new T.BoxGeometry(0.06, 0.04, 0.6), BF, g, x, 0.02, 0),
+              );
+            }
+          };
+          bar(26, -9.4, 42, -9.4);
+          bar(26, -6.4, 39, -6.4);
+          bar(26, -3.4, 42, -3.4);
+          bar(42, -9.4, 42, -3.4);
+          bar(16, -3.2, 16, -0.6);
+          bar(3, -9.4, 15, -9.4);
+          bar(3, -9.4, 3, -1);
+        }
+        // Mastleuchten
+        {
+          const LM = std(0xa0a4a7, { metalness: 0.6, roughness: 0.4 });
+          [
+            [14, -1],
+            [38, -1],
+            [60, -1],
+          ].forEach(([x, n]) => {
+            mesh(new T.CylinderGeometry(0.09, 0.14, 11, 10), LM, null, x, ISL_TOP + 5.5, -n);
+            mesh(new T.BoxGeometry(0.4, 0.3, 0.6), LM, null, x, ISL_TOP + 11.1, -n);
+          });
+        }
+        // Wohnwagen-Anhänger „buss“ und orange Mulde am Westende
+        {
+          const g = new T.Group();
+          g.position.set(-24, ISL_TOP, -(-6));
+          g.rotation.y = 0.15;
+          scene.add(g);
+          const bm = signM("buss", 150, "#ffffff");
+          mesh(new T.BoxGeometry(8, 3, 2.5), std(0xc0222c, { roughness: 0.5 }), g, 0, 2.2, 0);
+          [-1, 1].forEach((f) => {
+            const s = mesh(new T.PlaneGeometry(5, 1.1), bm, g, 0, 2.4, f * 1.27);
+            if (f < 0) s.rotation.y = Math.PI;
+          });
+          [-1.4, 1.4].forEach((z) =>
+            mesh(
+              new T.CylinderGeometry(0.35, 0.35, 0.25, 12).rotateX(Math.PI / 2),
+              std(0x111111),
+              g,
+              -0.6,
+              0.35,
+              z,
+            ),
+          );
+          const sk = mesh(
+            new T.CylinderGeometry(1.6, 1.2, 1.3, 4, 1),
+            std(0xe2702a, { roughness: 0.6 }),
+            null,
+            -22,
+            ISL_TOP + 0.65,
+            -(-1.5),
+          );
+          sk.rotation.y = Math.PI / 4;
+          sk.scale.set(1.8, 1, 1);
+        }
       }
       // --- Gangwaytürme (türkis, zwei Stützen, Plattform mit Geländer, Maschinenhaus, Fahne)
       const flagM = (() => {
@@ -14128,6 +15334,24 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         });
         for (let i = 0; i < Math.floor(LR / 1.2); i++)
           mesh(new T.BoxGeometry(0.05, 0.03, 1.3), std(0x55595c), rg, -LR / 2 + 0.6 + i * 1.2, 0.18, 0);
+        // Gangway-Dach (nach Foto): flaches Tonnendach aus dunklem Blech mit hellen Rippen auf schlanken Stützen
+        {
+          const RM = std(0x2b3135, { roughness: 0.45, metalness: 0.4, side: T.DoubleSide }),
+            RB = std(0xc9cdd0, { metalness: 0.6, roughness: 0.35 }),
+            PS = std(0x7fc9c4, { roughness: 0.5 });
+          const rf = new T.CylinderGeometry(1.0, 1.0, LR, 20, 1, true, 0, Math.PI);
+          rf.rotateZ(Math.PI / 2);
+          rf.scale(1, 0.42, 1);
+          mesh(rf, RM, rg, 0, 2.35, 0);
+          for (let x = -LR / 2 + 0.6; x < LR / 2; x += 1.3) {
+            const t = new T.TorusGeometry(1.0, 0.022, 4, 14, Math.PI);
+            t.rotateY(Math.PI / 2);
+            t.scale(1, 0.42, 1);
+            mesh(t, RB, rg, x, 2.36, 0);
+          }
+          for (let x = -LR / 2 + 1; x < LR / 2; x += 4)
+            [-0.72, 0.72].forEach((z) => mesh(new T.BoxGeometry(0.06, 2.25, 0.06), PS, rg, x, 1.25, z));
+        }
         scene.add(piv);
         DYN.ped = piv;
       }
@@ -15195,6 +16419,22 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
             for (let i = 0; i <= 12; i++)
               mesh(new T.BoxGeometry(0.04, 0.9, 0.04), RAILB, rg, o, 0.65, -LR / 2 + (i * LR) / 12);
           });
+          {
+            const RM = std(0x2b3135, { roughness: 0.45, metalness: 0.4, side: T.DoubleSide }),
+              RB = std(0xc9cdd0, { metalness: 0.6, roughness: 0.35 }),
+              PS = std(0x7fc9c4, { roughness: 0.5 });
+            const rf = new T.CylinderGeometry(1.0, 1.0, LR, 20, 1, true, Math.PI / 2, Math.PI);
+            rf.rotateX(Math.PI / 2);
+            rf.scale(1, 0.42, 1);
+            mesh(rf, RM, rg, 0, 2.35, 0);
+            for (let z = -LR / 2 + 0.6; z < LR / 2; z += 1.3) {
+              const t = new T.TorusGeometry(1.0, 0.022, 4, 14, Math.PI);
+              t.scale(1, 0.42, 1);
+              mesh(t, RB, rg, 0, 2.36, z);
+            }
+            for (let z = -LR / 2 + 1; z < LR / 2; z += 4)
+              [-0.72, 0.72].forEach((x) => mesh(new T.BoxGeometry(0.06, 2.25, 0.06), PS, rg, x, 1.25, z));
+          }
           scene.add(piv);
           // Dalbenreihe an der Gangway, Dalben vor dem Liegeplatz
           const L4 = [];
@@ -15233,8 +16473,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         // Bahnhof: zwei Gleise, Bahnsteig mit Dach, Gepäckzug mit grünen Containern
         // Zweites Gleis: parallel westlich des Hauptgleises, vor der Deichscharte über eine Weiche angeschlossen
         {
-          const sidOff = (d) =>
-            d < 130 ? 8 : (8 * (1 + Math.cos(Math.PI * Math.min(1, (d - 130) / 120)))) / 2;
+          const sidOff = (d) => dkSidW(d);
           const sidPt = (d) => {
             const p = railPt(d);
             const o = sidOff(d);
@@ -15243,7 +16482,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           {
             const P = [],
               Y = new Map();
-            for (let d = 7; d <= 250; d += 2) {
+            for (let d = 7; d <= 200; d += 2) {
               const q = sidPt(d);
               const k = [q.x, -q.y];
               P.push(k);
@@ -15261,7 +16500,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
             );
           }
           {
-            const p = railPt(250);
+            const p = railPt(200);
             const x = p.x + p.ty * 2.4,
               n = p.y - p.tx * 2.4;
             mesh(new T.BoxGeometry(0.6, 0.7, 0.4), std(0x1c2024), null, x, ISL_TOP + 0.35, -n);
@@ -15291,8 +16530,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           }
           // Drittes Gleis östlich des Hauptgleises ohne Bahnsteig, Weiche Richtung Deich; abgestellte Gepäckwagen
           {
-            const o3 = (d) =>
-              d < 110 ? -8 : (-8 * (1 + Math.cos(Math.PI * Math.min(1, (d - 110) / 95)))) / 2;
+            const o3 = (d) => -dkSidE(d);
             const p3 = (d) => {
               const p = railPt(d);
               const o = o3(d);
@@ -15300,7 +16538,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
             };
             const P = [],
               Y = new Map();
-            for (let d = 12; d <= 205; d += 2) {
+            for (let d = 12; d <= 190; d += 2) {
               const q = p3(d);
               const k = [q.x, -q.y];
               P.push(k);
@@ -15317,16 +16555,16 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
               ),
             );
             {
-              const p = railPt(205);
+              const p = railPt(190);
               const x = p.x - p.ty * 2.4,
                 n = p.y + p.tx * 2.4;
-              mesh(new T.BoxGeometry(0.6, 0.7, 0.4), std(0x1c2024), null, x, trackHt(205) + 0.05, -n);
+              mesh(new T.BoxGeometry(0.6, 0.7, 0.4), std(0x1c2024), null, x, trackHt(190) + 0.05, -n);
               mesh(
                 new T.BoxGeometry(0.28, 0.28, 0.28),
                 std(0xf2f2ee, { emissive: 0x222222 }),
                 null,
                 x,
-                trackHt(205) + 0.6,
+                trackHt(190) + 0.6,
                 -n,
               );
             }
@@ -16089,7 +17327,9 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         bikes(150, 20, 6, 0);
         bikes(-20, -40, 7, Math.PI / 2);
         crowd([
-          ...scatter(-12, 4, -7.5, -2.5, 26, 11),
+          ...scatter(27, 41, -9, -3.8, 26, 11),
+          ...scatter(-4, 56, -13.6, -10.8, 34, 16).map((q) => [q[0], q[1], 0.6]),
+          ...scatter(4, 15, -8.8, -1.5, 10, 17),
           ...scatter(0, 50, -60, -42, 22, 12),
           ...scatter(130, 160, 0, 30, 14, 13),
           ...scatter(29, 40, 235, 270, 10, 14),
