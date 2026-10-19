@@ -1753,10 +1753,13 @@ input {
           unten = Bremse. Vor jeder Pfeiftafel (P) pfeifen, höchstens 25 km/h, an der Deichscharte 10 km/h. An
           der gelben Haltetafel (H) anhalten.
         </li>
-        <li>Oben rechts stellen Sie den Zeitraffer ein.</li>
+        <li>
+          Oben rechts stellen Sie die Zeit ein: „Real“ entspricht der echten Fahrt, 4× und 8× laufen
+          schneller.
+        </li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">Version 19.10.2026 d · Motor nach Ansage sofort, Bremsquietschen, Fahrgeräusch leiser</p>
+      <p class="ver">Version 19.10.2026 e · Führerstand-Fenster innen, Zeitraffer „Real“</p>
       <p class="ver">Bahngeräusche: Aufnahmen von www.hoerspielbox.de</p>
     </div>
   </div>
@@ -1903,8 +1906,9 @@ input {
   const TGT = () =>
     ENV.dir === "LB" ? { x: BERTH_BS.x, y: BERTH_BS.y, h: 90 } : { x: BERTH.x, y: BERTH.y, h: 0 };
   const LIMIT = 2.65;
-  const TS_STEPS = [1, 2, 4, 8];
+  const TS_STEPS = [2, 4, 8];
   let TS = 4;
+  const tsLabel = (v) => (v === 2 ? "Real" : v + "×");
 
   // ---------- Welt: x Ost, y Nord, Meter ----------
   const P = [
@@ -5041,7 +5045,7 @@ input {
   });
   $("tsBtn").onclick = () => {
     TS = TS_STEPS[(TS_STEPS.indexOf(TS) + 1) % TS_STEPS.length];
-    $("tsBtn").textContent = TS + "×";
+    $("tsBtn").textContent = tsLabel(TS);
   };
 
   let ROT = 0;
@@ -7934,8 +7938,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           cl - 0.12,
           H0,
           [
-            { u: uf(cx + 0.47), v: 2.73 - fl, w: 1.26, h: 0.78, r: 0.08 },
-            { u: uf(cx - 0.69), v: 2.69 - fl, w: 0.56, h: 0.68, r: 0.07 },
+            { u: uf(cx + 0.47), v: 2.73 - fl, w: 1.12, h: 0.66, r: 0.08 },
+            { u: uf(cx - 0.72), v: 2.69 - fl, w: 0.46, h: 0.58, r: 0.07 },
           ],
           (h) => {
             h.position.set(cx, fl, sd * (zw + 0.03));
@@ -7944,19 +7948,11 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         );
         // Türfuge, Griff, Haltestange
         const zi = sd * (zw - 0.005);
-        [
-          [cx - 0.55 - 0.4, 0],
-          [cx - 0.55 + 0.4, 0],
-        ].forEach(([x]) => sm(box(0.012, H0 - 0.02, 0.01), DGR, null, x, fl + H0 / 2, zi));
-        sm(box(0.14, 0.03, 0.04), MET, null, cx - 0.25, fl + 1.05, sd * (zw - 0.03));
-        sm(
-          new T.CylinderGeometry(0.016, 0.016, 0.9, 8),
-          CHROME,
-          null,
-          cx - 1.02,
-          fl + 1.35,
-          sd * (zw - 0.06),
-        );
+        [cx - 1.13, cx - 0.31].forEach((x) => sm(box(0.012, H0 - 0.02, 0.01), DGR, null, x, fl + H0 / 2, zi)); // Türfuge passend zur Tür außen
+        sm(box(0.012, 0.012, 0.8), DGR, null, cx - 0.72, fl + H0 - 0.02, zi).rotation.y = Math.PI / 2;
+        sm(box(0.05, 0.66, 0.06), RUB, null, cx + 0.47, 2.73, sd * (zw + 0.0)); // Mittelsteg im großen Seitenfenster
+        sm(box(0.14, 0.03, 0.04), MET, null, cx - 0.43, fl + 1.0, sd * (zw - 0.03));
+        sm(new T.CylinderGeometry(0.016, 0.016, 0.9, 8), CHROME, null, cx - 0.2, fl + 1.35, sd * (zw - 0.06));
       });
       // Boden mit Riffelgummi, Decke gewölbt mit Leuchte, Sonnenblende
       const rib = cv(128, 128, (x, w, h) => {
