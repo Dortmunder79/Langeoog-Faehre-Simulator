@@ -1756,7 +1756,7 @@ input {
         <li>Oben rechts stellen Sie den Zeitraffer ein.</li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">Version 19.10.2026 a · Ton auf dem Handy abgesichert</p>
+      <p class="ver">Version 19.10.2026 b · Weichenrumpeln und Kurvenquietschen</p>
     </div>
   </div>
 </div>
@@ -3417,6 +3417,17 @@ input {
       LB: { dep: 11 * 3600 + 10 * 60, run: 8 * 60 },
     };
   let RS = null;
+  // Weichen im Hauptgleis [Lage, Stärke]: Zungen leichter, Herzstück kräftiger (Hafenbahnhof zwei Abstellgleise, Ortsbahnhof Gleisfächer)
+  const RAIL_SW = [
+    [200, 0.7],
+    [191, 1],
+    [190, 0.7],
+    [181, 1],
+    [RAIL_L - 368, 0.7],
+    [RAIL_L - 359, 1],
+    [RAIL_L - 356, 0.7],
+    [RAIL_L - 347, 1],
+  ];
   function railLimit(d) {
     if (Math.abs(d - RF.deich) < 40) return 10;
     if (d < 170 || d > RAIL_L - 190) return 15;
@@ -3507,6 +3518,26 @@ input {
     r.maxV = Math.max(r.maxV, r.v);
     const dOld = r.d;
     r.d += r.dir * r.v * dt;
+    // Weichen im Hauptgleis: jede Achse rumpelt über Zungen und Herzstück
+    if (!r.axles && typeof G !== "undefined" && G && G.TRAIN) {
+      r.axles = [];
+      G.TRAIN.list.forEach((c) => {
+        const cc = c.off + c.len / 2;
+        (c.kind === "lok"
+          ? [-1.6, 1.6]
+          : [-c.len * 0.31 - 0.65, -c.len * 0.31 + 0.65, c.len * 0.31 - 0.65, c.len * 0.31 + 0.65]
+        ).forEach((a) => r.axles.push(cc + a));
+      });
+      r.thumps = [];
+    }
+    if (r.axles && r.v > 0.2) {
+      for (const a of r.axles) {
+        const p0 = dOld - r.dir * a,
+          p1 = r.d - r.dir * a;
+        for (const [sw, w] of RAIL_SW)
+          if ((p0 - sw) * (p1 - sw) < 0 && r.thumps.length < 24) r.thumps.push(w);
+      }
+    }
     if (r.v * 3.6 > railLimit(r.d) + 2) r.over += dt;
     // Pfeiftafeln und Bahnübergänge
     for (const c of r.cross) {
@@ -5214,7 +5245,12 @@ input {
         RS.clack = 0;
         railClack(Math.min(1, RS.v / 6));
       }
+      if (RS.thumps && RS.thumps.length) {
+        const k = Math.min(1, 0.25 + RS.v / 6);
+        RS.thumps.splice(0, 6).forEach((w, i) => railThump(k * w, i * 0.03 + Math.random() * 0.01));
+      }
     }
+    squealUpdate(rail && live && phase === "rail" ? railSquealI() : 0);
     lokEngineUpdate(!!(live && rail), rail ? RS._eng : 0, rail ? RS.v : 0);
     const vol =
       live && !rail ? (pane === "aussen" ? 0.85 : pane === "karte" ? 0.6 : pane === "nock" ? 0.95 : 1.0) : 0;
@@ -5238,6 +5274,128 @@ input {
       0.5,
     );
     AU.tg.gain.setTargetAtTime(rail || S.moored ? 0 : 0.14 * Math.abs(S.bow), t, 0.2);
+  }
+  function railThump(k, delay) {
+    try {
+      if (!actx || !soundOn || k < 0.04) return;
+      const bus = fxBus();
+      if (!bus) return;
+      const c = actx,
+        t = c.currentTime + (delay || 0);
+      const pf = pane === "wagen" ? 1.15 : pane === "lok" ? 0.75 : 1;
+      const nb = noiseBuf(),
+        n = c.createBufferSource();
+      n.buffer = nb;
+      const lp = c.createBiquadFilter();
+      lp.type = "lowpass";
+      lp.frequency.value = 320;
+      const g = c.createGain();
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.55 * k * pf, t + 0.006);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+      n.connect(lp);
+      lp.connect(g);
+      g.connect(bus);
+      n.start(t, Math.random() * 1.5);
+      n.stop(t + 0.12);
+      const n2 = c.createBufferSource();
+      n2.buffer = nb;
+      const bp = c.createBiquadFilter();
+      bp.type = "bandpass";
+      bp.frequency.value = 1300 + Math.random() * 500;
+      bp.Q.value = 3;
+      const g2 = c.createGain();
+      g2.gain.setValueAtTime(0.32 * k * pf, t);
+      g2.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
+      n2.connect(bp);
+      bp.connect(g2);
+      g2.connect(bus);
+      n2.start(t, Math.random() * 1.5);
+      n2.stop(t + 0.05);
+      const o = c.createOscillator();
+      o.type = "triangle";
+      o.frequency.setValueAtTime(150 + Math.random() * 30, t);
+      o.frequency.exponentialRampToValueAtTime(70, t + 0.08);
+      const g3 = c.createGain();
+      g3.gain.setValueAtTime(0.35 * k * pf, t);
+      g3.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+      o.connect(g3);
+      g3.connect(bus);
+      o.start(t);
+      o.stop(t + 0.12);
+    } catch (e) {}
+  }
+  // Kurvenquietschen: hohe, schwankende Töne der Spurkränze, nur in engen Bögen und bei Fahrt
+  let SQ = null;
+  function railSquealI() {
+    const r = RS;
+    if (!r || r.v < 1) return 0;
+    const a = railPt(r.d - 6).h,
+      b = railPt(r.d + 6).h;
+    const k = Math.abs(((b - a + 540) % 360) - 180) / 12;
+    const ss = (e0, e1, v) => {
+      const t = Math.max(0, Math.min(1, (v - e0) / (e1 - e0)));
+      return t * t * (3 - 2 * t);
+    };
+    const burst = Math.max(0, Math.min(1, (Math.sin(r.d * 0.61) + Math.sin(r.d * 0.23 + 1.7) + 0.6) / 1.4));
+    return ss(0.1, 0.3, k) * ss(1.5, 5, r.v) * (0.35 + 0.65 * burst);
+  }
+  function squealUpdate(I) {
+    try {
+      if (!actx) return;
+      if (!SQ) {
+        if (I <= 0) return;
+        const bus = fxBus();
+        if (!bus) return;
+        const c = actx;
+        const g = c.createGain();
+        g.gain.value = 0;
+        g.connect(bus);
+        const mk = (f, v) => {
+          const o = c.createOscillator();
+          o.type = "sine";
+          o.frequency.value = f;
+          const gg = c.createGain();
+          gg.gain.value = v;
+          o.connect(gg);
+          gg.connect(g);
+          const l = c.createOscillator();
+          l.frequency.value = 5 + Math.random() * 4;
+          const lg = c.createGain();
+          lg.gain.value = f * 0.012;
+          l.connect(lg);
+          lg.connect(o.frequency);
+          o.start();
+          l.start();
+          return o;
+        };
+        const o1 = mk(3150, 1),
+          o2 = mk(4720, 0.45),
+          o3 = mk(2380, 0.3);
+        const n = c.createBufferSource();
+        n.buffer = noiseBuf();
+        n.loop = true;
+        const bp = c.createBiquadFilter();
+        bp.type = "bandpass";
+        bp.frequency.value = 3300;
+        bp.Q.value = 6;
+        const ng = c.createGain();
+        ng.gain.value = 0.5;
+        n.connect(bp);
+        bp.connect(ng);
+        ng.connect(g);
+        n.start();
+        SQ = { g, o: [o1, o2, o3], f: [3150, 4720, 2380], ph: 0 };
+      }
+      const c = actx,
+        t = c.currentTime;
+      const pf = pane === "wagen" ? 1.1 : pane === "lok" ? 0.7 : 1;
+      SQ.ph += 0.03;
+      const drift = 1 + 0.025 * Math.sin(SQ.ph * 1.3) + 0.015 * Math.sin(SQ.ph * 3.7);
+      SQ.o.forEach((o, i) => o.frequency.setTargetAtTime(SQ.f[i] * drift, t, 0.15));
+      SQ.g.gain.setTargetAtTime(soundOn ? 0.05 * I * pf : 0, t, I > SQ.last ? 0.25 : 0.4);
+      SQ.last = I;
+    } catch (e) {}
   }
   function railClack(k) {
     try {
