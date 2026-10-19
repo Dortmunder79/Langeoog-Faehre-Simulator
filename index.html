@@ -1756,7 +1756,7 @@ input {
         <li>Oben rechts stellen Sie den Zeitraffer ein.</li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">Version 19.10.2026 c · echte Bahngeräusche, Ton bei Ansagen stabil</p>
+      <p class="ver">Version 19.10.2026 d · Motor nach Ansage sofort, Bremsquietschen, Fahrgeräusch leiser</p>
       <p class="ver">Bahngeräusche: Aufnahmen von www.hoerspielbox.de</p>
     </div>
   </div>
@@ -2582,12 +2582,13 @@ input {
         }
         u.volume = 1;
         u.onend = () => {
+          audioWake();
+          setTimeout(audioWake, 60);
           finish();
-          setTimeout(audioWake, 120);
         };
         u.onerror = () => {
+          audioWake();
           finish();
-          setTimeout(audioWake, 120);
         };
         speechSynthesis.speak(u);
         setTimeout(finish, 2500 + it.txt.length * 95);
@@ -5077,7 +5078,7 @@ input {
   let SIL = null;
   const speaking = () => {
     try {
-      return spBusy || speechSynthesis.speaking;
+      return speechSynthesis.speaking && !speechSynthesis.paused;
     } catch (e) {
       return false;
     }
@@ -5254,7 +5255,18 @@ input {
       AU = null;
     }
   }
+  let WAKE_T = 0;
   function audioUpdate() {
+    if (
+      actx &&
+      actx.state !== "running" &&
+      actx.state !== "closed" &&
+      performance.now() > WAKE_T &&
+      !speaking()
+    ) {
+      WAKE_T = performance.now() + 400;
+      audioWake();
+    }
     if (!AU) return;
     const c = AU.c,
       t = c.currentTime;
@@ -5266,7 +5278,7 @@ input {
       const smp = railHasSamples();
       if (RS.clack) {
         RS.clack = 0;
-        if (!smp) railClack(Math.min(1, RS.v / 6));
+        railClack(Math.min(1, RS.v / 6));
       }
       if (smp && RS.thumps) RS.thumps.length = 0;
       if (RS.thumps && RS.thumps.length) {
@@ -5368,7 +5380,10 @@ input {
       t = c.currentTime;
     if (!RSP) {
       if (!on) return true;
-      RSP = { roll: railLoop("roll"), kurve: railLoop("kurve"), brake: null, bEp: false, bOff: 0 };
+      const bl = railLoop("brems");
+      bl.src.loopStart = 1.4;
+      bl.src.loopEnd = 6.4;
+      RSP = { roll: railLoop("roll"), kurve: railLoop("kurve"), brems: bl };
     }
     const v = on && r ? r.v : 0,
       pf = pane === "wagen" ? 1.1 : pane === "lok" ? 0.8 : 1,
@@ -5377,7 +5392,7 @@ input {
         return k * k * (3 - 2 * k);
       };
     RSP.roll.g.gain.setTargetAtTime(
-      soundOn && on ? 0.6 * ss(0.15, 2.5, v) * (0.55 + 0.45 * Math.min(1, v / 6.5)) * pf : 0,
+      soundOn && on ? 0.22 * ss(0.15, 2.5, v) * (0.55 + 0.45 * Math.min(1, v / 6.5)) * pf : 0,
       t,
       0.25,
     );
@@ -5391,25 +5406,17 @@ input {
         for (let i = 0; i < Math.min(1, n); i++)
           railShot("weiche", 0.95 * Math.min(1, 0.35 + v / 5) * pf, 0.65 + 0.45 * Math.min(1.2, v / 6), 0.05);
     }
-    // Bremsen: Quietschen beim Abbremsen kurz vor dem Halt
-    const brk = r ? r.brk || 0 : 0;
-    if (on && soundOn && !RSP.bEp && brk > 0.15 && v < 4.6 && v > 0.6) {
-      RSP.bEp = true;
-      RSP.brake = railShot("brems", 0.8 * Math.min(1, 0.4 + brk) * pf, 1, 0.05);
+    // Bremsen: Quietschen der Klotzbremse, sobald gebremst wird und der Zug langsamer als gut 20 km/h ist, am stärksten kurz vor dem Stillstand
+    {
+      const brk = r ? r.brk || 0 : 0;
+      const bell = ss(0.15, 0.8, v) * (1 - 0.55 * ss(2.5, 6, v));
+      RSP.brems.g.gain.setTargetAtTime(
+        soundOn && on ? 1.1 * ss(0.02, 0.35, brk) * bell * pf : 0,
+        t,
+        brk > 0.02 && v > 0.15 ? 0.12 : 0.3,
+      );
+      RSP.brems.src.playbackRate.setTargetAtTime(0.92 + 0.1 * Math.min(1, v / 4), t, 0.3);
     }
-    if (RSP.brake && (v < 0.05 || brk < 0.08 || !on)) {
-      try {
-        RSP.brake.g.gain.setTargetAtTime(0, t, 0.25);
-        const s = RSP.brake.src;
-        setTimeout(() => {
-          try {
-            s.stop();
-          } catch (e) {}
-        }, 1500);
-      } catch (e) {}
-      RSP.brake = null;
-    }
-    if (v > 5.2 || (brk < 0.05 && v > 1.5)) RSP.bEp = false;
     return true;
   }
   function railThump(k, delay) {
