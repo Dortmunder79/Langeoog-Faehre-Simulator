@@ -161,6 +161,7 @@ html {
   box-sizing: inherit;
 }
 body {
+  position: relative;
   height: 100%;
   margin: 0;
   background: var(--bg);
@@ -582,7 +583,7 @@ button {
 }
 
 .overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 10;
   background: var(--scrim);
@@ -599,7 +600,6 @@ button {
   max-height: 100%;
   overflow: auto;
   border: 1px solid var(--line);
-  -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   touch-action: pan-y;
 }
@@ -1762,7 +1762,7 @@ input {
         </li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">Version 20.10.2026 g · Ruhigerer Ton nach dem Funk, Startbild reagiert genau</p>
+      <p class="ver">Version 20.10.2026 h · Startbild ohne festes Overlay (Tippen genau)</p>
       <p class="ver">
         Bahngeräusche: Aufnahmen von www.hoerspielbox.de · Funkrauschen: freesound_community (Pixabay)
       </p>
@@ -5850,10 +5850,10 @@ input {
             S = initState();
           }
           applyEnv();
-          if (sg.dataset.key !== "mode") {
+          if (["weather", "tide", "dir"].includes(sg.dataset.key)) {
             clearTimeout(INTRO_TM);
             INTRO_TM = setTimeout(() => {
-              INTRO_DRAW = Math.max(INTRO_DRAW, 2);
+              INTRO_DRAW = Math.max(INTRO_DRAW, 1);
             }, 350);
           }
         }),
