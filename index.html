@@ -599,6 +599,9 @@ button {
   max-height: 100%;
   overflow: auto;
   border: 1px solid var(--line);
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 .sheet img {
   width: 100%;
@@ -1759,7 +1762,7 @@ input {
         </li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">Version 20.10.2026 f · Echtes Funkrauschen, kein Stocken nach dem Funk</p>
+      <p class="ver">Version 20.10.2026 g · Ruhigerer Ton nach dem Funk, Startbild reagiert genau</p>
       <p class="ver">
         Bahngeräusche: Aufnahmen von www.hoerspielbox.de · Funkrauschen: freesound_community (Pixabay)
       </p>
@@ -5081,46 +5084,52 @@ input {
         if (actx.state !== "running" && actx.state !== "closed" && !speaking()) setTimeout(audioWake, 250);
       };
     }
-    try {
-      if (!SIL) {
-        const sr = 8000,
-          n = sr / 2,
-          b = new ArrayBuffer(44 + n),
-          v = new DataView(b);
-        const w = (o, t) => {
-          for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i));
-        };
-        w(0, "RIFF");
-        v.setUint32(4, 36 + n, true);
-        w(8, "WAVEfmt ");
-        v.setUint32(16, 16, true);
-        v.setUint16(20, 1, true);
-        v.setUint16(22, 1, true);
-        v.setUint32(24, sr, true);
-        v.setUint32(28, sr, true);
-        v.setUint16(32, 1, true);
-        v.setUint16(34, 8, true);
-        w(36, "data");
-        v.setUint32(40, n, true);
-        for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
-        SIL = new Audio(URL.createObjectURL(new Blob([b], { type: "audio/wav" })));
-        SIL.loop = true;
-        SIL.setAttribute("playsinline", "");
-        SIL.volume = 0.01;
-      }
-      if (!SIL.started) {
-        SIL.started = true;
-        silPlay();
-      }
-    } catch (e) {}
+    // iOS 17+ kennt navigator.audioSession: dann reicht der Wiedergabe-Modus, das stille Hilfs-Audio (dessen Neustart nach jeder Durchsage ruckelt) entfällt
+    if (!navigator.audioSession)
+      try {
+        if (!SIL) {
+          const sr = 8000,
+            n = sr / 2,
+            b = new ArrayBuffer(44 + n),
+            v = new DataView(b);
+          const w = (o, t) => {
+            for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i));
+          };
+          w(0, "RIFF");
+          v.setUint32(4, 36 + n, true);
+          w(8, "WAVEfmt ");
+          v.setUint32(16, 16, true);
+          v.setUint16(20, 1, true);
+          v.setUint16(22, 1, true);
+          v.setUint32(24, sr, true);
+          v.setUint32(28, sr, true);
+          v.setUint16(32, 1, true);
+          v.setUint16(34, 8, true);
+          w(36, "data");
+          v.setUint32(40, n, true);
+          for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+          SIL = new Audio(URL.createObjectURL(new Blob([b], { type: "audio/wav" })));
+          SIL.loop = true;
+          SIL.setAttribute("playsinline", "");
+          SIL.volume = 0.01;
+        }
+        if (!SIL.started) {
+          SIL.started = true;
+          silPlay();
+        }
+      } catch (e) {}
     if (actx.state !== "running" && !speaking()) ctxResume();
     return actx;
   }
   // Ton wieder anwerfen: nie mehrere Anläufe gleichzeitig (jeder Versuch kostet auf iOS spürbar Zeit)
   let RESUMING = false,
     SILP = false;
+  let RES_T = 0;
   function ctxResume() {
     if (!actx || RESUMING || actx.state === "running" || actx.state === "closed") return;
+    const n = performance.now();
+    if (n < RES_T) return;
+    RES_T = n + 1200;
     RESUMING = true;
     const done = () => {
       RESUMING = false;
@@ -5153,7 +5162,10 @@ input {
     document.addEventListener(
       ev,
       () => {
-        if (actx && !speaking() && actx.state !== "running") mkCtx();
+        if (actx && !speaking() && actx.state !== "running") {
+          RES_T = 0;
+          mkCtx();
+        }
       },
       { passive: true, capture: true },
     ),
@@ -6206,14 +6218,14 @@ input {
     setT(els.hdg, lim + " km/h");
     const toStop = Math.max(0, r.dir * (r.target - r.d));
     setT(els.depth, toStop >= 1000 ? fmt1(toStop / 1000) + " km" : Math.round(toStop) + " m");
-    els.depthBox.dataset.state = "";
+    setD(els.depthBox, "state", "");
     setT($("roDepthSub"), railStation());
     const late = Math.round((Math.max(r.t + toStop / 6.5, r.arrT) - r.arrT) / 60);
     setT(els.train, fmtTime(r.arrT));
     setT($("roTrainSub"), late > 0 ? "+" + late + " min" : "planmäßig");
-    els.trainBox.dataset.state = late > 2 ? "warn" : "";
+    setD(els.trainBox, "state", late > 2 ? "warn" : "");
     setT(els.rest, "");
-    els.dock.disabled = false;
+    setP(els.dock, "disabled", false);
     setT(els.dock, "Pfeife");
     els.dock.classList.remove("ready");
     let a = null;
@@ -6238,13 +6250,21 @@ input {
       a = ["ok", `Haltetafel in ${Math.round(nx.dist)} m · bremsen`];
     else if (!r.moved) a = ["ok", "Abfahrt! Fahrschalter nach oben"];
     if (a) {
-      els.alert.hidden = false;
-      els.alert.dataset.kind = a[0];
+      setP(els.alert, "hidden", false);
+      setD(els.alert, "kind", a[0]);
       setT(els.alert, a[1]);
-    } else els.alert.hidden = true;
-    if (!els.radio.hidden && now > radioUntil) els.radio.hidden = true;
-    els.hint.hidden = !(LOOKR[pane] && now < hintUntil);
+    } else setP(els.alert, "hidden", true);
+    if (!els.radio.hidden && now > radioUntil) setP(els.radio, "hidden", true);
+    setP(els.hint, "hidden", !(LOOKR[pane] && now < hintUntil));
   }
+  // DOM nur bei echter Änderung anfassen: sonst rechnet der Browser jedes Bild Stile neu (iOS: Scrollen und Tippen auf dem Startbild geraten aus dem Takt)
+  const setD = (e, k, v) => {
+      v = String(v);
+      if (e.dataset[k] !== v) e.dataset[k] = v;
+    },
+    setP = (e, k, v) => {
+      if (e[k] !== v) e[k] = v;
+    };
   function updateUI(now) {
     if (isRail() || (RS && (phase === "train" || phase === "over"))) {
       updateRailUI(now);
@@ -6261,24 +6281,24 @@ input {
       $("roDepthSub"),
       (ENV.tide === "ebbe" ? "Ebbe" : "Flut") + " · Pegel " + fmt1(waterLevel(S.t)) + " m",
     );
-    els.depthBox.dataset.state = S.ukc < 0 ? "crit" : S.ukc < 0.8 ? "warn" : "";
+    setD(els.depthBox, "state", S.ukc < 0 ? "crit" : S.ukc < 0.8 ? "warn" : "");
     const left = Math.ceil((T_LATEST - S.t) / 60);
     setT($("roTrainLbl"), RT().conn1);
     setT($("roTrainSub"), "anlegen bis " + fmtTime(T_LATEST));
     if (phase === "docked" || phase === "train") {
       setT(els.train, "fest");
-      els.trainBox.dataset.state = "";
+      setD(els.trainBox, "state", "");
     } else {
       setT(els.train, left > 0 ? left + " min" : "zu spät");
-      els.trainBox.dataset.state = left <= 0 ? "crit" : left <= 5 ? "warn" : "";
+      setD(els.trainBox, "state", left <= 0 ? "crit" : left <= 5 ? "warn" : "");
     }
     if (phase === "run" && S.moored) {
       setT(els.dock, S.releaseT > 0 ? "Hebt an …" : "Rampe hoch");
-      els.dock.disabled = S.releaseT > 0;
+      setP(els.dock, "disabled", S.releaseT > 0);
       els.dock.classList.toggle("ready", !(S.releaseT > 0));
     } else {
       setT(els.dock, "Festmachen");
-      els.dock.disabled = !(phase === "run" && S.canDock);
+      setP(els.dock, "disabled", !(phase === "run" && S.canDock));
       els.dock.classList.toggle("ready", phase === "run" && S.canDock);
     }
     let a = null;
@@ -6311,12 +6331,12 @@ input {
         a = ["warn", "Vor dem Bug ist die Kaje: Fahrhebel nach unten, rückwärts ablegen"];
     }
     if (a) {
-      els.alert.hidden = false;
-      els.alert.dataset.kind = a[0];
+      setP(els.alert, "hidden", false);
+      setD(els.alert, "kind", a[0]);
       setT(els.alert, a[1]);
-    } else els.alert.hidden = true;
-    if (!els.radio.hidden && now > radioUntil) els.radio.hidden = true;
-    els.hint.hidden = !((pane === "bruecke" || pane === "nock") && now < hintUntil);
+    } else setP(els.alert, "hidden", true);
+    if (!els.radio.hidden && now > radioUntil) setP(els.radio, "hidden", true);
+    setP(els.hint, "hidden", !((pane === "bruecke" || pane === "nock") && now < hintUntil));
   }
 
   // ---------- 3D ----------
