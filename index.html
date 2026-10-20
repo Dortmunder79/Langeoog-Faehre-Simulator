@@ -1759,7 +1759,7 @@ input {
         </li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">Version 20.10.2026 a · Kids-Autopilot Bensersiel ohne Yachthafen</p>
+      <p class="ver">Version 20.10.2026 b · Ostkaje Bensersiel, gerader Kurs nach Langeoog</p>
       <p class="ver">Bahngeräusche: Aufnahmen von www.hoerspielbox.de</p>
     </div>
   </div>
@@ -1911,17 +1911,17 @@ input {
   const tsLabel = (v) => (v === 2 ? "Real" : v + "×");
 
   // ---------- Welt: x Ost, y Nord, Meter ----------
+  // Kurs nach Seekarte: Außentief zwischen den Steindämmen, dahinter ein kurzer Schlenker um eine Untiefe (mit Pricken), dann fast geradeaus nach Langeoog
   const P = [
     [-6, 8, 22],
     [-40, 60, 45],
     [-25, 140, 45],
     [-28, 450, 45],
     [-28, 3150, 46],
-    [-700, 3700, 65],
-    [-1800, 4100, 65],
-    [-3000, 4300, 65],
-    [-3900, 4550, 65],
-    [-4500, 4850, 65],
+    [-150, 3320, 50],
+    [-330, 3470, 55],
+    [-2600, 4260, 65],
+    [-4700, 4980, 62],
     [-5000, 5100, 55],
     [-5150, 5260, 50],
     [-5268, 5420, 40],
@@ -1987,6 +1987,7 @@ input {
     { x: -900, y: 2600, rx: 300, rz: 100, rot: 95 },
     { x: 700, y: 1200, rx: 200, rz: 70, rot: 60 },
   ].filter((sd) => project(sd.x, sd.y).s < WATT_CUT - 150);
+  SANDS.push({ x: -40, y: 3530, rx: 115, rz: 45, rot: 38 }); // Untiefe hinter den Steindämmen, um die das Fahrwasser einen kurzen Schlenker macht
   function sandF(x, y, sd) {
     const c = Math.cos(sd.rot * RAD),
       s = Math.sin(sd.rot * RAD);
@@ -2342,7 +2343,7 @@ input {
 
   // Fahrwassermarkierung mit Pricken: dünne, astlose Stämme beidseits der Rinne
   const BUOYS = [];
-  const PRICK_END = 3550;
+  const PRICK_END = 3700;
   for (let s = 520; s < PRICK_END; s += 60) {
     const p = pointAt(s);
     const o = Math.max(14, p.hw - 3);
@@ -15696,7 +15697,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       flat(77, 14, PAVE, 23.5, -7);
       flat(110, 60, COB, 41, -66);
       flat(190, 150, ASPH, 170, -150);
-      flat(60, 250, ASPH, 95, 140, ISL_TOP + 0.02);
+      flat(62, 46, ASPH, 86, 30, ISL_TOP + 0.02);
       // Gepäckwagen, Zugmaschine, Getränke-Lkw, Kiosk, Bauzäune
       [
         [53, -6.5, 0xe8c21c],
@@ -15918,8 +15919,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         // Wohnwagen-Anhänger „buss“ und orange Mulde am Westende
         {
           const g = new T.Group();
-          g.position.set(-24, ISL_TOP, -(-6));
-          g.rotation.y = 0.15;
+          g.position.set(41, ISL_TOP, -30);
+          g.rotation.y = Math.PI / 2;
           scene.add(g);
           const bm = signM("buss", 150, "#ffffff");
           mesh(new T.BoxGeometry(8, 3, 2.5), std(0xc0222c, { roughness: 0.5 }), g, 0, 2.2, 0);
@@ -15941,9 +15942,9 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
             new T.CylinderGeometry(1.6, 1.2, 1.3, 4, 1),
             std(0xe2702a, { roughness: 0.6 }),
             null,
-            -22,
+            45.5,
             ISL_TOP + 0.65,
-            -(-1.5),
+            -17,
           );
           sk.rotation.y = Math.PI / 4;
           sk.scale.set(1.8, 1, 1);
@@ -16377,10 +16378,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         const pts = [
           [-10, -2],
           [30, -2],
-          [44, 30],
-          [44, 90],
-          [44, 160],
-          [44, 230],
+          [60, 28],
+          [100, 28],
           [-5, -46],
           [40, -46],
           [80, -100],
@@ -16420,7 +16419,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         const R11 = rng(91);
         for (let x = 90; x <= 250; x += 3.2)
           for (const n of [-90, -110, -140, -160, -190]) if (R11() < 0.72) cars.push([x, n]);
-        for (let n = 40; n <= 250; n += 3.2) if (R11() < 0.6) cars.push([80, n, 1]);
+        for (let x = 60; x <= 112; x += 2.8)
+          for (const n of [12, 20, 36, 44]) if (R11() < 0.78) cars.push([x, n, 1]);
         const CC = [
           0xa02a22, 0xb9b6ae, 0x2b4f86, 0x222222, 0xe2e2e0, 0x55606a, 0x6b7a3a, 0x8a8f96, 0xf2f2f0, 0x1f3550,
         ];
@@ -17990,33 +17990,58 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         house(-160, -72, 12, 9, 4, 4, BRICKY, ROOFR, 0, ISL_TOP);
         house(-185, -70, 10, 9, 4, 4, BRICK, ROOFD, 0, ISL_TOP);
         house(-210, -74, 14, 10, 4.5, 4, BRICK, ROOFR, 0, ISL_TOP);
-        {
-          const g = new T.Group();
-          mesh(tbox(8, 3, 5, 1), std(0x2f6fb5, { roughness: 0.5 }), g, 0, 1.5, 0);
-          mesh(new T.BoxGeometry(8.6, 0.3, 6), std(0xf2f2f2), g, 0, 3.15, 0.3);
-          const s = mesh(new T.PlaneGeometry(6, 0.7), signM("FISCHBRÖTCHEN", 96, "#ffffff"), g, 0, 2.5, 2.52);
-          g.position.set(34, ISL_TOP, -255);
-          g.rotation.y = -Math.PI / 2;
-          scene.add(g);
-        }
-        truck(40, 40, 0, 0x1d4f9a, "GETRÄNKE");
-        truck(46, 80, 0, 0xd8d8d4, "INSELVERSORGUNG");
-        truck(40, 130, Math.PI, 0xb83a2c, "");
-        stack(36, 170, [0x2f7a3e, 0x3a8547, 0x2c5f9a, 0xb05a2a, 0x3a8547], Math.PI / 2);
-        stack(48, 200, [0x6a6f72, 0x2f7a3e, 0xd2c08a], Math.PI / 2);
-        pallets(30, 230, 14);
         pallets(-10, -46, 10);
+        pallets(33, 22, 6);
+        // Ostkaje nach Luftbild: hinter dem Parkplatz ein kleiner Abstellplatz, dann der Fußweg auf der Kaje Richtung Fahrrinne, dahinter raue Wiese mit Büschen unterschiedlicher Höhe
         {
-          const g = new T.Group();
-          const Y = std(0xe8b81c, { roughness: 0.5, metalness: 0.3 });
-          mesh(new T.BoxGeometry(3, 2, 6), Y, g, 0, 1.4, 0);
-          mesh(new T.BoxGeometry(0.6, 14, 0.6), Y, g, 0, 9, -1);
-          const jib = mesh(new T.BoxGeometry(0.5, 0.5, 16), Y, g, 0, 15.5, -7);
-          jib.rotation.x = 0.35;
-          mesh(new T.CylinderGeometry(0.03, 0.03, 9, 4), std(0x222222), g, 0, 10, -14);
-          g.position.set(42, ISL_TOP, -110);
-          g.rotation.y = -0.4;
-          scene.add(g);
+          flat(17, 24, PAVE, 39.5, 25, ISL_TOP + 0.03);
+          flat(3.2, 292, std(0xb9b4a8, { roughness: 0.95 }), 30.4, 184, ISL_TOP + 0.05);
+          flat(110, 285, std(0x8f8a5c, { map: TX.detail, roughness: 1 }), 88, 192, ISL_TOP + 0.015);
+          const R = rng(4711),
+            bs = [];
+          for (let i = 0; i < 260; i++) {
+            const n = 46 + R() * 290,
+              x = 35 + Math.pow(R(), 0.8) * 105;
+            if (x < 38 && R() < 0.6) continue;
+            const big = R() < 0.22;
+            bs.push([x, n, big ? 2.6 + R() * 2.2 : 0.7 + R() * 1.5]);
+          }
+          for (let k = 0; k < 14; k++) {
+            const cx = 45 + R() * 80,
+              cn = 60 + R() * 260;
+            for (let j = 0; j < 8; j++)
+              bs.push([cx + (R() - 0.5) * 14, cn + (R() - 0.5) * 14, 1.4 + R() * 2.4]);
+          }
+          const ic = new T.InstancedMesh(
+            new T.IcosahedronGeometry(1, 1),
+            std(0xffffff, { roughness: 1, flatShading: true }),
+            bs.length,
+          );
+          const o = new T.Object3D(),
+            col = new T.Color();
+          bs.forEach((b, i) => {
+            o.position.set(b[0], ISL_TOP + b[2] * 0.55, -b[1]);
+            o.scale.set(b[2] * (1.1 + R() * 0.5), b[2] * (0.75 + R() * 0.3), b[2] * (1.1 + R() * 0.5));
+            o.rotation.y = R() * 6;
+            o.updateMatrix();
+            ic.setMatrixAt(i, o.matrix);
+            col
+              .set(["#3f5a2c", "#4a6633", "#56703a", "#5f6e3e", "#6b6a3f", "#3a4f2a"][(R() * 6) | 0])
+              .convertSRGBToLinear();
+            ic.setColorAt(i, col);
+          });
+          ic.castShadow = true;
+          ic.receiveShadow = true;
+          scene.add(ic);
+          const BN = std(0x6a5a46, { roughness: 0.9 });
+          [
+            [33.5, 70],
+            [33.5, 150],
+            [33.5, 230],
+          ].forEach(([x, n]) => {
+            mesh(new T.BoxGeometry(0.5, 0.08, 1.8), BN, null, x, ISL_TOP + 0.45, -n);
+            mesh(new T.BoxGeometry(0.08, 0.45, 1.8), BN, null, x + 0.25, ISL_TOP + 0.7, -n);
+          });
         }
         ecart(-2, -48, 0.3, 0xffffff);
         bikes(150, 10, 8, 0);
@@ -18028,8 +18053,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           ...scatter(4, 15, -8.8, -1.5, 10, 17),
           ...scatter(0, 50, -60, -42, 22, 12),
           ...scatter(130, 160, 0, 30, 14, 13),
-          ...scatter(29, 40, 235, 270, 10, 14),
-          ...scatter(28, 40, 20, 120, 8, 15),
+          ...scatter(29.2, 31.6, 48, 320, 9, 14),
         ]);
         treesAt([
           ...scatter(140, 250, -60, -30, 10, 21),
