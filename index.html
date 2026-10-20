@@ -1762,7 +1762,7 @@ input {
         </li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">Version 20.10.2026 h · Startbild ohne festes Overlay (Tippen genau)</p>
+      <p class="ver">Version 20.10.2026 i · Ton nach Durchsagen wieder da, Außenstand ohne Holz von innen</p>
       <p class="ver">
         Bahngeräusche: Aufnahmen von www.hoerspielbox.de · Funkrauschen: freesound_community (Pixabay)
       </p>
@@ -5084,40 +5084,38 @@ input {
         if (actx.state !== "running" && actx.state !== "closed" && !speaking()) setTimeout(audioWake, 250);
       };
     }
-    // iOS 17+ kennt navigator.audioSession: dann reicht der Wiedergabe-Modus, das stille Hilfs-Audio (dessen Neustart nach jeder Durchsage ruckelt) entfällt
-    if (!navigator.audioSession)
-      try {
-        if (!SIL) {
-          const sr = 8000,
-            n = sr / 2,
-            b = new ArrayBuffer(44 + n),
-            v = new DataView(b);
-          const w = (o, t) => {
-            for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i));
-          };
-          w(0, "RIFF");
-          v.setUint32(4, 36 + n, true);
-          w(8, "WAVEfmt ");
-          v.setUint32(16, 16, true);
-          v.setUint16(20, 1, true);
-          v.setUint16(22, 1, true);
-          v.setUint32(24, sr, true);
-          v.setUint32(28, sr, true);
-          v.setUint16(32, 1, true);
-          v.setUint16(34, 8, true);
-          w(36, "data");
-          v.setUint32(40, n, true);
-          for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
-          SIL = new Audio(URL.createObjectURL(new Blob([b], { type: "audio/wav" })));
-          SIL.loop = true;
-          SIL.setAttribute("playsinline", "");
-          SIL.volume = 0.01;
-        }
-        if (!SIL.started) {
-          SIL.started = true;
-          silPlay();
-        }
-      } catch (e) {}
+    try {
+      if (!SIL) {
+        const sr = 8000,
+          n = sr / 2,
+          b = new ArrayBuffer(44 + n),
+          v = new DataView(b);
+        const w = (o, t) => {
+          for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i));
+        };
+        w(0, "RIFF");
+        v.setUint32(4, 36 + n, true);
+        w(8, "WAVEfmt ");
+        v.setUint32(16, 16, true);
+        v.setUint16(20, 1, true);
+        v.setUint16(22, 1, true);
+        v.setUint32(24, sr, true);
+        v.setUint32(28, sr, true);
+        v.setUint16(32, 1, true);
+        v.setUint16(34, 8, true);
+        w(36, "data");
+        v.setUint32(40, n, true);
+        for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+        SIL = new Audio(URL.createObjectURL(new Blob([b], { type: "audio/wav" })));
+        SIL.loop = true;
+        SIL.setAttribute("playsinline", "");
+        SIL.volume = 0.01;
+      }
+      if (!SIL.started) {
+        SIL.started = true;
+        silPlay();
+      }
+    } catch (e) {}
     if (actx.state !== "running" && !speaking()) ctxResume();
     return actx;
   }
@@ -5129,7 +5127,7 @@ input {
     if (!actx || RESUMING || actx.state === "running" || actx.state === "closed") return;
     const n = performance.now();
     if (n < RES_T) return;
-    RES_T = n + 1200;
+    RES_T = n + 500;
     RESUMING = true;
     const done = () => {
       RESUMING = false;
@@ -14781,8 +14779,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       FYC = FY0 + FH / 2;
     ib(IW, FY0 - 7.42, 0.1, BEIGE, 0, 7.42, 14.96);
     ib(IW, 0.06, 0.5, WOODL, 0, FY0 - 0.04, 14.78, 0.8);
-    ib(IW + 0.1, BCEIL - (FY0 + FH), 0.32, WOODL, 0, FY0 + FH, 14.95, 0.8);
-    [-(HW - 0.08), HW - 0.08].forEach((x) => ib(0.2, FH, 0.26, WOODL, x, FY0, 14.95, 0.8));
+    ib(IW - 0.06, BCEIL - (FY0 + FH), 0.32, WOODL, 0, FY0 + FH, 14.95, 0.8);
+    [-(HW - 0.13), HW - 0.13].forEach((x) => ib(0.2, FH, 0.26, WOODL, x, FY0, 14.95, 0.8));
     [-1.12, 1.12].forEach((x) => ib(0.12, FH, 0.26, WOODL, x, FY0, 14.95, 0.8));
     const FP = [
       [-2.2, 2.04],
@@ -14895,13 +14893,13 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         [8.0, DS0],
         [DS1, 15.0],
       ].forEach(([a, b]) =>
-        ib(0.3, BCEIL - (FY0 + FH), b - a, WOODL, sd * (HW - 0.1), FY0 + FH, (a + b) / 2, 0.8),
+        ib(0.26, BCEIL - (FY0 + FH), b - a, WOODL, sd * (HW - 0.16), FY0 + FH, (a + b) / 2, 0.8),
       );
       [
         [12.63, DS0],
         [DS1, 14.75],
       ].forEach(([a, b]) => ib(0.1, FH, b - a, BEIGE, xw, FY0, (a + b) / 2));
-      [14.86, 12.52, 10.2].forEach((s) => ib(0.24, FH, 0.22, WOODL, sd * (HW - 0.05), FY0, s, 0.8));
+      [14.86, 12.52, 10.2].forEach((s) => ib(0.2, FH, 0.22, WOODL, sd * (HW - 0.13), FY0, s, 0.8));
       inPanes.push(pane(2.1, FH, sd * HW, FYC, 11.36, Math.PI / 2));
       ib(0.1, FH, 2.1, BEIGE, sd * (HW - 0.04), FY0, 9.1);
       ib(0.08, 2.05, 0.95, DOORW, sd * (HW - 0.12), 7.45, 9.15);
@@ -15204,10 +15202,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           wingBow.push(pv);
         }
       }
-      // Rohr, Ventilgriff, Suchscheinwerfer
-      mesh(new T.CylinderGeometry(0.035, 0.035, 1.15, 8), REDP, tilt, X(HW + 0.3), 8.02, -14.7);
-      mesh(new T.BoxGeometry(0.3, 0.03, 0.03), STEEL, tilt, X(HW + 0.85), 8.35, -14.8);
-      mesh(new T.CylinderGeometry(0.015, 0.015, 0.3, 6), STEEL, tilt, X(HW + 0.85), 8.2, -14.8);
+      // Suchscheinwerfer
       {
         const g = new T.Group();
         mesh(
