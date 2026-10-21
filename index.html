@@ -1762,7 +1762,9 @@ input {
         </li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">Version 21.10.2026 b · Hoher Bahnsteig am Hafen, Lok-Tür in der Filmszene</p>
+      <p class="ver">
+        Version 21.10.2026 d · Musik in Filmszenen auf dem iPhone, klare Lok-Scheiben, ruhige Außenkamera
+      </p>
       <p class="ver">
         Bahngeräusche: Aufnahmen von www.hoerspielbox.de · Funkrauschen: freesound_community (Pixabay) ·
         Musik: „Golden Sea“ von good_b_music (Pixabay)
@@ -2511,7 +2513,8 @@ input {
   // Sprachwarteschlange: Funksprüche nacheinander, jeweils mit Rauschen davor und danach
   const SPQ = [];
   let spBusy = false,
-    spGen = 0;
+    spGen = 0,
+    CUR_U = null; // CUR_U: laufenden Spruch festhalten (Safari räumt ihn sonst weg, onend kommt nie)
   function speechStop() {
     SPK_D = 0;
     spGen++;
@@ -2581,8 +2584,50 @@ input {
           finish();
         };
         SPK_D = performance.now() + 3000 + it.txt.length * 110;
-        speechSynthesis.speak(u);
-        setTimeout(finish, 2500 + it.txt.length * 95);
+        CUR_U = u;
+        let started = false;
+        u.onstart = () => {
+          started = true;
+        };
+        // iOS: hängende Sprachausgabe lösen, sonst verschluckt sie den nächsten Spruch
+        try {
+          if (speechSynthesis.paused) speechSynthesis.resume();
+        } catch (e) {}
+        const say = () => {
+          try {
+            speechSynthesis.speak(u);
+          } catch (e) {
+            finish();
+          }
+        };
+        if (speechSynthesis.speaking || speechSynthesis.pending) {
+          try {
+            speechSynthesis.cancel();
+          } catch (e) {}
+          setTimeout(say, 150);
+        } else say();
+        // startet sie nicht binnen 1,8 s, einmal neu anstoßen
+        setTimeout(() => {
+          if (started || finished || gen !== spGen) return;
+          try {
+            speechSynthesis.cancel();
+          } catch (e) {}
+          setTimeout(() => {
+            if (finished || gen !== spGen) return;
+            const u2 = new SpeechSynthesisUtterance(u.text);
+            u2.lang = u.lang;
+            u2.voice = u.voice;
+            u2.pitch = u.pitch;
+            u2.rate = u.rate;
+            u2.onend = u.onend;
+            u2.onerror = u.onerror;
+            CUR_U = u2;
+            try {
+              speechSynthesis.speak(u2);
+            } catch (e) {}
+          }, 150);
+        }, 1800);
+        setTimeout(finish, 4300 + it.txt.length * 95);
       } catch (e) {
         finish();
       }
@@ -3938,6 +3983,11 @@ input {
       done();
       return;
     }
+    // Filmszene startet per Fingertipp: laufende Ansage beenden (sie hält auf dem iPhone den Ton an), Ton sofort wieder anwerfen, dann Musik
+    speechStop();
+    RES_T = 0;
+    mkCtx();
+    musicPlay(0.34, 2.5);
     phase = "cut";
     CS = { kind, done, t: 0, shot: 0, st: 0, shots: buildShots(kind), fade: 0, legPh: 0, morphed: false };
     for (const id of ["docked", "train", "railArr"]) $(id).hidden = true;
@@ -3953,6 +4003,7 @@ input {
     const d = CS.done;
     CS = null;
     lokDoor(0);
+    musicFade(2.0);
     document.querySelector(".app").classList.remove("cut");
     $("cutUI").hidden = true;
     $("cutFade").style.opacity = 0;
@@ -5180,35 +5231,59 @@ input {
   // ---------- Musik im Startbild (Golden Sea, good_b_music via Pixabay): startet mit der ersten Berührung, blendet bei „Leinen los“ aus ----------
   const MUSIC_SRC = "musik.mp3";
   let MUS = null;
-  function musicStart() {
-    if (phase !== "intro" || !soundOn || (MUS && MUS.on)) return;
+  function musicMk() {
+    if (MUS || !actx) return;
+    const el = new Audio();
+    el.src = MUSIC_SRC;
+    el.loop = true;
+    el.preload = "auto";
+    el.setAttribute("playsinline", "");
+    const g = actx.createGain();
+    g.gain.value = 0;
+    actx.createMediaElementSource(el).connect(g);
+    g.connect(actx.destination);
+    MUS = { el, g, on: false, tm: 0 };
+  }
+  // Musik einblenden (Startbild, Filmszenen); vol = Ziellautstärke
+  function musicPlay(vol, fade) {
+    if (!soundOn || (MUS && MUS.on)) return;
     try {
       mkCtx();
       if (!actx) return;
-      if (!MUS) {
-        const el = new Audio();
-        el.src = MUSIC_SRC;
-        el.loop = true;
-        el.preload = "auto";
-        el.setAttribute("playsinline", "");
-        const g = actx.createGain();
-        g.gain.value = 0;
-        actx.createMediaElementSource(el).connect(g);
-        g.connect(actx.destination);
-        MUS = { el, g, on: false, tm: 0 };
-      }
+      musicMk();
       clearTimeout(MUS.tm);
       const t = actx.currentTime,
         gp = MUS.g.gain;
       gp.cancelScheduledValues(t);
       gp.setValueAtTime(gp.value, t);
-      gp.linearRampToValueAtTime(0.42, t + 2);
+      gp.linearRampToValueAtTime(vol, t + (fade || 2));
       MUS.on = true;
       const pr = MUS.el.play();
       if (pr && pr.catch)
         pr.catch(() => {
           MUS.on = false;
         });
+    } catch (e) {}
+  }
+  function musicStart() {
+    if (phase === "intro") musicPlay(0.42, 2);
+  }
+  // beim Tipp auf „Leinen los“ das Musik-Element freischalten (iOS spielt Medien sonst später ohne Fingertipp nicht ab)
+  function musicPrime() {
+    try {
+      mkCtx();
+      if (!actx) return;
+      musicMk();
+      if (MUS.on || !MUS.el.paused) return;
+      MUS.g.gain.setValueAtTime(0, actx.currentTime);
+      const pr = MUS.el.play();
+      if (pr && pr.then)
+        pr.then(
+          () => {
+            if (!MUS.on) MUS.el.pause();
+          },
+          () => {},
+        );
     } catch (e) {}
   }
   function musicFade(sec) {
@@ -6009,7 +6084,8 @@ input {
     updatePause();
   }
   $("startBtn").onclick = () => {
-    musicFade(2.5);
+    if (MUS && MUS.on) musicFade(2.5);
+    else musicPrime();
     audioInit();
     unlockSpeech();
     beginGame();
@@ -8110,7 +8186,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           H0,
           [
             { u: uf(cx + 0.47), v: 2.73 - fl, w: 1.12, h: 0.66, r: 0.08 },
-            { u: uf(cx - 0.72), v: H0 / 2 + 0.01, w: 0.84, h: 2.08, r: 0.015 },
+            { u: uf(cx - 0.715), v: H0 / 2 + 0.01, w: 0.79, h: 2.08, r: 0.015 },
           ],
           (h) => {
             h.position.set(cx, fl, sd * (zw + 0.03));
@@ -18839,8 +18915,15 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       pos = TR.coachIn.userData.eye;
     } else {
       const P = TRAINPOS;
-      const c = railPt(P.d - P.dir * TRAIN_LEN * 0.3);
-      const a = (c.h + ORBIT.yaw) * RAD,
+      const dc = P.d - P.dir * TRAIN_LEN * 0.3,
+        c = railPt(dc);
+      // Blickrichtung aus einer langen Sehne und geglättet: die Gleispolylinie knickt in Bögen alle paar Meter, sonst zittert die Kamera
+      const pa = railPt(dc + 15),
+        pb = railPt(dc - 15);
+      const hT = Math.atan2(pa.x - pb.x, pa.y - pb.y) / RAD;
+      if (g._rcH === undefined || Math.abs(((hT - g._rcH + 540) % 360) - 180) > 60) g._rcH = hT;
+      else g._rcH += (((hT - g._rcH + 540) % 360) - 180) * 0.08;
+      const a = (g._rcH + ORBIT.yaw) * RAD,
         cp = Math.cos(ORBIT.pitch);
       g.camC.position.set(
         c.x + Math.sin(a) * ORBIT.dist * cp,
