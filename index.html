@@ -1762,9 +1762,10 @@ input {
         </li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">Version 20.10.2026 i · Ton nach Durchsagen wieder da, Außenstand ohne Holz von innen</p>
+      <p class="ver">Version 21.10.2026 · Behäbigeres Ruder, Musik im Startbild</p>
       <p class="ver">
-        Bahngeräusche: Aufnahmen von www.hoerspielbox.de · Funkrauschen: freesound_community (Pixabay)
+        Bahngeräusche: Aufnahmen von www.hoerspielbox.de · Funkrauschen: freesound_community (Pixabay) ·
+        Musik: „Golden Sea“ von good_b_music (Pixabay)
       </p>
     </div>
   </div>
@@ -2666,11 +2667,12 @@ input {
     // Ruderwirkung aus Fahrt und Schraubenstrom: auch bei langsamer Fahrt dreht das Schiff mit etwas Maschine deutlich
     const vEff = Math.abs(st.u) + 8 * Math.max(st.eng, 0) + 3 * Math.max(-st.eng, 0),
       dir = st.u >= -0.2 ? 1 : -0.8;
-    let rT = K * 1.6 * (rud / 35) * vEff * dir;
-    rT = Math.max(-4.5, Math.min(4.5, rT)) * (grounded ? 0.3 : 1);
+    // behäbig wie ein 90-m-Schiff: höchstens gut 2°/s Drehrate, die sich über mehrere Sekunden aufbaut
+    let rT = K * 1.0 * (rud / 35) * vEff * dir;
+    rT = Math.max(-2.2, Math.min(2.2, rT)) * (grounded ? 0.3 : 1);
     const bEff = Math.max(0, 1 - Math.abs(st.u) / 3.2);
-    rT += bow * 3.5 * bEff;
-    st.r += (rT - st.r) * Math.min(1, dt / 3);
+    rT += bow * 3.2 * bEff;
+    st.r += (rT - st.r) * Math.min(1, dt / 6);
     st.h = (st.h + st.r * dt + 360) % 360;
     const hr = st.h * RAD;
     const lat = bow * 0.6 * bEff;
@@ -5156,6 +5158,69 @@ input {
     ctxResume();
     if (phase === "run" || isRail()) silPlay();
   }
+  // ---------- Musik im Startbild (Golden Sea, good_b_music via Pixabay): startet mit der ersten Berührung, blendet bei „Leinen los“ aus ----------
+  const MUSIC_SRC = "musik.mp3";
+  let MUS = null;
+  function musicStart() {
+    if (phase !== "intro" || !soundOn || (MUS && MUS.on)) return;
+    try {
+      mkCtx();
+      if (!actx) return;
+      if (!MUS) {
+        const el = new Audio();
+        el.src = MUSIC_SRC;
+        el.loop = true;
+        el.preload = "auto";
+        el.setAttribute("playsinline", "");
+        const g = actx.createGain();
+        g.gain.value = 0;
+        actx.createMediaElementSource(el).connect(g);
+        g.connect(actx.destination);
+        MUS = { el, g, on: false, tm: 0 };
+      }
+      clearTimeout(MUS.tm);
+      const t = actx.currentTime,
+        gp = MUS.g.gain;
+      gp.cancelScheduledValues(t);
+      gp.setValueAtTime(gp.value, t);
+      gp.linearRampToValueAtTime(0.42, t + 2);
+      MUS.on = true;
+      const pr = MUS.el.play();
+      if (pr && pr.catch)
+        pr.catch(() => {
+          MUS.on = false;
+        });
+    } catch (e) {}
+  }
+  function musicFade(sec) {
+    if (!MUS || !MUS.on) return;
+    MUS.on = false;
+    sec = sec || 2.5;
+    try {
+      const t = actx.currentTime,
+        gp = MUS.g.gain;
+      gp.cancelScheduledValues(t);
+      gp.setValueAtTime(gp.value, t);
+      gp.linearRampToValueAtTime(0, t + sec);
+    } catch (e) {}
+    clearTimeout(MUS.tm);
+    MUS.tm = setTimeout(
+      () => {
+        if (!MUS.on) MUS.el.pause();
+      },
+      sec * 1000 + 300,
+    );
+  }
+  ["pointerup", "touchend", "click"].forEach((ev) =>
+    $("intro").addEventListener(
+      ev,
+      (e) => {
+        if (e.target && e.target.closest && e.target.closest("#startBtn")) return;
+        musicStart();
+      },
+      { passive: true },
+    ),
+  );
   ["pointerdown", "touchend", "keydown"].forEach((ev) =>
     document.addEventListener(
       ev,
@@ -5925,6 +5990,7 @@ input {
     updatePause();
   }
   $("startBtn").onclick = () => {
+    musicFade(2.5);
     audioInit();
     unlockSpeech();
     beginGame();
