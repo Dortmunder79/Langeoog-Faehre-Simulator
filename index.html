@@ -1763,7 +1763,7 @@ input {
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
       <p class="ver">
-        Version 21.10.2026 d · Musik in Filmszenen auf dem iPhone, klare Lok-Scheiben, ruhige Außenkamera
+        Version 21.10.2026 e · Kids-Autopilot nutzt die ganze Rinne, Ruder ruhiger, weniger Tonnen
       </p>
       <p class="ver">
         Bahngeräusche: Aufnahmen von www.hoerspielbox.de · Funkrauschen: freesound_community (Pixabay) ·
@@ -2358,7 +2358,7 @@ input {
     BUOYS.push({ x: p.x + p.ty * o, y: p.y - p.tx * o, c: "g", k: "p", ph: Math.random() * 6 });
     BUOYS.push({ x: p.x - p.ty * o, y: p.y + p.tx * o, c: "r", k: "p", ph: Math.random() * 6 });
   }
-  for (let s = PRICK_END + 300, i = 0; s < L - 500; s += 950, i++) {
+  for (let s = PRICK_END + 300, i = 0; s < L - 500; s += 1900, i++) {
     const p = pointAt(s);
     const o = p.hw + 4;
     BUOYS.push({
@@ -2712,12 +2712,12 @@ input {
     // Ruderwirkung aus Fahrt und Schraubenstrom: auch bei langsamer Fahrt dreht das Schiff mit etwas Maschine deutlich
     const vEff = Math.abs(st.u) + 8 * Math.max(st.eng, 0) + 3 * Math.max(-st.eng, 0),
       dir = st.u >= -0.2 ? 1 : -0.8;
-    // behäbig wie ein 90-m-Schiff: höchstens gut 2°/s Drehrate, die sich über mehrere Sekunden aufbaut
-    let rT = K * 1.0 * (rud / 35) * vEff * dir;
-    rT = Math.max(-2.2, Math.min(2.2, rT)) * (grounded ? 0.3 : 1);
+    // behäbig wie ein 90-m-Schiff: höchstens 1,6°/s Drehrate, die sich über viele Sekunden aufbaut
+    let rT = K * 0.75 * (rud / 35) * vEff * dir;
+    rT = Math.max(-1.6, Math.min(1.6, rT)) * (grounded ? 0.3 : 1);
     const bEff = Math.max(0, 1 - Math.abs(st.u) / 3.2);
     rT += bow * 3.2 * bEff;
-    st.r += (rT - st.r) * Math.min(1, dt / 6);
+    st.r += (rT - st.r) * Math.min(1, dt / 8);
     st.h = (st.h + st.r * dt + 360) % 360;
     const hr = st.h * RAD;
     const lat = bow * 0.6 * bEff;
@@ -2937,10 +2937,16 @@ input {
     }
   }
   // Führung in der Fahrrinne: am Rand lenkt der Autopilot sanft zurück, Wenden gegen die Fahrtrichtung wird verhindert
+  // Kids-Modus: freie Fahrt in der ganzen Rinne von Tonnenreihe zu Tonnenreihe; der Autopilot greift erst kurz vor dem Rand ein
+  const kidsLim = (pr, h) => {
+    const hr = h * RAD;
+    const sx = Math.abs(Math.sin(hr) * pr.ty - Math.cos(hr) * pr.tx);
+    return Math.max(6, pr.hw * 0.9 - 8 - 29 * sx);
+  }; // schräg liegendes Schiff ragt mit Bug und Heck weiter zur Seite
   function kidsRudder(rud) {
     const pr = project(S.x, S.y);
     const dir = ENV.dir === "LB" ? -1 : 1;
-    const lim = Math.max(6, pr.hw * 0.45);
+    const lim = kidsLim(pr, S.h);
     const tp = pointAt(S.s + dir * 140);
     const th = Math.atan2(tp.x - S.x, tp.y - S.y) / RAD;
     const e = ((th - S.h + 540) % 360) - 180;
@@ -2949,7 +2955,14 @@ input {
       const t = Math.max(0, Math.min(1, (v - a) / (b - a)));
       return t * t * (3 - 2 * t);
     };
-    const w = Math.max(ss(lim * 0.45, lim, Math.abs(pr.lat)), ss(45, 85, Math.abs(e)));
+    const w = Math.max(
+      ss(lim * 0.72, lim, Math.abs(pr.lat)) *
+        (Math.sign(pr.lat) === Math.sign(pr.lat - (S.lastLat || pr.lat)) || Math.abs(pr.lat) > lim * 0.9
+          ? 1
+          : 0.4),
+      ss(45, 85, Math.abs(e)),
+    );
+    S.lastLat = pr.lat;
     S.kidsAssist = w > 0.15;
     return rud * (1 - w) + auto * w;
   }
@@ -3018,8 +3031,8 @@ input {
     if (kids) {
       const pz = project(S.nx, S.ny);
       if ((pz.s < HARB_A || pz.s > HARB_B) && S.u > LIMIT * 0.92) S.u = LIMIT * 0.92;
-      // feste Führung: nie weiter als 45 % der halben Rinnenbreite von der Mitte, Bug höchstens 35° von der Fahrtrichtung weg
-      const lim = Math.max(6, pz.hw * 0.45);
+      // feste Führung: nie über die Tonnen- bzw. Prickenreihe hinaus (Schiffsbreite eingerechnet), Bug höchstens 35° von der Fahrtrichtung weg
+      const lim = kidsLim(pz, S.h);
       if (Math.abs(pz.lat) > lim) {
         const ex = pz.lat - Math.sign(pz.lat) * lim;
         S.nx -= pz.ty * ex;
@@ -4949,7 +4962,7 @@ input {
     }
   }
   // Ruder: Regler gibt den Sollwinkel vor, die Rudermaschine dreht mit begrenzter Geschwindigkeit nach (Bugstrahl reagiert weiter sofort)
-  const RUD_RATE = 7; // Grad pro Sekunde
+  const RUD_RATE = 4; // Grad pro Sekunde
   function setRudder(v) {
     v = Math.max(-35, Math.min(35, Math.round(v)));
     if (v !== S.rudT) {
