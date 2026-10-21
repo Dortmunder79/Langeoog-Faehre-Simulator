@@ -1762,7 +1762,7 @@ input {
         </li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">Version 21.10.2026 · Behäbigeres Ruder, Musik im Startbild</p>
+      <p class="ver">Version 21.10.2026 b · Hoher Bahnsteig am Hafen, Lok-Tür in der Filmszene</p>
       <p class="ver">
         Bahngeräusche: Aufnahmen von www.hoerspielbox.de · Funkrauschen: freesound_community (Pixabay) ·
         Musik: „Golden Sea“ von good_b_music (Pixabay)
@@ -3952,6 +3952,7 @@ input {
     if (!CS) return;
     const d = CS.done;
     CS = null;
+    lokDoor(0);
     document.querySelector(".app").classList.remove("cut");
     $("cutUI").hidden = true;
     $("cutFade").style.opacity = 0;
@@ -3992,6 +3993,16 @@ input {
     const f = Math.max(0, Math.min(1, (d - sh.cum[i - 1]) / (sh.cum[i] - sh.cum[i - 1] || 1)));
     return { p: a.clone().lerp(b, f), dir: Math.atan2(b.x - a.x, b.z - a.z) };
   }
+  // Lok-Tür zum Bahnsteig öffnen (k = 0 zu, 1 offen); die Tür schwingt nach innen
+  function lokDoor(k) {
+    const L = G && G.TRAIN && G.TRAIN.lokA;
+    if (!L || !L.userData.doors) return;
+    const side = TRAINPOS && TRAINPOS.dir > 0 ? -1 : 1;
+    const e = k * k * (3 - 2 * k);
+    L.userData.doors.forEach((d) => {
+      d.rotation.y = d.userData.door === side ? d.userData.door * e * 1.35 : 0;
+    });
+  }
   function stepCut(dt) {
     if (!CS) return;
     const sh = CS.shots[CS.shot];
@@ -4018,6 +4029,7 @@ input {
             : (CS.st - sh.wait) / walkT
         : CS.st / walkT;
     u = Math.min(1, u);
+    if (sh.door) lokDoor(sh.door(CS.st));
     const q = figAt(sh, u);
     f.g.position.copy(q.p);
     const moving = !(sh.waitAt !== undefined && CS.st >= sh.waitAt && CS.st < sh.waitAt + sh.wait) && u < 1;
@@ -4078,7 +4090,7 @@ input {
     const V = (x, y, n) => new G.T.Vector3(x, y, -n);
     const dy = tideDy(S.t);
     const Y0 = ISL_TOP,
-      YP = ISL_TOP + 0.6;
+      YP = ISL_TOP + HPL;
     // Lok-Tür am Bahnsteig aus der aktuellen Zugstellung
     placeTrain(G);
     G.TRAIN.lokA.updateMatrixWorld(true);
@@ -4096,8 +4108,8 @@ input {
       stairB = V(-5261.2, Y0, 5571.5),
       quay = V(-5270, Y0, 5585),
       platS = V(-5317, Y0, 5586),
-      platA = V(-5322.6, Y0, 5587.3),
-      platE = V(-5322.3, YP, 5590.5);
+      platA = V(-5322.4, Y0, 5586.8),
+      platE = V(-5322.4, YP, 5589.7);
     const lerpCam = (a, b) => (f, u) => ({
       pos: a.clone().lerp(b, u),
       look: f.clone().add(new G.T.Vector3(0, 1.1, 0)),
@@ -4140,8 +4152,11 @@ input {
         }),
       },
       {
-        dur: 3.6,
+        dur: 4.6,
         path: [doorOut, doorIn, cabIn],
+        waitAt: 0,
+        wait: 1.0,
+        door: (st) => Math.min(1, st / 0.9),
         fadeOut: 0.9,
         cap: "Einsteigen und los geht’s!",
         cam: (f, u) => ({ pos: V(-5324.0, 4.2, nD + 9), look: V(-5321, 2.2, nD) }),
@@ -4151,14 +4166,18 @@ input {
     // Rückweg: Lokführer steigt aus, geht zur Gangway, wird zum Kapitän und geht an Bord
     return [
       {
-        dur: 3.4,
+        dur: 4.6,
         path: [cabIn, doorIn, doorOut],
+        waitAt: 0,
+        wait: 1.2,
+        door: (st) => Math.min(1, Math.max(0, (st - 0.15) / 0.9)),
         cap: "Die Inselbahn ist am Hafen. Der Lokführer steigt aus …",
         cam: (f, u) => ({ pos: V(-5324.0, 4.4, nD + 10), look: V(-5321, 2.2, nD - 1) }),
       },
       {
         dur: 6.4,
         path: [doorOut, V(-5322.3, YP, nD - 4), platE, platA, platS],
+        door: (st) => 1 - Math.min(1, Math.max(0, (st - 1.0) / 1.2)),
         cap: "… geht über den Bahnsteig zur Fähre …",
         cam: (f, u) => ({
           pos: f.clone().add(new G.T.Vector3(1.1, 3.6, -8)),
@@ -6512,6 +6531,7 @@ input {
     return m;
   }
   const ISL_TOP = 1.6;
+  const HPL = 1.48; // Bahnsteig Hafen: Oberkante bündig mit dem Plattformboden der Wagen (Schienenoberkante + 1,07 m)
   // Gleis liegt zwischen den Bahnhöfen auf einem flachen Damm (0,5 m); in den Bahnhöfen ebenerdig
   function embW(d) {
     const ss = (a, b, v) => {
@@ -7564,14 +7584,14 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           cl,
           [
             { u: sd * 0.47, v: 2.73 - cb, w: 1.28, h: 0.8, r: 0.09 },
-            { u: sd * -0.69, v: 2.69 - cb, w: 0.58, h: 0.7, r: 0.08 },
+            { u: sd * -0.72, v: 1.11, w: 0.84, h: 2.16, r: 0.015 },
           ],
           sd > 0 ? CABW : CABW2,
           cx,
           sd * (cw / 2 - 0.04),
           sd > 0 ? 0 : Math.PI,
         ),
-      );
+      ); // Türöffnung: die Tür ist ein eigenes Teil
       // Dach leicht gewölbt mit Überstand
       mesh(roofGeo(cw + 0.34, 0.1, cl + 0.55, 0.08), RED, g, cx + 0.06, cb + ch + 0.02, 0);
       // Scheiben mit Alurahmen
@@ -7627,11 +7647,59 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       [-1, 1].forEach((sd) => {
         rwin(1.28, 0.8, 0.09, cx + 0.47, 2.73, sd * (cw / 2 + 0.012), sd > 0 ? 0 : Math.PI); // großes Seitenfenster vorn, senkrecht geteilt
         mesh(box(0.05, 0.8, 0.03), ALU, g, cx + 0.47, 2.73, sd * (cw / 2 + 0.03));
-        rwin(0.58, 0.7, 0.08, cx - 0.69, 2.69, sd * (cw / 2 + 0.012), sd > 0 ? 0 : Math.PI); // schmales Türfenster
-        // Tür hinten: Fugen, Griff, Griffstangen beidseits, Trittstufen
+        // Tür hinten als eigenes Teil, Scharnier an der hinteren Kante, geht nach innen auf (Filmszene); außen rot mit schmalem Fenster, innen cremefarben
+        {
+          const dw = 0.84,
+            dh = 2.16,
+            hx = cx - 1.14,
+            dg = new T.Group();
+          dg.position.set(hx, cb + 0.03, sd * (cw / 2 - 0.02));
+          dg.userData.live = true;
+          dg.userData.door = sd;
+          g.add(dg);
+          const leaf = (y0, y1) => {
+            const s = new T.Shape();
+            s.moveTo(0, y0);
+            s.lineTo(dw, y0);
+            s.lineTo(dw, y1);
+            s.lineTo(0, y1);
+            s.closePath();
+            s.holes.push(rrS(0.56, 0.68, 0.08, 0.45, 1.57));
+            return s;
+          };
+          const og = new T.ExtrudeGeometry(leaf(0, dh), {
+            depth: 0.035,
+            bevelEnabled: false,
+            curveSegments: 8,
+          });
+          og.translate(0, 0, sd > 0 ? -0.015 : -0.02);
+          const om = mesh(og, REDW, dg, 0, 0, 0);
+          const ig = new T.ExtrudeGeometry(leaf(0.02, 2.1), {
+            depth: 0.024,
+            bevelEnabled: false,
+            curveSegments: 8,
+          });
+          ig.translate(0, 0, sd > 0 ? -0.04 : 0.016);
+          mesh(ig, std(0xf0e5cc, { roughness: 0.72, emissive: 0x1c1912 }), dg, 0, 0, 0);
+          const gl = mesh(new T.ShapeGeometry(rrS(0.56, 0.68, 0.08, 0.45, 1.57), 8), LGL, dg, 0, 0, 0);
+          gl.renderOrder = 3;
+          const fr = rrS(0.66, 0.78, 0.12, 0.45, 1.57);
+          fr.holes.push(rrS(0.56, 0.68, 0.08, 0.45, 1.57));
+          const fg = new T.ExtrudeGeometry(fr, { depth: 0.03, bevelEnabled: false, curveSegments: 8 });
+          fg.translate(0, 0, sd > 0 ? 0.02 : -0.05);
+          mesh(fg, ALU, dg, 0, 0, 0);
+          mesh(box(0.16, 0.04, 0.05), CHROME, dg, 0.71, 2.16 - cb - 0.03, sd * 0.045);
+          mesh(
+            box(0.14, 0.03, 0.04),
+            std(0xa3a6a4, { roughness: 0.32, metalness: 0.65 }),
+            dg,
+            0.71,
+            1.0,
+            -sd * 0.06,
+          );
+        }
         const zo = sd * (cw / 2 + 0.006);
-        [cx - 1.14, cx - 0.3].forEach((x0) => mesh(box(0.025, 2.2, 0.01), BLACK, g, x0, 2.2, zo)); // Tür reicht bis unters Dach
-        mesh(box(0.16, 0.04, 0.05), CHROME, g, cx - 0.43, 2.16, sd * (cw / 2 + 0.03));
+        [cx - 1.155, cx - 0.285].forEach((x0) => mesh(box(0.025, 2.2, 0.01), BLACK, g, x0, 2.2, zo)); // Türfugen am Rahmen
         [cx - 1.2, cx - 0.24].forEach((x0) =>
           mesh(new T.CylinderGeometry(0.025, 0.025, 1.3, 6), BLACK, g, x0, 2.0, sd * (cw / 2 + 0.08)),
         );
@@ -8042,7 +8110,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           H0,
           [
             { u: uf(cx + 0.47), v: 2.73 - fl, w: 1.12, h: 0.66, r: 0.08 },
-            { u: uf(cx - 0.72), v: 2.69 - fl, w: 0.46, h: 0.58, r: 0.07 },
+            { u: uf(cx - 0.72), v: H0 / 2 + 0.01, w: 0.84, h: 2.08, r: 0.015 },
           ],
           (h) => {
             h.position.set(cx, fl, sd * (zw + 0.03));
@@ -8050,11 +8118,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           },
         );
         // Türfuge, Griff, Haltestange
-        const zi = sd * (zw - 0.005);
-        [cx - 1.13, cx - 0.31].forEach((x) => sm(box(0.012, H0 - 0.02, 0.01), DGR, null, x, fl + H0 / 2, zi)); // Türfuge passend zur Tür außen
-        sm(box(0.012, 0.012, 0.8), DGR, null, cx - 0.72, fl + H0 - 0.02, zi).rotation.y = Math.PI / 2;
         sm(box(0.05, 0.66, 0.06), RUB, null, cx + 0.47, 2.73, sd * (zw + 0.0)); // Mittelsteg im großen Seitenfenster
-        sm(box(0.14, 0.03, 0.04), MET, null, cx - 0.43, fl + 1.0, sd * (zw - 0.03));
         sm(new T.CylinderGeometry(0.016, 0.016, 0.9, 8), CHROME, null, cx - 0.2, fl + 1.35, sd * (zw - 0.06));
       });
       // Boden mit Riffelgummi, Decke gewölbt mit Leuchte, Sonnenblende
@@ -8727,13 +8791,24 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       return g;
     };
     // Fahrzeug zusammenfassen: Meshes mit gleichem Material werden zu einem Mesh verschmolzen (weniger Zeichenaufrufe)
-    K.bake = (grp) => {
+    K.bake = (grp, live) => {
       grp.updateMatrixWorld(true);
       const inv = new T.Matrix4().copy(grp.matrixWorld).invert();
       const by = new Map(),
         keep = [];
+      // live: Teile mit userData.live (z. B. Lok-Türen) bleiben beweglich und werden nicht verschmolzen
+      const liveObjs = [];
+      if (live)
+        grp.traverse((o) => {
+          if (o !== grp && o.userData && o.userData.live) liveObjs.push(o);
+        });
+      const isLive = (o) => {
+        for (let q = o; q && q !== grp; q = q.parent) if (liveObjs.includes(q)) return true;
+        return false;
+      };
       grp.traverse((o) => {
         if (!o.isMesh || o.isInstancedMesh) return;
+        if (liveObjs.length && isLive(o)) return;
         if (Array.isArray(o.material)) {
           keep.push(o);
           return;
@@ -8758,6 +8833,20 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         m.receiveShadow = true;
         out.add(m);
       });
+      liveObjs.forEach((o) => {
+        const m = new T.Matrix4().multiplyMatrices(inv, o.matrixWorld);
+        o.parent.remove(o);
+        m.decompose(o.position, o.quaternion, o.scale);
+        o.traverse((c) => {
+          if (c.isMesh) {
+            c.name = c.material.name || "";
+            c.castShadow = true;
+          }
+        });
+        out.add(o);
+      });
+      if (liveObjs.length)
+        out.userData = Object.assign({}, grp.userData, { doors: liveObjs.filter((o) => o.userData.door) });
       return out;
     };
     return K;
@@ -13794,7 +13883,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         scene.add(o);
         list.push({ o, len, kind });
       };
-      const lokA = IB.bake(IB.makeLoco());
+      const lokA = IB.bake(IB.makeLoco(), true);
       add(lokA, lokA.userData.len, "lok");
       const flat = IB.bake(IB.makeFlat());
       add(flat, flat.userData.len, "flat");
@@ -17569,52 +17658,27 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
             const PM = std(0xffffff, { map: bt, roughness: 0.55, metalness: 0.05 });
             const P0 = 0.8,
               P1 = 128,
-              yP = () => ISL_TOP + 0.6;
+              yP = () => ISL_TOP + HPL;
             ribbon(P0, P1, 1.45, 6.55, yP, PM, 2);
             const KM = std(0xb8b4ac, { roughness: 0.8 });
-            wallRibbon(P0, P1, 1.45, ISL_TOP, ISL_TOP + 0.6, KM);
-            wallRibbon(P0, P1, 6.55, ISL_TOP, ISL_TOP + 0.6, KM);
+            wallRibbon(P0, P1, 1.45, ISL_TOP, ISL_TOP + HPL, KM);
+            wallRibbon(P0, P1, 6.55, ISL_TOP, ISL_TOP + HPL, KM);
             const WL = std(0xf4f4f0, { roughness: 0.6 });
-            ribbon(P0, P1, 1.95, 2.1, () => ISL_TOP + 0.605, WL, 3);
-            ribbon(P0, P1, 5.9, 6.05, () => ISL_TOP + 0.605, WL, 3);
+            ribbon(P0, P1, 1.95, 2.1, () => ISL_TOP + HPL + 0.005, WL, 3);
+            ribbon(P0, P1, 5.9, 6.05, () => ISL_TOP + HPL + 0.005, WL, 3);
             {
               const p = railPt(P0);
               const x0 = p.x - p.ty * 4,
                 n0 = p.y + p.tx * 4;
-              mesh(new T.BoxGeometry(5.1, 0.6, 0.3), KM, null, x0, ISL_TOP + 0.3, -(n0 - 0.1));
+              mesh(new T.BoxGeometry(5.1, HPL, 0.3), KM, null, x0, ISL_TOP + HPL / 2, -(n0 - 0.1));
             }
-            // laut Foto kein durchgehendes Bahnsteigdach: Stationsschild auf zwei Pfosten
+            // laut Foto kein Bahnsteigdach und kein Stationsschild
             const POST = std(0x8f9497, { metalness: 0.5 });
-            {
-              const p = railPt(24);
-              const cx = p.x - p.ty * 4,
-                cn = p.y + p.tx * 4;
-              [-1.7, 1.7].forEach((l) =>
-                mesh(
-                  new T.CylinderGeometry(0.06, 0.06, 3.0, 6),
-                  POST,
-                  null,
-                  cx - p.ty * l,
-                  ISL_TOP + 0.6 + 1.5,
-                  -(cn + p.tx * l),
-                ),
-              );
-              const sg = mesh(
-                new T.PlaneGeometry(4, 0.6),
-                signM("LANGEOOG HAFEN", 80, "#1d2a33"),
-                null,
-                cx,
-                ISL_TOP + 3.25,
-                -cn,
-              );
-              sg.rotation.y = Math.atan2(p.ty, p.tx) + Math.PI / 2;
-              sg.material.side = T.DoubleSide;
-            }
             // Wartehäuschen etwa in Bahnsteigmitte (nach Foto): Glaskasten mit weißen Rahmen, blaue Stahlstützen, steiles Satteldach, Giebel mit Begrüßung
             {
               const p = railPt(63);
               const g = new T.Group();
-              g.position.set(p.x - p.ty * 4.25, ISL_TOP + 0.6, -(p.y + p.tx * 4.25));
+              g.position.set(p.x - p.ty * 4.25, ISL_TOP + HPL, -(p.y + p.tx * 4.25));
               g.rotation.y = Math.atan2(-p.tx, p.ty);
               scene.add(g);
               const BW = 2.7,
@@ -17792,7 +17856,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
                 );
                 return m;
               };
-              const y0 = ISL_TOP + 0.6;
+              const y0 = ISL_TOP + HPL;
               [
                 [1.9, 3.5],
                 [4.5, 6.1],
@@ -17802,27 +17866,51 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
                 tube(pAt(d, o1, y0 + 1.0), pAt(d, o2, y0 + 1.0), 0.03);
                 tube(pAt(d, o1, y0 + 0.55), pAt(d, o2, y0 + 0.55), 0.03);
               });
-              {
+              const stairs = (d, o, rot) => {
                 const g = new T.Group();
-                const q = pAt(P1 + 0.02, 4, ISL_TOP);
+                const q = pAt(d, o, ISL_TOP);
                 g.position.set(q[0], q[1], q[2]);
-                g.rotation.y = th;
+                g.rotation.y = rot;
                 scene.add(g);
-                for (let k = 0; k < 3; k++)
-                  mesh(new T.BoxGeometry(0.28, 0.03, 0.7), STL, g, 0.16 + k * 0.24, 0.45 - k * 0.18, 0);
+                const NS = 7,
+                  RS = HPL / NS,
+                  TR = 0.26;
+                for (let k = 0; k < NS - 1; k++)
+                  mesh(new T.BoxGeometry(0.3, 0.03, 0.7), STL, g, 0.16 + k * TR, HPL - (k + 1) * RS, 0);
+                const SL = Math.hypot(NS * TR, HPL),
+                  SA = Math.atan2(HPL, NS * TR);
                 [-0.37, 0.37].forEach((z) => {
-                  const st = mesh(new T.BoxGeometry(0.75, 0.04, 0.04), STL, g, 0.38, 0.32, z);
-                  st.rotation.z = -0.65;
-                  tube;
-                  const r = mesh(new T.CylinderGeometry(0.02, 0.02, 1.0, 6), STL, g, 0.05, 1.1, z);
+                  const st = mesh(new T.BoxGeometry(SL, 0.05, 0.04), STL, g, (NS * TR) / 2, HPL / 2, z);
+                  st.rotation.z = -SA;
+                  const hr = mesh(
+                    new T.CylinderGeometry(0.022, 0.022, SL, 6),
+                    STL,
+                    g,
+                    (NS * TR) / 2,
+                    HPL / 2 + 0.95,
+                    z,
+                  );
+                  hr.rotation.z = Math.PI / 2 - SA;
+                  [0, NS * TR].forEach((xx) =>
+                    mesh(
+                      new T.CylinderGeometry(0.022, 0.022, 0.95, 6),
+                      STL,
+                      g,
+                      xx,
+                      HPL - xx * Math.tan(SA) + 0.475,
+                      z,
+                    ),
+                  );
                 });
-              }
+              };
+              stairs(P1 + 0.02, 4, th);
+              stairs(P0 - 0.02, 2.4, th + Math.PI); // Treppen an beiden Bahnsteigenden (Süden: zur Fähre)
               // Mastleuchten in der Mitte des Bahnsteigs, zwei Leuchtenköpfe
               const LM = std(0x9a9ea2, { metalness: 0.6, roughness: 0.4 }),
                 LH = std(0xb8bcc0, { metalness: 0.5, roughness: 0.35 }),
                 LG = std(0xfff4d8, { emissive: lin(0x3a3528), roughness: 0.4 });
               [40, 72, 118].forEach((d) => {
-                const q = pAt(d, 4, ISL_TOP + 0.6);
+                const q = pAt(d, 4, ISL_TOP + HPL);
                 mesh(new T.CylinderGeometry(0.07, 0.11, 8.5, 10), LM, null, q[0], q[1] + 4.25, q[2]);
                 const g = new T.Group();
                 g.position.set(q[0], q[1] + 8.5, q[2]);
@@ -17866,7 +17954,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
                 });
               });
               [-0.95, 0.95].forEach((x) => mesh(new T.BoxGeometry(0.04, 0.03, 1.45), BFR, g, x, 0.02, 0));
-              g.position.set(p.x - p.ty * 4, ISL_TOP + 0.6, -(p.y + p.tx * 4));
+              g.position.set(p.x - p.ty * 4, ISL_TOP + HPL, -(p.y + p.tx * 4));
               g.rotation.y = Math.atan2(p.ty, p.tx);
               scene.add(g);
             });
@@ -17883,7 +17971,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
                 [100, 0],
               ].forEach(([d, onLamp]) => {
                 const p = railPt(d);
-                const y = ISL_TOP + 0.6;
+                const y = ISL_TOP + HPL;
                 if (!onLamp)
                   mesh(
                     new T.CylinderGeometry(0.05, 0.05, 1.4, 8),
