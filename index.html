@@ -1762,9 +1762,7 @@ input {
         </li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">
-        Version 21.10.2026 e · Kids-Autopilot nutzt die ganze Rinne, Ruder ruhiger, weniger Tonnen
-      </p>
+      <p class="ver">Version 23.10.2026 e · Titelbild mit geschlossener Bugklappe</p>
       <p class="ver">
         Bahngeräusche: Aufnahmen von www.hoerspielbox.de · Funkrauschen: freesound_community (Pixabay) ·
         Musik: „Golden Sea“ von good_b_music (Pixabay)
@@ -14248,10 +14246,26 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     });
 
     // Rumpfform
-    const hullShape = (len, beam, bowF = 0.62) => {
+    // blunt > 0: vorn gerade abgeschnitten (Fähre mit Bugklappe), halbe Breite der geraden Front = blunt·b
+    const hullShape = (len, beam, bowF = 0.62, blunt = 0) => {
       const l = len / 2,
         b = beam / 2;
       const s = new T.Shape();
+      if (blunt > 0) {
+        const fw = b * blunt,
+          cr = (b - fw) * 2.4;
+        s.moveTo(0, l);
+        s.lineTo(fw, l);
+        s.quadraticCurveTo(b, l, b, l - cr);
+        s.lineTo(b, -l * 0.92);
+        s.quadraticCurveTo(b, -l, b * 0.75, -l);
+        s.lineTo(-b * 0.75, -l);
+        s.quadraticCurveTo(-b, -l, -b, -l * 0.92);
+        s.lineTo(-b, l - cr);
+        s.quadraticCurveTo(-b, l, -fw, l);
+        s.lineTo(0, l);
+        return s;
+      }
       s.moveTo(0, l);
       s.quadraticCurveTo(b * 0.98, l * 0.97, b, l * bowF);
       s.lineTo(b, -l * 0.92);
@@ -14312,9 +14326,9 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     shipRoot.add(tilt);
     scene.add(shipRoot);
     const W = std(0xffffff, { map: TX.paint, roughness: 0.45 }),
-      RED = std(0x8e1f26, { roughness: 0.5 }),
+      RED = std(0x6e2324, { roughness: 0.5 }),
       ORG = std(0xe5651c, { roughness: 0.5 }),
-      BOOT = std(0x5a1418, { roughness: 0.6 }),
+      BOOT = std(0x7a2e26, { roughness: 0.6 }),
       BLK = std(0x1e1f22),
       BLU = std(0x2c5fb5, { roughness: 0.5 });
     const DECKG = std(0xffffff, { map: TX.deckG, roughness: 0.85 }),
@@ -14327,17 +14341,30 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       return m;
     };
     // Rumpf mit Scheuerleiste und Schanzkleid
-    exHull(hullShape(58.2, 12.1), 1.35, BOOT, -1.1, tilt);
-    exHull(hullShape(58, 12), 2.2, W, 0.2, tilt);
-    exHull(hullShape(58.45, 12.35), 0.38, RED, 2.05, tilt);
+    // nach Foto: Bug vorn gerade mit Bugklappe; Unterwasserschiff vorn etwas schmaler
+    const HB = 0.74;
+    exHull(hullShape(55.4, 12.1, 0.62, 0.55), 1.35, BOOT, -1.1, tilt);
+    exHull(hullShape(56.6, 12, 0.62, 0.64), 1.0, W, 0.2, tilt);
+    exHull(hullShape(57.4, 12, 0.62, 0.7), 0.6, W, 1.15, tilt);
+    exHull(hullShape(58, 12, 0.62, HB), 0.7, W, 1.7, tilt);
+    /* Bug nach oben ausladend */ exHull(hullShape(58.45, 12.35, 0.62, HB), 0.38, RED, 2.05, tilt);
+    // Schanzkleid als offenes U: vorn bleibt die Öffnung für die Bugklappe frei (die Klappe schließt sie)
+    const uRing = (lo, bo, li, bi, gap) => {
+      const seg = (len, beam) => {
+        const P = hullShape(len, beam, 0.62, HB).getPoints(12),
+          l = len / 2;
+        const a = P.findIndex((q) => q.x >= gap);
+        let b = P.length - 1;
+        while (b > 0 && !(P[b].x <= -gap && P[b].y > l - 0.01)) b--;
+        return [new T.Vector2(gap, l), ...P.slice(a, b + 1), new T.Vector2(-gap, l)];
+      };
+      return new T.Shape([...seg(lo, bo), ...seg(li, bi).reverse()]);
+    };
+    const KGAP = 6 * HB - 0.4;
     {
-      const bw = hullShape(58, 12);
-      bw.holes.push(hullShape(57.5, 11.5));
-      exHull(bw, 1.05, W, 2.43, tilt);
-      const bc = hullShape(58.1, 12.1);
-      bc.holes.push(hullShape(57.4, 11.4));
-      exHull(bc, 0.06, W, 3.48, tilt);
-      const g = new T.ShapeGeometry(hullShape(57.6, 11.6));
+      exHull(uRing(58, 12, 57.5, 11.5, KGAP), 1.05, W, 2.43, tilt);
+      exHull(uRing(58.1, 12.1, 57.4, 11.4, KGAP), 0.06, W, 3.48, tilt);
+      const g = new T.ShapeGeometry(hullShape(57.6, 11.6, 0.62, HB));
       g.rotateX(-Math.PI / 2);
       const uv = g.attributes.uv,
         p = g.attributes.position;
@@ -14345,6 +14372,86 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       mesh(g, DECKG, tilt, 0, 2.44, 0);
     }
     mesh(new T.BoxGeometry(3.2, 0.45, 0.6), RED, tilt, 0, 2.25, -28.95);
+    // Bugklappe nach Foto: oben bündig mit dem Schanzkleid, weiß; klappt beim Anlegen nach vorn herunter, damit die Laderampe aufs Vorschiff kommt, beim Ablegen wieder hoch
+    {
+      const KW = 2 * 6 * HB - 0.7,
+        KY0 = 2.45,
+        KH = 3.54 - 2.45,
+        KS = 29.0;
+      const kg = new T.Group();
+      kg.name = "bugklappe";
+      kg.position.set(0, KY0, -(KS + 0.14));
+      tilt.add(kg);
+      const KM = std(0xffffff, { map: TX.paint, roughness: 0.45 });
+      mesh(new T.BoxGeometry(KW, KH, 0.28), KM, kg, 0, KH / 2, 0);
+      mesh(new T.BoxGeometry(KW, 0.03, 0.2), std(0xd6d8d6, { roughness: 0.6 }), kg, 0, KH * 0.5, -0.15);
+      [-1, 1].forEach((sd) => {
+        mesh(
+          new T.BoxGeometry(0.03, KH - 0.1, 0.2),
+          std(0xd6d8d6, { roughness: 0.6 }),
+          kg,
+          sd * KW * 0.25,
+          KH / 2,
+          -0.15,
+        );
+      });
+      // feste Teile am Rumpf: rote Kante unter der Klappe, Scharniere, rot gerahmte Nische darunter
+      sb(KW + 0.4, 0.16, 0.42, RED, 0, 2.28, KS + 0.06);
+      [-0.33, 0, 0.33].forEach((f) =>
+        mesh(
+          new T.CylinderGeometry(0.13, 0.13, 0.6, 12).rotateZ(Math.PI / 2),
+          BLK,
+          tilt,
+          KW * f,
+          KY0,
+          -(KS + 0.12),
+        ),
+      );
+      {
+        const NY0 = 1.5,
+          NH = 0.62,
+          NW = KW * 0.55;
+        sb(NW, NH, 0.06, std(0x3a1614, { roughness: 0.7 }), 0, NY0, KS + 0.01);
+        [
+          [NW + 0.2, 0.1, 0, NY0 - 0.1],
+          [NW + 0.2, 0.1, 0, NY0 + NH],
+        ].forEach(([w, h, x, y]) => sb(w, h, 0.16, RED, x, y, KS + 0.05));
+        [-1, 1].forEach((sd) => sb(0.1, NH + 0.2, 0.16, RED, sd * (NW / 2 + 0.05), NY0 - 0.1, KS + 0.05));
+      }
+    }
+    // Verholklüsen mit rotem Ring im Schanzkleid (vorn an den Ecken, seitlich am Vorschiff), Anker an der Bordwand
+    {
+      const RR = new T.TorusGeometry(0.2, 0.065, 8, 18),
+        HD = new T.CircleGeometry(0.19, 16),
+        HM = std(0x141516, { roughness: 0.9 });
+      const kl = (x, y, s, ry) => {
+        const r = mesh(RR, RED, tilt, x, y, -s);
+        r.rotation.y = ry;
+        const d = mesh(HD, HM, tilt, x, y, -s);
+        d.rotation.y = ry;
+        d.position.x -= Math.sin(ry) * 0.03 * (x < 0 ? -1 : 1) * (ry ? 1 : 0);
+        d.position.z += ry ? 0 : 0.03;
+      };
+      [-1, 1].forEach((sd) => {
+        kl(sd * 4.75, 2.95, 29.06, 0);
+        kl(sd * 6.03, 2.95, 20.5, (sd * Math.PI) / 2);
+        kl(sd * 6.03, 2.95, 11.0, (sd * Math.PI) / 2);
+        sb(0.06, 0.14, 0.32, std(0x1a1b1c), sd * 6.02, 3.05, 24.6); // kleine Öffnung
+        const an = new T.Group();
+        an.position.set(sd * 6.12, 1.35, -24.2);
+        an.rotation.y = sd > 0 ? 0 : Math.PI;
+        tilt.add(an);
+        const AM = std(0x111214, { roughness: 0.6, metalness: 0.3 });
+        const sh = mesh(new T.BoxGeometry(0.12, 0.16, 1.15), AM, an, 0, 0, 0);
+        sh.rotation.x = 0.18;
+        [-1, 1].forEach((e) => {
+          const f = mesh(new T.BoxGeometry(0.12, 0.12, 0.55), AM, an, 0, -0.2 + e * 0.0, 0.55 + 0.0);
+          f.position.y = -0.05 + e * 0.22;
+          f.rotation.x = e * 0.75;
+        });
+        mesh(new T.BoxGeometry(0.14, 0.5, 0.14), AM, an, 0, 0, 0.55);
+      });
+    }
     // Ebene 1: Hauptdeck-Salon, bündig mit der Bordwand
     sb(11.94, 2.6, 41, W, 0, 2.43, -5.5);
     sb(11.9, 0.04, 40.9, DECKG, 0, 5.03, -5.5);
@@ -14408,7 +14515,6 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     });
     for (let s = 14.0; s >= -6.8; s -= 2.1)
       [-1, 1].forEach((sd) => addWin(sd * 5.52, 6.25, s, 1.5, 1.05, "x"));
-    [-4.1, -2.3, 2.3, 4.1].forEach((x) => addWin(x, 3.8, 15.0, 1.4, 1.0, "z"));
     [-3.65, -1.4, 1.4, 3.65].forEach((x) => addWin(x, 6.4, 15.05, 1.45, 0.85, "z"));
     {
       const geo = new T.BoxGeometry(1, 1, 1);
@@ -19173,6 +19279,27 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       };
       upd(LGDYN.a, l3b, dy);
       upd(LGDYN.b, nearL, heave + dy);
+      // Bugklappe: runter, sobald eine Laderampe aufs Vorschiff soll; wieder hoch erst, wenn die Rampe oben ist
+      const atB2 = ENV.dir === "LB" ? phase === "docked" || phase === "train" : S.moored && !(S.releaseT > 0);
+      const up = (r, v) => !r || Math.abs(v - -0.42) < 0.05;
+      const kStep = (obj, key, down, rampUp) => {
+        const k = obj && (obj.userData.kl || (obj.userData.kl = obj.getObjectByName("bugklappe")));
+        if (!k) return;
+        const t = down ? -1.6 : rampUp ? 0 : k.rotation.x;
+        if (g[key] === undefined) g[key] = t;
+        g[key] += (t - g[key]) * Math.min(1, dtR * 1.4);
+        k.rotation.x = g[key];
+      };
+      kStep(
+        g.tilt,
+        "klK",
+        atB2 || nearL,
+        S.y < 2000
+          ? up(DYN.bow, DYN.bow && DYN.bow.rotation.z)
+          : up(LGDYN.b, LGDYN.b && LGDYN.b.bow.rotation.x),
+      ); // nur die Rampe am jeweiligen Hafen zählt
+      if (g.TRAF3D && g.TRAF3D.l3)
+        kStep(g.TRAF3D.l3, "klK3", l3b, up(LGDYN.a, LGDYN.a && LGDYN.a.bow.rotation.x));
     }
     cam.updateMatrixWorld(true);
     const cpos = new T.Vector3();
