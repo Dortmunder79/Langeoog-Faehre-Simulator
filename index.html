@@ -3,11 +3,10 @@
   Inselfähre Langeoog
   3D-Fährsimulation Bensersiel → Langeoog als eigenständige Single-Page-Webanwendung.
 
-  Version für GitHub Pages: three.js (three.min.js) und das Titelbild (titel.webp) liegen als eigene Dateien daneben,
-  damit das Titelbild sofort lädt und der Browser alles zwischenspeichern kann.
-  - three.js r128 (MIT-Lizenz, © three.js authors)
+  Die Datei enthält alles, was die App braucht, und läuft ohne Server und ohne Internet:
+  - three.js r128 (MIT-Lizenz, © three.js authors), eingebettet
   - Schriften Archivo, Saira Condensed und UnifrakturMaguntia (SIL Open Font License), eingebettet
-  - App-Symbol als Data-URI
+  - Fotos und App-Symbol als Data-URIs
 
   Gliederung des App-Skripts:
   1. Konstanten, Fahrwasser, Küstenlinien, Häfen      5. Seekarte (2D-Canvas)
@@ -28,11 +27,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Inselfähre">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="data:image/png;base64,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">
 <link rel="apple-touch-icon" href="data:image/png;base64,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">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="preload" as="image" href="titel.webp" fetchpriority="high">
-<link rel="preload" as="script" href="three.min.js">
 <style>
 /* ---------- Eingebettete Schriften ---------- */
 @font-face{font-family:'Archivo';font-style:normal;font-weight:400;font-display:swap;src:url(data:font/woff2;base64,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) format('woff2')}
@@ -299,6 +296,14 @@ input:focus-visible {
   width: 100%;
   height: 100%;
   touch-action: none;
+}
+/* leichte Randabdunklung wie bei einem Kameraobjektiv */
+#pane-3d::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 46%, rgba(0, 0, 0, 0) 58%, rgba(6, 12, 18, 0.24) 100%);
 }
 .hud-top {
   position: absolute;
@@ -1669,11 +1674,8 @@ input {
 <div class="overlay" id="intro">
   <div class="sheet">
     <img
-      src="titel.webp"
-      width="920"
-      height="537"
-      fetchpriority="high"
-      decoding="async"
+      data-hero
+      src="data:image/gif;base64,R0lGODlhAQABAAAAACw="
       alt="Die Fähre Langeoog IV und die Inselbahn Langeoog"
     />
     <div class="sheet-body">
@@ -1762,7 +1764,9 @@ input {
         </li>
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
-      <p class="ver">Version 23.10.2026 e · Titelbild mit geschlossener Bugklappe</p>
+      <p class="ver">
+        Version 10.11.2026 c · Häuser, Autos und Menschen überarbeitet, Fähre mit durchsichtigen Fenstern und Salons
+      </p>
       <p class="ver">
         Bahngeräusche: Aufnahmen von www.hoerspielbox.de · Funkrauschen: freesound_community (Pixabay) ·
         Musik: „Golden Sea“ von good_b_music (Pixabay)
@@ -1774,11 +1778,8 @@ input {
 <div class="overlay" id="docked" hidden>
   <div class="sheet">
     <img
-      src="titel.webp"
-      width="920"
-      height="537"
-      loading="lazy"
-      decoding="async"
+      data-hero
+      src="data:image/gif;base64,R0lGODlhAQABAAAAACw="
       alt="Die Fähre Langeoog IV und die Inselbahn Langeoog"
     />
     <div class="sheet-body">
@@ -1794,11 +1795,8 @@ input {
   <div class="sheet">
     <img
       id="trainImg"
-      src="titel.webp"
-      width="920"
-      height="537"
-      loading="lazy"
-      decoding="async"
+      data-hero
+      src="data:image/gif;base64,R0lGODlhAQABAAAAACw="
       alt="Die Fähre Langeoog IV und die Inselbahn Langeoog"
     />
     <div class="sheet-body">
@@ -1823,14 +1821,7 @@ input {
 
 <div class="overlay" id="railArr" hidden>
   <div class="sheet">
-    <img
-      src="titel.webp"
-      width="920"
-      height="537"
-      loading="lazy"
-      decoding="async"
-      alt="Die Inselbahn Langeoog"
-    />
+    <img data-hero src="data:image/gif;base64,R0lGODlhAQABAAAAACw=" alt="Die Inselbahn Langeoog" />
     <div class="sheet-body">
       <p class="eyebrow">Inselbahn Langeoog</p>
       <h2 id="railArrTitle">Angekommen</h2>
@@ -1844,11 +1835,8 @@ input {
   <div class="sheet">
     <img
       class="grey"
-      src="titel.webp"
-      width="920"
-      height="537"
-      loading="lazy"
-      decoding="async"
+      data-hero
+      src="data:image/gif;base64,R0lGODlhAQABAAAAACw="
       alt="Die Fähre Langeoog IV"
     />
     <div class="sheet-body">
@@ -1865,6 +1853,11 @@ input {
 <script src="three.min.js"></script>
 <script>
 "use strict";
+const HERO_IMG =
+  "titel.webp";
+document.querySelectorAll("img[data-hero]").forEach((i) => {
+  i.src = HERO_IMG;
+});
 (() => {
   const $ = (id) => document.getElementById(id);
   const RAD = Math.PI / 180,
@@ -5240,7 +5233,8 @@ input {
     if (phase === "run" || isRail()) silPlay();
   }
   // ---------- Musik im Startbild (Golden Sea, good_b_music via Pixabay): startet mit der ersten Berührung, blendet bei „Leinen los“ aus ----------
-  const MUSIC_SRC = "musik.mp3";
+  const MUSIC_SRC =
+    "musik.mp3";
   let MUS = null;
   function musicMk() {
     if (MUS || !actx) return;
@@ -6068,19 +6062,20 @@ input {
     if (!G) return;
     const T = G.T,
       lin = (c) => new T.Color(c).convertSRGBToLinear();
-    G.skyU.uTop.value.set(w ? 0x6d767e : 0x5f86ae);
+    G.skyU.uTop.value.set(w ? 0x6d767e : 0x4f84c0);
     G.FOG.set(w ? 0x9ba4a9 : 0xc2ced4);
     G.scene.fog.color.copy(lin(w ? 0x9ba4a9 : 0xc2ced4));
     G.denU.value = w ? 0.00036 : 0.00021;
     G.scene.fog.density = G.denU.value;
     G.skyU.uCov.value = w ? 0.3 : 0;
     G.skyU.uDark.value = w ? 1 : 0;
-    G.sunI.intensity = w ? 0.6 : 2.1;
-    G.hemi.intensity = w ? 1.15 : 0.8;
+    G.sunI.intensity = w ? 0.7 : 2.5;
+    G.hemi.intensity = w ? 0.55 : 0.3;
+    G.updEnv(w ? "schlecht" : "gut");
     const wu = G.waterMat.uniforms;
     wu.uAmp.value = w ? 2.4 : 1;
     wu.uSpec.value = w ? 0.12 : 1;
-    wu.uTop.value.set(w ? 0x7b858b : 0x6a8fb2);
+    wu.uTop.value.set(w ? 0x7b858b : 0x5c8cba);
     wu.uHor.value.set(w ? 0xa4acb1 : 0xcad4d9);
     wu.uDeep.value.set(w ? 0x27393a : 0x2f4849);
     wu.uShallow.value.set(w ? 0x55625f : 0x587472);
@@ -6685,7 +6680,8 @@ input {
   const NOISE_GL = `
 float hash(vec2 p){vec3 p3=fract(vec3(p.xyx)*.1031);p3+=dot(p3,p3.yzx+33.33);return fract((p3.x+p3.y)*p3.z);}
 float noise(vec2 p){vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),u.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),u.x),u.y);}
-float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=.5;}return v;}`;
+float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=.5;}return v;}
+float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a*=.5;}return v;}`;
 
   // ----- Materialtexturen, prozedural gemalt -----
   function makeTextures(T) {
@@ -6700,6 +6696,47 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       t.encoding = T.sRGBEncoding;
       t.anisotropy = 4;
       if (rep) t.repeat.set(rep, rep);
+      t._cv = c;
+      return t;
+    };
+    // Relief: aus der Helligkeit der gemalten Textur eine Normalenkarte rechnen (Fugen liegen tiefer), damit Mauerwerk, Dachziegel und Pflaster im Streiflicht plastisch wirken
+    const relief = (t, str, inv) => {
+      const c = t._cv,
+        s = c.width;
+      const d = c.getContext("2d").getImageData(0, 0, s, s).data;
+      const h = new Float32Array(s * s);
+      for (let i = 0; i < s * s; i++) {
+        const l = (d[i * 4] * 0.3 + d[i * 4 + 1] * 0.59 + d[i * 4 + 2] * 0.11) / 255;
+        h[i] = inv ? 1 - l : l;
+      }
+      const b = new Float32Array(s * s);
+      for (let y = 0; y < s; y++)
+        for (let x = 0; x < s; x++) {
+          let a = 0;
+          for (let j = -1; j <= 1; j++)
+            for (let i = -1; i <= 1; i++) a += h[((y + j + s) % s) * s + ((x + i + s) % s)];
+          b[y * s + x] = a / 9;
+        }
+      const n = document.createElement("canvas");
+      n.width = n.height = s;
+      const nx = n.getContext("2d"),
+        im = nx.createImageData(s, s);
+      for (let y = 0; y < s; y++)
+        for (let x = 0; x < s; x++) {
+          const dx = (b[y * s + ((x + 1) % s)] - b[y * s + ((x - 1 + s) % s)]) * str,
+            dy = (b[((y + 1) % s) * s + x] - b[((y - 1 + s) % s) * s + x]) * str;
+          const l = 1 / Math.hypot(dx, dy, 1),
+            i = (y * s + x) * 4;
+          im.data[i] = (-dx * l * 0.5 + 0.5) * 255;
+          im.data[i + 1] = (dy * l * 0.5 + 0.5) * 255;
+          im.data[i + 2] = (l * 0.5 + 0.5) * 255;
+          im.data[i + 3] = 255;
+        }
+      nx.putImageData(im, 0, 0);
+      const nt = new T.CanvasTexture(n);
+      nt.wrapS = nt.wrapT = T.RepeatWrapping;
+      nt.anisotropy = 4;
+      t._nrm = nt;
       return t;
     };
     const speck = (x, s, n, a, r) => {
@@ -6779,25 +6816,35 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         x.fillRect(i * w, 0, 1.5, s);
       }
     });
-    t.grass = mk(
-      256,
-      (x, s) => {
-        x.fillStyle = "#6f8a47";
-        x.fillRect(0, 0, s, s);
-        for (let i = 0; i < 5000; i++) {
-          const c = [
-            [86, 112, 52],
-            [120, 140, 70],
-            [95, 120, 58],
-            [140, 146, 84],
-            [70, 90, 45],
-          ][(R() * 5) | 0];
-          x.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},.7)`;
-          x.fillRect(R() * s, R() * s, 1 + R() * 2, 2 + R() * 4);
-        }
-      },
-      1 / 6,
-    );
+    // Wiese: dunkler Grund, darüber viele einzelne Halme in gedeckten Grün- und Strohtönen, einzelne Kleeflecken und Gänseblümchen
+    t.grass=mk(512,(x,s)=>{x.fillStyle='#55683a';x.fillRect(0,0,s,s);
+        for(let i=0;i<150;i++){x.fillStyle=`rgba(${R()<.5?'52,70,36':'112,120,66'},${.08+R()*.12})`;x.beginPath();x.arc(R()*s,R()*s,14+R()*46,0,7);x.fill();}
+        const pal=[[72,96,46],[98,118,58],[84,106,50],[120,128,72],[58,78,40],[92,104,48],[136,134,84],[150,142,96],[66,90,44],[106,124,62]];
+        for(let i=0;i<42000;i++){const c=pal[(R()*pal.length)|0],k=.8+R()*.4;
+        x.strokeStyle=`rgba(${c[0]*k|0},${c[1]*k|0},${c[2]*k|0},${.55+R()*.4})`;x.lineWidth=.7+R()*.9;const px=R()*s,py=R()*s,l=3+R()*8,a=-1.57+(R()-.5)*1.3;x.beginPath();x.moveTo(px,py);x.quadraticCurveTo(px+Math.cos(a)*l*.5+(R()-.5)*2,py+Math.sin(a)*l*.5,px+Math.cos(a)*l,py+Math.sin(a)*l);x.stroke();}
+        for(let i=0;i<70;i++){x.fillStyle=`rgba(46,74,34,${.25+R()*.25})`;const px=R()*s,py=R()*s;for(let j=0;j<6;j++){x.beginPath();x.arc(px+(R()-.5)*9,py+(R()-.5)*9,1.6+R()*1.6,0,7);x.fill();}}
+        for(let i=0;i<60;i++){x.fillStyle=R()<.7?'rgba(236,236,224,.8)':'rgba(222,196,70,.8)';x.beginPath();x.arc(R()*s,R()*s,.9+R()*.6,0,7);x.fill();}},1/6);
+    // Laub: helle und dunkle Blattbüschel, wird mit der Kronenfarbe multipliziert
+    t.leaf = mk(256, (x, s) => {
+      x.fillStyle = "#d2d2d2";
+      x.fillRect(0, 0, s, s);
+      for (let i = 0; i < 40; i++) {
+        x.fillStyle = `rgba(${R() < 0.5 ? "60,70,45" : "255,255,240"},${0.08 + R() * 0.1})`;
+        x.beginPath();
+        x.arc(R() * s, R() * s, 14 + R() * 30, 0, 7);
+        x.fill();
+      }
+      for (let i = 0; i < 5200; i++) {
+        const v = R();
+        x.fillStyle = v < 0.5 ? `rgba(74,88,54,${0.18 + R() * 0.3})` : `rgba(255,255,236,${0.2 + R() * 0.4})`;
+        const px = R() * s,
+          py = R() * s,
+          r = 1 + R() * 2.2;
+        x.beginPath();
+        x.ellipse(px, py, r, r * (0.45 + R() * 0.35), R() * 3.1, 0, 7);
+        x.fill();
+      }
+    });
     t.detail = mk(256, (x, s) => {
       x.fillStyle = "#e6e6e6";
       x.fillRect(0, 0, s, s);
@@ -7011,6 +7058,16 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       }
       speck(x, s, 800, 0.03, 2);
     });
+    relief(t.brick, 3.2, true);
+    relief(t.brickY, 2.6);
+    relief(t.brickD, 2.6);
+    relief(t.roofR, 3);
+    relief(t.roofD, 3);
+    relief(t.cobble, 3.5);
+    relief(t.wood, 2);
+    relief(t.woodH, 2);
+    relief(t.concrete, 1.2);
+    relief(t.grass, 1.6);
     return t;
   }
 
@@ -8740,6 +8797,16 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       m.setAttribute("position", new T.BufferAttribute(P, 3));
       m.setAttribute("normal", new T.BufferAttribute(N, 3));
       m.setAttribute("uv", new T.BufferAttribute(U, 2));
+      // Farbwerte je Eckpunkt mitnehmen (Baumkronen), sonst Weiß
+      if (gs.some((g) => g.attributes.color)) {
+        const C = new Float32Array(n * 3).fill(1);
+        let c = 0;
+        gs.forEach((g) => {
+          if (g.attributes.color) C.set(g.attributes.color.array, c);
+          c += g.attributes.position.count * 3;
+        });
+        m.setAttribute("color", new T.BufferAttribute(C, 3));
+      }
       return m;
     };
     let BALLAST = null;
@@ -8834,24 +8901,17 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           lists.head.push(place(box(0.045, 0.006, s.len + 0.02), s, off, 0.116));
         });
       }
-      if (!BALLAST) {
-        const c = document.createElement("canvas");
-        c.width = 128;
-        c.height = 128;
-        const x = c.getContext("2d");
-        x.fillStyle = "#7b7268";
-        x.fillRect(0, 0, 128, 128);
-        for (let i = 0; i < 3200; i++) {
-          const v = 95 + Math.random() * 45;
-          x.fillStyle = `rgb(${v + 10},${v + 2},${v - 8})`;
-          x.beginPath();
-          x.arc(Math.random() * 128, Math.random() * 128, 1 + Math.random() * 1.6, 0, 7);
-          x.fill();
-        }
-        const t = tex(c);
-        t.wrapS = t.wrapT = T.RepeatWrapping;
-        BALLAST = std(0xffffff, { map: t, roughness: 1 });
-      }
+      if (!BALLAST) { // Schotter: einzelne kantige Steine mit heller Ober- und dunkler Unterkante, dazu Relief
+        const S = 256, c = document.createElement('canvas'); c.width = S; c.height = S; const x = c.getContext('2d'); x.fillStyle = '#5c554d'; x.fillRect(0, 0, S, S); const Rb = rng(77);
+        for (let i = 0; i < 2600; i++) { const v = 102 + Rb() * 46, px = Rb() * S, py = Rb() * S, r = 2.2 + Rb() * 3.2, a0 = Rb() * 6.28, nv = 5 + (Rb() * 3 | 0);
+          for (let pass = 0; pass < 2; pass++) { x.fillStyle = pass ? `rgb(${v + 12 | 0},${v + 4 | 0},${v - 8 | 0})` : 'rgba(20,16,12,.55)'; x.beginPath();
+            for (let k = 0; k < nv; k++) { const a = a0 + k * 6.283 / nv, rr = r * (0.75 + ((k * 7 + i) % 5) * 0.09); const qx = px + Math.cos(a) * rr + (pass ? 0 : 0.9), qy = py + Math.sin(a) * rr + (pass ? 0 : 1.2); k ? x.lineTo(qx, qy) : x.moveTo(qx, qy); } x.closePath(); x.fill(); }
+          x.fillStyle = 'rgba(255,250,240,.16)'; x.beginPath(); x.arc(px - r * 0.25, py - r * 0.3, r * 0.45, 0, 7); x.fill(); }
+        const t = tex(c); t.wrapS = t.wrapT = T.RepeatWrapping;
+        const d = x.getImageData(0, 0, S, S).data, n = document.createElement('canvas'); n.width = n.height = S; const nx = n.getContext('2d'), im = nx.createImageData(S, S), H = (X, Y) => d[(((Y + S) % S) * S + (X + S) % S) * 4 + 1] / 255;
+        for (let Y = 0; Y < S; Y++) for (let X = 0; X < S; X++) { const dx = (H(X + 1, Y) - H(X - 1, Y)) * 2.6, dy = (H(X, Y + 1) - H(X, Y - 1)) * 2.6, l = 1 / Math.hypot(dx, dy, 1), i = (Y * S + X) * 4; im.data[i] = (-dx * l * .5 + .5) * 255; im.data[i + 1] = (dy * l * .5 + .5) * 255; im.data[i + 2] = (l * .5 + .5) * 255; im.data[i + 3] = 255; }
+        nx.putImageData(im, 0, 0); const nt = new T.CanvasTexture(n); nt.wrapS = nt.wrapT = T.RepeatWrapping; nt.anisotropy = 8;
+        BALLAST = std(0xffffff, { map: t, roughness: 1, normalMap: nt }); }
       const add = (list, mat, shadow) => {
         if (!list.length) return;
         const m = new T.Mesh(mergeGeo(list), mat);
@@ -8953,16 +9013,29 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     renderer.outputEncoding = T.sRGBEncoding;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = T.PCFSoftShadowMap;
+    // filmische Tonwertkurve: helle Flächen laufen weich aus statt auszubrennen; zur Hälfte über die Helligkeit gerechnet, damit kräftige Farben (rote Lok, Container) nicht ausbleichen
+    if (!T.ShaderChunk.tonemapping_pars_fragment.includes("fTM("))
+      T.ShaderChunk.tonemapping_pars_fragment = T.ShaderChunk.tonemapping_pars_fragment.replace(
+        "vec3 CustomToneMapping( vec3 color ) { return color; }",
+        "vec3 fTM(vec3 x){return clamp((x*(2.51*x+.03))/(x*(2.43*x+.59)+.14),0.,1.);}\nvec3 CustomToneMapping( vec3 color ) { color*=toneMappingExposure;vec3 a=fTM(color);float l=dot(color,vec3(.2126,.7152,.0722));vec3 b=color*(fTM(vec3(l)).x/max(l,1e-4));return clamp(mix(a,b,.5),0.,1.); }",
+      );
+    renderer.toneMapping = T.CustomToneMapping;
+    renderer.toneMappingExposure = 0.8;
+    // raue Flächen (Pflaster, Asphalt, Putz) glänzen im Gegenlicht nicht mehr flächig auf
+    {const k='irradiance * BRDF_Specular_GGX( directLight, geometry.viewDir, geometry.normal, material.specularColor, material.specularRoughness)';
+     const c=T.ShaderChunk.lights_physical_pars_fragment;if(c.includes(k)&&!c.includes('/*rgh*/'))T.ShaderChunk.lights_physical_pars_fragment=c.replace(k,'/*rgh*/mix(1.,.3,smoothstep(.55,.95,material.specularRoughness)) * '+k);}
+    {const k='radiance += getLightProbeIndirectRadiance( geometry.viewDir, geometry.normal, material.specularRoughness, maxMipLevel );';const c=T.ShaderChunk.lights_fragment_maps;
+     if(c.includes(k)&&!c.includes('/*rgh*/'))T.ShaderChunk.lights_fragment_maps=c.replace(k,k.replace('radiance +=','radiance += /*rgh*/mix(1.,.4,smoothstep(.6,.95,material.specularRoughness)) *'));}
     const lin = (c) => new T.Color(c).convertSRGBToLinear();
     const scene = new T.Scene();
     const FOG = new T.Color(0xc2ced4),
       DENS = 0.00021;
     scene.fog = new T.FogExp2(lin(0xc2ced4), DENS);
     const SUN = new T.Vector3(0.5, 0.42, 0.76).normalize();
-    const hemi = new T.HemisphereLight(lin(0xdfe8ef), lin(0x5a604c), 0.8);
+    const hemi = new T.HemisphereLight(lin(0xdfe8ef), lin(0x5a604c), 0.3);
     scene.add(hemi);
     const denU = { value: DENS };
-    const sun = new T.DirectionalLight(lin(0xfff0d8), 2.1);
+    const sun = new T.DirectionalLight(lin(0xfff1dc), 2.5);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     {
@@ -8979,11 +9052,91 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     scene.add(sun);
     scene.add(sun.target);
     const TX = makeTextures(T);
-    const std = (c, o) =>
-      new T.MeshStandardMaterial(
-        Object.assign({ color: lin(c), roughness: 0.85, metalness: 0, envMapIntensity: 0.7 }, o || {}),
+    const NSC = new T.Vector2(0.75, 0.75);
+    const std = (c, o) => {
+      const m = new T.MeshStandardMaterial(
+        Object.assign({ color: lin(c), roughness: 0.85, metalness: 0, envMapIntensity: 0.55 }, o || {}),
       );
+      if (m.map && m.map._nrm && !m.normalMap) {
+        m.normalMap = m.map._nrm;
+        m.normalScale = NSC;
+      }
+      if (o && o.vertexColors && o.map === TX.leaf) leafy(m);
+      return m;
+    };
     const tex = (map, c, o) => std(c || 0xffffff, Object.assign({ map }, o || {}));
+    // ---- Menschen: gerundete Körperteile statt Quader (Beine und Arme verjüngt, Rumpf mit Schultern und Hüfte, Kopf mit Hals, Haare, Hände, Schuhe)
+    const HUM=(()=>{
+      const mg=list=>{const gs=list.map(g=>g.index?g.toNonIndexed():g);let n=0;gs.forEach(g=>n+=g.attributes.position.count);const P=new Float32Array(n*3),N=new Float32Array(n*3);let o=0;
+        gs.forEach(g=>{P.set(g.attributes.position.array,o);N.set(g.attributes.normal.array,o);o+=g.attributes.position.array.length;});const m=new T.BufferGeometry();m.setAttribute('position',new T.BufferAttribute(P,3));m.setAttribute('normal',new T.BufferAttribute(N,3));return m;};
+      const sph=(r,sx,sy,sz,x,y,z,ws,hs)=>{const g=new T.SphereGeometry(r,ws||10,hs||8);g.scale(sx,sy,sz);g.translate(x,y,z);return g;};
+      const cyl=(rt,rb,h,x,y,z,seg,sz)=>{const g=new T.CylinderGeometry(rt,rb,h,seg||8);g.scale(1,1,sz||1);g.translate(x,y,z);return g;};
+      return {mg,
+        leg:y=>mg([cyl(0.088,0.058,0.8,0,y,0,8),sph(0.088,1,0.7,1,0,y+0.4,0,8,6)]),               // y = Mitte des Beins
+        shoe:y=>sph(0.09,0.85,0.5,1.55,0,y,0.05,8,6),
+        torso:y=>mg([cyl(0.2,0.165,0.44,0,y-0.02,0,12,0.62),sph(0.205,1,0.42,0.63,0,y+0.2,0,12,6),sph(0.172,1,0.62,0.7,0,y-0.24,0,12,6)]),
+        arm:()=>mg([cyl(0.052,0.041,0.56,0,-0.28,0,7),sph(0.058,1,1,1,0,0,0,8,6)]),                   // Ursprung an der Schulter
+        hand:()=>sph(0.047,0.85,1.25,0.7,0,-0.6,0,7,5),
+        head:y=>mg([sph(0.118,0.93,1.1,1,0,y,0,12,10),cyl(0.045,0.052,0.12,0,y-0.15,0,8),sph(0.022,1,1,1,0,y-0.01,0.116,6,4)]),
+        hair:y=>{const g=new T.SphereGeometry(0.128,12,6,0,Math.PI*2,0,Math.PI*0.56);g.scale(0.95,1.1,1.04);g.rotateX(-0.32);g.translate(0,y+0.012,-0.006);return g;},
+        SKIN:[0xe8c0a4,0xddb092,0xf0cdb4,0xc99878,0xa87550,0xe2b99c,0x8a5a3c,0xeac6a8],
+        HAIR:[0x2a2019,0x4a3423,0x6b4a2c,0xb08a4a,0xd8c08a,0x1a1a1c,0x8a8a88,0xd9d9d4,0x7a3a1e]};})();
+    // ---- Inselhäuser: Wände mit gezeichneter Fassade (Klinker oder Putz, weiße Sprossenfenster mit Gardinen, Haustür, Sockel), Giebel, Ziegeldach mit Überstand und weißen Ortgangbrettern
+    const HK=(()=>{
+      const R=rng(8642);
+      const facade=st=>{const S=512,c=document.createElement('canvas'),rc=document.createElement('canvas');c.width=c.height=rc.width=rc.height=S;const x=c.getContext('2d'),r=rc.getContext('2d');
+        r.fillStyle='rgb(0,235,0)';r.fillRect(0,0,S,S);
+        const wallFill=(x0,y0,w,h,bw,dirt)=>{
+          if(st.brick){x.fillStyle=st.mortar;x.fillRect(x0,y0,w,h);const m=st.rgb,bh=5;
+            for(let yy=0,row=0;yy<h;yy+=bh,row++){const off=(row%2)*bw/2;for(let xx=-bw;xx<w;xx+=bw){const v=0.82+R()*0.3,d=R()<0.08?0.78:1;x.fillStyle=`rgb(${m[0]*v*d|0},${m[1]*v*d|0},${m[2]*v*d|0})`;
+              const ax=Math.max(x0,x0+xx+off+0.6),bx=Math.min(x0+w,x0+xx+off+bw-0.6);if(bx>ax)x.fillRect(ax,y0+yy+0.6,bx-ax,Math.min(bh-1.2,h-yy-0.6));}}}
+          else{x.fillStyle=st.base;x.fillRect(x0,y0,w,h);for(let i=0;i<260;i++){x.fillStyle=`rgba(${R()<0.5?'255,255,255':'90,90,80'},${0.02+R()*0.04})`;x.fillRect(x0+R()*(w-26),y0+R()*(h-3),2+R()*24,1+R()*3);}}
+          if(dirt){const g=x.createLinearGradient(0,y0+h-80,0,y0+h);g.addColorStop(0,'rgba(40,36,30,0)');g.addColorStop(1,'rgba(40,36,30,0.24)');x.fillStyle=g;x.fillRect(x0,y0+h-80,w,80);
+            x.fillStyle=st.brick?'rgba(38,28,26,.5)':'#8d8c86';x.fillRect(x0,y0+h-20,w,20);}};
+        const win=(wx,wy,ww,wh)=>{
+          if(st.brick){x.fillStyle='rgba(60,30,24,.5)';x.fillRect(wx-4,wy-10,ww+8,7);}else{x.fillStyle='rgba(0,0,0,.07)';x.fillRect(wx-7,wy-7,ww+14,wh+18);}
+          x.fillStyle='#f3f1ea';x.fillRect(wx-3,wy-3,ww+6,wh+6);
+          const g=x.createLinearGradient(0,wy,0,wy+wh);g.addColorStop(0,'#5d7489');g.addColorStop(0.45,'#2c3b48');g.addColorStop(1,'#1b252e');x.fillStyle=g;x.fillRect(wx,wy,ww,wh);
+          if(R()<0.75){x.fillStyle='rgba(238,234,222,.62)';x.beginPath();x.moveTo(wx,wy);x.lineTo(wx+ww*0.42,wy);x.quadraticCurveTo(wx+ww*0.12,wy+wh*0.5,wx,wy+wh*0.8);x.fill();x.beginPath();x.moveTo(wx+ww,wy);x.lineTo(wx+ww*0.58,wy);x.quadraticCurveTo(wx+ww*0.88,wy+wh*0.5,wx+ww,wy+wh*0.8);x.fill();}
+          else if(R()<0.5){x.fillStyle='rgba(120,160,90,.7)';x.fillRect(wx+ww*0.2,wy+wh*0.78,ww*0.6,wh*0.22);}
+          x.fillStyle='#f3f1ea';x.fillRect(wx+ww/2-1.2,wy,2.4,wh);x.fillRect(wx,wy+wh*0.36,ww,2);
+          x.fillStyle='#dcd9cf';x.fillRect(wx-6,wy+wh+3,ww+12,4);x.fillStyle='rgba(0,0,0,.25)';x.fillRect(wx-6,wy+wh+7,ww+12,2);
+          r.fillStyle='rgb(0,38,0)';r.fillRect(wx,wy,ww,wh);};
+        const door=(dx,dy,dw,dh)=>{x.fillStyle='#f3f1ea';x.fillRect(dx-5,dy-5,dw+10,dh+5);x.fillStyle=st.door;x.fillRect(dx,dy,dw,dh);x.fillStyle='rgba(0,0,0,.2)';x.fillRect(dx+dw*0.12,dy+dh*0.5,dw*0.76,dh*0.42);
+          x.fillStyle='#31424f';x.fillRect(dx+dw*0.2,dy+dh*0.1,dw*0.6,dh*0.3);x.fillStyle='#f3f1ea';x.fillRect(dx+dw*0.48,dy+dh*0.1,2,dh*0.3);x.fillStyle='#d9c27a';x.fillRect(dx+dw*0.82,dy+dh*0.55,3,8);x.fillStyle='#9a968c';x.fillRect(dx-9,dy+dh,dw+18,6);
+          r.fillStyle='rgb(0,110,0)';r.fillRect(dx,dy,dw,dh);};
+        // A: Traufseite mit Haustür (oben), B: Giebelwand (unten links), C: Giebeldreieck (unten rechts)
+        wallFill(0,0,512,256,14,true);[0.13,0.36,0.87].forEach(f=>win(512*f-32,104,64,86));door(512*0.62-29,256-6-146,58,146);
+        wallFill(0,256,256,256,7,true);[0.2,0.5,0.8].forEach(f=>win(256*f-15,360,30,86));
+        wallFill(256,256,256,256,7,false);[0.39,0.61].forEach(f=>win(256+256*f-12,512-46-62,24,62));
+        x.fillStyle='#f3f1ea';x.fillRect(256,256,16,16);
+        const t=new T.CanvasTexture(c);t.encoding=T.sRGBEncoding;t.anisotropy=8;const rt=new T.CanvasTexture(rc);rt.anisotropy=4;
+        return std(0xffffff,{map:t,roughnessMap:rt,roughness:1,envMapIntensity:0.9,side:T.DoubleSide});};
+      const ST=[{brick:1,rgb:[154,62,44],mortar:'#cbc2b4',door:'#2f5a3a'},{brick:1,rgb:[168,78,54],mortar:'#d2cabc',door:'#f1eee6'},
+        {base:'#f1eee6',door:'#35506e'},{base:'#e9e0cc',door:'#7a2e26'},{brick:1,rgb:[140,56,42],mortar:'#c4bbae',door:'#1f3a54'},{base:'#f4f2ec',door:'#2f5a3a'}];
+      const mats=[];const wallMat=i=>mats[i%ST.length]||(mats[i%ST.length]=facade(ST[i%ST.length]));
+      const geo=(P,U)=>{const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setAttribute('uv',new T.Float32BufferAttribute(U,2));g.computeVertexNormals();return g;};
+      const quad=(P,U,a,b,c,d,ua,ub,uc,ud)=>{P.push(...a,...b,...c,...a,...c,...d);U.push(...ua,...ub,...uc,...ua,...uc,...ud);};
+      // Wände (Einheitswürfel, Fuß bei y = 0)
+      const wall=(()=>{const P=[],U=[];
+        quad(P,U,[0.5,0,0.5],[0.5,0,-0.5],[0.5,1,-0.5],[0.5,1,0.5],[0,0.5],[1,0.5],[1,1],[0,1]);quad(P,U,[-0.5,0,-0.5],[-0.5,0,0.5],[-0.5,1,0.5],[-0.5,1,-0.5],[0,0.5],[1,0.5],[1,1],[0,1]);
+        quad(P,U,[-0.5,0,0.5],[0.5,0,0.5],[0.5,1,0.5],[-0.5,1,0.5],[0,0],[0.5,0],[0.5,0.5],[0,0.5]);quad(P,U,[0.5,0,-0.5],[-0.5,0,-0.5],[-0.5,1,-0.5],[0.5,1,-0.5],[0,0],[0.5,0],[0.5,0.5],[0,0.5]);return geo(P,U);})();
+      // Giebel und Ortgangbretter (im Maß des Dachs: Breite 1, First bei 0,52)
+      const AP=0.52,EX=0.6,EY=-0.04,yAt=xx=>AP-(AP-EY)*Math.abs(xx)/EX;
+      const gable=(()=>{const P=[],U=[],uv=(xx,yy)=>[0.5+(xx+0.5)*0.5,yy/AP*0.5],WU=[0.514,0.486];
+        [0.5,-0.5].forEach(z=>{const pts=[[-0.5,0],[0.5,0],[0.5,yAt(0.5)-0.012],[0,AP-0.012],[-0.5,yAt(0.5)-0.012]];if(z<0)pts.reverse();
+          for(let i=1;i<pts.length-1;i++){[pts[0],pts[i],pts[i+1]].forEach(q=>{P.push(q[0],q[1],z);U.push(...uv(q[0],q[1]));});}
+          [-1,1].forEach(sd=>{const zz=z*1.14,a=[0,AP+0.012,zz],b=[sd*(EX+0.012),EY,zz],c=[sd*(EX+0.012),EY-0.04,zz],d=[0,AP-0.03,zz];quad(P,U,a,b,c,d,WU,WU,WU,WU);});});return geo(P,U);})();
+      // Dach: zwei Flächen mit Überstand, Ziegel laufen von der Traufe zum First
+      const roof=(()=>{const P=[],U=[],Z=0.56;[-1,1].forEach(sd=>{const a=[0,AP,sd*Z],b=[0,AP,-sd*Z],c=[sd*EX,EY,-sd*Z],d=[sd*EX,EY,sd*Z];quad(P,U,a,b,c,d,[0,5],[9,5],[9,0],[0,0]);});
+        // Firstziegel
+        const rz=0.57,rw=0.022;quad(P,U,[-rw,AP+0.004,rz],[rw,AP+0.004,rz],[rw,AP+0.004,-rz],[-rw,AP+0.004,-rz],[0,0.1],[0.3,0.1],[0.3,4],[0,4]);return geo(P,U);})();
+      const tile=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');x.fillStyle='#cfcfcf';x.fillRect(0,0,128,128);
+        for(let row=0;row<4;row++)for(let k=-1;k<5;k++){const ox=k*32+(row%2)*16,oy=row*32;const g=x.createLinearGradient(ox,0,ox+32,0);g.addColorStop(0,'#8c8c8c');g.addColorStop(0.3,'#eeeeee');g.addColorStop(0.7,'#cdcdcd');g.addColorStop(1,'#7e7e7e');x.fillStyle=g;x.fillRect(ox,oy,32,32);
+          x.fillStyle=`rgba(0,0,0,${R()*0.16})`;x.fillRect(ox,oy,32,32);x.fillStyle='rgba(0,0,0,.38)';x.fillRect(ox,oy+28.5,32,3.5);x.fillStyle='rgba(255,255,255,.18)';x.fillRect(ox,oy,32,2);}
+        const t=new T.CanvasTexture(c);t.encoding=T.sRGBEncoding;t.wrapS=t.wrapT=T.RepeatWrapping;t.anisotropy=8;return t;})();
+      const roofMat=std(0xffffff,{map:tile,roughness:0.8,side:T.DoubleSide});
+      return {wall,gable,roof,wallMat,roofMat};})();
     const mesh = (geo, mat, parent, x = 0, y = 0, z = 0) => {
       const m = new T.Mesh(geo, mat);
       m.position.set(x, y, z);
@@ -9017,6 +9170,119 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       return geo;
     };
     const tbox = (w, h, d, s) => worldUV(new T.BoxGeometry(w, h, d), s || 2);
+    // Innenräume bekommen weniger Himmelslicht als Flächen im Freien
+    const dimEnv = (grp, k) => {
+      grp.traverse((o) => {
+        if (o.isMesh)
+          (Array.isArray(o.material) ? o.material : [o.material]).forEach((m) => {
+            if (m.isMeshStandardMaterial && m.name !== "glass") m.envMapIntensity = k || 0.22;
+          });
+      });
+      return grp;
+    };
+    // Baum- und Buschkronen: unregelmäßig gebuchtete Kugel mit weichen Normalen, dunkler Unterseite und hellen Kuppen, dazu Laubtextur
+    const LEAFO = { roughness: 1, vertexColors: true, map: TX.leaf, envMapIntensity: 0.75 };
+    const CROWN = (() => {
+      const g = new T.IcosahedronGeometry(1, 2);
+      const p = g.attributes.position,
+        n = g.attributes.normal,
+        uv = g.attributes.uv;
+      const R = rng(905);
+      const bumps = [];
+      for (let i = 0; i < 9; i++) {
+        const a = R() * 6.283,
+          y = R() * 1.5 - 0.55,
+          r = Math.sqrt(Math.max(0, 1 - Math.min(1, y * y)));
+        bumps.push([Math.cos(a) * r, y, Math.sin(a) * r, 0.18 + R() * 0.2, 5 + R() * 5]);
+      }
+      const cols = new Float32Array(p.count * 3),
+        v = new T.Vector3(),
+        nn = new T.Vector3();
+      for (let i = 0; i < p.count; i++) {
+        v.set(p.getX(i), p.getY(i), p.getZ(i)).normalize();
+        let r = 0.86;
+        for (const b of bumps) {
+          const d = v.x * b[0] + v.y * b[1] + v.z * b[2];
+          r += b[3] * Math.exp((d - 1) * b[4]);
+        }
+        r += 0.05 * Math.sin(v.x * 9 + v.y * 7) * Math.sin(v.z * 8 + v.y * 5);
+        const fl = v.y < -0.35 ? 1 - (-0.35 - v.y) * 0.55 : 1;
+        p.setXYZ(i, v.x * r, v.y * r * fl, v.z * r);
+        const k = Math.max(0.55, Math.min(1.45, 0.92 + 0.32 * v.y + (r - 1) * 1.2));
+        cols[i * 3] = k * 1.02;
+        cols[i * 3 + 1] = k;
+        cols[i * 3 + 2] = k * 0.9;
+        uv.setXY(i, v.x * 1.6 + v.y * 0.9, v.z * 1.6 + v.y * 1.1);
+      }
+      // weiche Normalen: Flächennormalen an gleichen Eckpunkten mitteln und zur Kugelrichtung hin mischen
+      g.computeVertexNormals();
+      {
+        const acc = {};
+        const key = (i) =>
+          Math.round(p.getX(i) * 400) + "," + Math.round(p.getY(i) * 400) + "," + Math.round(p.getZ(i) * 400);
+        for (let i = 0; i < p.count; i++) {
+          const k = key(i);
+          const a = acc[k] || (acc[k] = [0, 0, 0]);
+          a[0] += n.getX(i);
+          a[1] += n.getY(i);
+          a[2] += n.getZ(i);
+        }
+        for (let i = 0; i < p.count; i++) {
+          const a = acc[key(i)];
+          v.set(p.getX(i), p.getY(i), p.getZ(i)).normalize();
+          nn.set(a[0], a[1], a[2]).normalize().lerp(v, 0.45).normalize();
+          n.setXYZ(i, nn.x, nn.y, nn.z);
+        }
+      }
+      g.setAttribute("color", new T.BufferAttribute(cols, 3));
+      // Laubbüschel: kleine, radial abstehende Blattflächen mit ausgeschnittenem Umriss lösen die glatte Kontur der Krone auf
+      const rad=v=>{let r=0.86;for(const b of bumps){const d=v.x*b[0]+v.y*b[1]+v.z*b[2];r+=b[3]*Math.exp((d-1)*b[4]);}return r;};
+      const P=Array.from(p.array),N=Array.from(n.array),U=Array.from(uv.array),C=Array.from(cols),K=new Array(p.count*3).fill(0);
+      const NF=84,t1=new T.Vector3(),t2=new T.Vector3(),up=new T.Vector3(0,1,0),xx=new T.Vector3(1,0,0);
+      for(let i=0;i<NF;i++){const y=1-(i+0.5)/NF*1.72,rr=Math.sqrt(Math.max(0,1-y*y)),a=i*2.39996+R()*0.5;v.set(Math.cos(a)*rr,y,Math.sin(a)*rr).normalize();
+        const r=rad(v),fl=v.y<-0.35?1-(-0.35-v.y)*0.55:1;t1.crossVectors(v,Math.abs(v.y)>0.9?xx:up).normalize();t2.crossVectors(v,t1).normalize();
+        const ang=R()*Math.PI;const tx=t1.clone().multiplyScalar(Math.cos(ang)).addScaledVector(t2,Math.sin(ang));
+        const w=0.26+R()*0.14,h0=-0.1,h1=0.2+R()*0.16;const lean=tx.clone().multiplyScalar((R()-0.5)*0.25);
+        const kk=Math.max(0.6,Math.min(1.5,0.98+0.34*v.y+(r-1)*1.2));const u0=R(),v0=R();
+        const corner=(su,hv)=>{const rr2=r+(hv?h1:h0);const q=v.clone().multiplyScalar(rr2).addScaledVector(tx,su*w);if(hv)q.add(lean);q.y*=fl;return q;};
+        const A=corner(-1,0),B=corner(1,0),Cc=corner(1,1),D=corner(-1,1);
+        [[A,0,0],[B,1,0],[Cc,1,1],[A,0,0],[Cc,1,1],[D,0,1]].forEach(([q,cu,cv])=>{P.push(q.x,q.y,q.z);N.push(v.x,v.y,v.z);U.push(u0+cu*0.5,v0+cv*0.5);const kq=kk*(cv?1.12:0.95);C.push(kq*1.02,kq,kq*0.9);K.push(1,cu,cv);});}
+      const g2=new T.BufferGeometry();g2.setAttribute('position',new T.Float32BufferAttribute(P,3));g2.setAttribute('normal',new T.Float32BufferAttribute(N,3));g2.setAttribute('uv',new T.Float32BufferAttribute(U,2));
+      g2.setAttribute('color',new T.Float32BufferAttribute(C,3));g2.setAttribute('aCard',new T.Float32BufferAttribute(K,3));g2.computeBoundingSphere();g2.boundingSphere.radius*=1.15;
+      return g2;
+    })();
+    // Umriss der Laubbüschel: unten geschlossen, nach außen in einzelne Blätter aufgelöst
+    const LEAFA=(()=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');const R=rng(613);x.fillStyle='#fff';x.fillRect(0,96,128,32);
+      for(let i=0;i<150;i++){const hy=R();const py=100-hy*hy*96,px=64+(R()-0.5)*(124-hy*46);const r=5+R()*6;x.beginPath();x.ellipse(px,py,r,r*(0.45+R()*0.3),R()*3.14,0,7);x.fill();}
+      const t=new T.CanvasTexture(c);t.minFilter=T.LinearFilter;t.generateMipmaps=false;return t;})();
+    const leafy=m=>{m.side=T.DoubleSide;m.onBeforeCompile=sh=>{sh.uniforms.uLeafA={value:LEAFA};
+        sh.vertexShader='attribute vec3 aCard;varying vec3 vCard;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvCard=aCard;');
+        sh.fragmentShader='uniform sampler2D uLeafA;varying vec3 vCard;\n'+sh.fragmentShader.replace('#include <map_fragment>','if(vCard.x>.5&&texture2D(uLeafA,vCard.yz).a<.5)discard;\n#include <map_fragment>');};return m;};
+    // großflächige Farbschwankung über Weltkoordinaten: nimmt Wiesen und Böden das gleichmäßige Kachelmuster (fleckig, stellenweise trockener)
+    const macro = (mat, scale, str, dry) => {
+      const u = { value: new T.Vector3(scale, str, dry || 0) };
+      mat.onBeforeCompile = (sh) => {
+        sh.uniforms.uMacro = u;
+        sh.vertexShader =
+          "varying vec3 vWPos;\n" +
+          sh.vertexShader.replace(
+            "#include <begin_vertex>",
+            "#include <begin_vertex>\n#ifdef USE_INSTANCING\nvWPos=(modelMatrix*instanceMatrix*vec4(transformed,1.)).xyz;\n#else\nvWPos=(modelMatrix*vec4(transformed,1.)).xyz;\n#endif",
+          );
+        sh.fragmentShader =
+          "varying vec3 vWPos;uniform vec3 uMacro;\nfloat mH(vec2 p){vec3 p3=fract(vec3(p.xyx)*.1031);p3+=dot(p3,p3.yzx+33.33);return fract((p3.x+p3.y)*p3.z);}\nfloat mN(vec2 p){vec2 i=floor(p),f=fract(p);vec2 w=f*f*(3.-2.*f);return mix(mix(mH(i),mH(i+vec2(1.,0.)),w.x),mix(mH(i+vec2(0.,1.)),mH(i+vec2(1.,1.)),w.x),w.y);}\n" +
+          sh.fragmentShader.replace(
+            "#include <map_fragment>",
+            "#include <map_fragment>\n{vec2 q=vWPos.xz*uMacro.x;float a=mN(q)*.6+mN(q*2.7+7.)*.4;float b=mN(q*.31+19.);diffuseColor.rgb*=1.+(a-.5)*2.*uMacro.y;diffuseColor.rgb=mix(diffuseColor.rgb,diffuseColor.rgb*vec3(1.2,1.08,.72),smoothstep(.5,.85,b)*uMacro.z);}",
+          );
+      };
+      return mat;
+    };
+    // Körnung für einfarbige Bodenbeläge (Asphalt, Pflaster, Wege): fleckige Flächen und in der Nähe feines Korn statt glatter Farbfläche
+    const grain=mat=>{mat.onBeforeCompile=sh=>{
+        sh.vertexShader='varying vec3 vWPos;\n'+sh.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nvWPos=(modelMatrix*vec4(transformed,1.)).xyz;');
+        sh.fragmentShader='varying vec3 vWPos;\nfloat mH(vec2 p){vec3 p3=fract(vec3(p.xyx)*.1031);p3+=dot(p3,p3.yzx+33.33);return fract((p3.x+p3.y)*p3.z);}\nfloat mN(vec2 p){vec2 i=floor(p),f=fract(p);vec2 w=f*f*(3.-2.*f);return mix(mix(mH(i),mH(i+vec2(1.,0.)),w.x),mix(mH(i+vec2(0.,1.)),mH(i+vec2(1.,1.)),w.x),w.y);}\n'
+          +sh.fragmentShader.replace('#include <map_fragment>','#include <map_fragment>\n{vec2 q=vWPos.xz;float gf=clamp(1.-distance(vWPos,cameraPosition)/45.,0.,1.);float a=mN(q*.45)*.6+mN(q*1.3+7.)*.4;float b=mN(q*23.)*.5+mN(q*61.+3.)*.5;diffuseColor.rgb*=1.+(a-.5)*.16+(b-.5)*.24*gf;}');};return mat;};
 
     // Autos: Karosserie mit Radläufen und gerundeten Kanten, Glaskabine mit Dach und B-Säule, vier Räder mit Felgen, Lichter, Stoßfänger
     // items: [x, y, z, Drehung um y, Farbe]; Front zeigt nach -z
@@ -9054,80 +9320,36 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         g.rotateY(Math.PI / 2);
         return g;
       };
-      const body = ext(
-        (s) => {
-          s.moveTo(-2.2, 0.3);
-          s.lineTo(-1.77, 0.3);
-          s.absarc(-1.35, 0.3, 0.42, Math.PI, 0, true);
-          s.lineTo(0.93, 0.3);
-          s.absarc(1.35, 0.3, 0.42, Math.PI, 0, true);
-          s.lineTo(2.18, 0.3);
-          s.lineTo(2.24, 0.58);
-          s.lineTo(2.08, 0.8);
-          s.lineTo(0.95, 0.93);
-          s.lineTo(-1.95, 0.97);
-          s.lineTo(-2.2, 0.86);
-          s.closePath();
-        },
-        1.78,
-        0.06,
-      );
-      const roof = new T.BoxGeometry(1.56, 0.06, 1.6);
-      roof.translate(0, 1.44, 0.62);
-      const bp = new T.BoxGeometry(1.6, 0.48, 0.11);
-      bp.translate(0, 1.17, 0.5);
-      const glass = ext(
-        (s) => {
-          s.moveTo(0.95, 0.92);
-          s.lineTo(0.18, 1.41);
-          s.lineTo(-1.42, 1.43);
-          s.lineTo(-1.95, 0.95);
-          s.closePath();
-        },
-        1.56,
-        0.03,
-      );
-      const tires = [],
-        hubs = [],
-        lf = [],
-        lr = [],
-        bum = [];
-      [-1, 1].forEach((sx) =>
-        [-1.35, 1.35].forEach((z) => {
-          const t = new T.CylinderGeometry(0.33, 0.33, 0.22, 10);
-          t.rotateZ(Math.PI / 2);
-          t.translate(sx * 0.8, 0.33, z);
-          tires.push(t);
-          const h = new T.CylinderGeometry(0.19, 0.19, 0.235, 8);
-          h.rotateZ(Math.PI / 2);
-          h.translate(sx * 0.8, 0.33, z);
-          hubs.push(h);
-        }),
-      );
-      [-1, 1].forEach((sx) => {
-        const a = new T.BoxGeometry(0.36, 0.13, 0.06);
-        a.translate(sx * 0.6, 0.66, -2.21);
-        lf.push(a);
-        const b = new T.BoxGeometry(0.3, 0.12, 0.06);
-        b.translate(sx * 0.66, 0.75, 2.2);
-        lr.push(b);
-      });
-      [-2.24, 2.24].forEach((z) => {
-        const b = new T.BoxGeometry(1.74, 0.17, 0.14);
-        b.translate(0, 0.42, z);
-        bum.push(b);
-      });
-      const gr = new T.BoxGeometry(0.8, 0.16, 0.04);
-      gr.translate(0, 0.6, -2.235);
-      bum.push(gr);
+      // gerundete Karosserie aus Querschnitten: runde Front und Heck, gewölbte Haube, eingezogene Glaskabine mit lackiertem Dach
+      const ring=(z,w,y0,y1,n)=>{const K=18,a=[],yc=(y0+y1)/2,hh=(y1-y0)/2;for(let k=0;k<K;k++){const t=k/K*Math.PI*2,c=Math.cos(t),q=Math.sin(t);a.push([w*Math.sign(c)*Math.pow(Math.abs(c),2/n),yc+hh*Math.sign(q)*Math.pow(Math.abs(q),2/n),z]);}return a;};
+      const loft=(secs,closed,caps,flip)=>{const M=secs[0].length,P=[];secs.forEach(r=>r.forEach(p=>P.push(p[0],p[1],p[2])));const I=[],mm=closed?M:M-1;
+        for(let a0=0;a0<secs.length-1;a0++)for(let b0=0;b0<mm;b0++){const a=a0*M+b0,b=a0*M+(b0+1)%M,c=(a0+1)*M+b0,d=(a0+1)*M+(b0+1)%M;flip?I.push(a,c,b,b,c,d):I.push(a,b,c,b,d,c);}
+        if(caps)[0,secs.length-1].forEach((si,e)=>{const r=secs[si];let cx=0,cy=0;r.forEach(p=>{cx+=p[0];cy+=p[1];});const ci=P.length/3;P.push(cx/M,cy/M,r[0][2]);for(let b0=0;b0<M;b0++){const a=si*M+b0,b=si*M+(b0+1)%M;e?I.push(ci,a,b):I.push(ci,b,a);}});
+        const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(P,3));g.setIndex(I);g.computeVertexNormals();return g;};
+      const body=loft([[-2.25,0.5,0.44,0.7],[-2.19,0.76,0.35,0.8],[-2.02,0.855,0.3,0.865],[-1.35,0.89,0.3,0.92],[-0.95,0.89,0.3,0.955],[0,0.89,0.3,0.97],[1.2,0.89,0.3,0.97],[1.95,0.875,0.3,0.96],[2.16,0.83,0.34,0.9],[2.24,0.66,0.44,0.78]].map(q=>ring(q[0],q[1],q[2],q[3],5)),true,true);
+      const gsec=(z,wb,wt,yb,yt)=>[[-wb,yb,z],[-(wt+0.035),yt-0.13,z],[-(wt-0.05),yt-0.025,z],[-wt*0.5,yt+0.012,z],[0,yt+0.018,z],[wt*0.5,yt+0.012,z],[wt-0.05,yt-0.025,z],[wt+0.035,yt-0.13,z],[wb,yb,z]].map(p=>[p[0],Math.max(p[1],yb),p[2]]);
+      const GS=[[-1.02,0.84,0.8,0.93,0.94],[-0.25,0.84,0.66,0.95,1.4],[0.3,0.84,0.66,0.95,1.445],[1.3,0.84,0.66,0.95,1.43],[1.97,0.84,0.78,0.95,0.97]];
+      const glass=loft(GS.map(q=>gsec(...q)),false,false,true);
+      const roofCap=loft([[-0.33,1.34],[-0.25,1.4],[0.3,1.445],[1.3,1.43],[1.42,1.36]].map(([z,yt])=>gsec(z,0.84,0.668,0.95,yt+0.012).slice(2,7)),false,false,true);
+      const bx=(w,h,d,x,y,z,rz)=>{const g=new T.BoxGeometry(w,h,d);if(rz)g.rotateZ(rz);g.translate(x,y,z);return g;};
+      const cy=(r,w,seg,x,y,z)=>{const g=new T.CylinderGeometry(r,r,w,seg);g.rotateZ(Math.PI/2);g.translate(x,y,z);return g;};
+      const tires=[],hubs=[],lf=[],lr=[],bum=[],plate=[],chrome=[];
+      [-1,1].forEach(sx=>{[-1.35,1.35].forEach(z=>{tires.push(cy(0.33,0.21,22,sx*0.8,0.33,z));hubs.push(cy(0.205,0.222,18,sx*0.8,0.33,z));bum.push(cy(0.07,0.23,10,sx*0.8,0.33,z),cy(0.385,0.014,22,sx*0.884,0.36,z));});
+        lf.push(bx(0.36,0.11,0.08,sx*0.55,0.7,-2.215));lr.push(bx(0.3,0.12,0.08,sx*0.58,0.76,2.185));
+        bum.push(bx(0.03,0.46,0.09,sx*0.775,1.15,0.5,sx*0.36),bx(0.008,0.56,0.014,sx*0.893,0.63,-0.55),bx(0.008,0.56,0.014,sx*0.893,0.63,0.5),bx(0.008,0.5,0.014,sx*0.893,0.66,1.02),bx(0.13,0.08,0.07,sx*0.94,0.99,-0.78));
+        chrome.push(bx(0.014,0.025,0.13,sx*0.897,0.83,-0.28),bx(0.014,0.025,0.13,sx*0.897,0.83,0.78));});
+      bum.push(bx(1.5,0.13,0.1,0,0.4,-2.2),bx(1.56,0.13,0.1,0,0.42,2.19),bx(0.78,0.12,0.05,0,0.56,-2.235));
+      plate.push(bx(0.5,0.11,0.02,0,0.47,-2.262),bx(0.5,0.11,0.02,0,0.6,2.252));
       const parts = [
-        [merge([body, roof, bp]), std(0xffffff, { roughness: 0.3, metalness: 0.55 }), true],
-        [merge([glass]), std(0x1b252c, { roughness: 0.08, metalness: 0.7 })],
-        [merge(tires), std(0x161616, { roughness: 0.9 })],
+        [merge([body, roofCap]), std(0xffffff, { roughness: 0.28, metalness: 0.55, envMapIntensity: 0.9, side: T.DoubleSide }), true],
+        [merge([glass]), std(0x1b252c, { roughness: 0.06, metalness: 0.75, envMapIntensity: 1.1, side: T.DoubleSide })],
+        [merge(tires), std(0x151515, { roughness: 0.9 })],
         [merge(hubs), std(0xb9bdc0, { roughness: 0.3, metalness: 0.85 })],
         [merge(lf), new T.MeshStandardMaterial({ color: 0xf4f1e6, emissive: 0x5c5a50, roughness: 0.2 })],
         [merge(lr), std(0xb3141a, { roughness: 0.3 })],
-        [merge(bum), std(0x26292b, { roughness: 0.6 })],
+        [merge(bum), std(0x1d1f21, { roughness: 0.7 })],
+        [merge(plate), std(0xf2f2ee, { roughness: 0.5 })],
+        [merge(chrome), std(0xc9cdd0, { roughness: 0.25, metalness: 0.9 })],
       ];
       const o = new T.Object3D(),
         col = new T.Color();
@@ -9136,6 +9358,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         items.forEach((c, i) => {
           o.position.set(c[0], c[1], c[2]);
           o.rotation.set(0, c[3], 0);
+          o.scale.set(1, i % 5 === 2 ? 1.06 : 1, 0.92 + ((i * 37) % 10) * 0.014); // Kleinwagen bis Kombi
           o.updateMatrix();
           im.setMatrixAt(i, o.matrix);
           if (colored) {
@@ -9153,32 +9376,78 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
 
     // Himmel
     const skyU = {
-      uTop: { value: new T.Color(0x5f86ae) },
+      uTop: { value: new T.Color(0x4f84c0) },
       uHor: { value: FOG },
       uSun: { value: SUN },
       uTime: time,
       uCov: { value: 0 },
       uDark: { value: 0 },
     };
-    const skyFrag = `uniform vec3 uTop,uHor,uSun;uniform float uTime,uCov,uDark;varying vec3 vDir;${NOISE_GL}
-    void main(){vec3 d=normalize(vDir);float h=d.y;vec3 col=mix(uHor,uTop,pow(clamp(h,0.,1.),.55));
-      float s=max(dot(d,uSun),0.);col+=vec3(1.,.93,.8)*(pow(s,700.)*2.2+pow(s,10.)*.16)*(1.-uDark*.92);
-      if(h>0.){vec2 uv=d.xz/(h+.07)*1.4+vec2(uTime*.003,uTime*.0015);float c=fbm(uv);float m=smoothstep(.46-uCov,.76-uCov*.85,c)*smoothstep(0.,.16,h);
-        float sh=fbm(uv*1.6+3.1);vec3 cc=mix(vec3(.56,.6,.66),vec3(.98,.98,.97),smoothstep(.42,.85,sh));cc*=1.-uDark*.45;cc+=vec3(1.,.95,.85)*pow(s,6.)*.25*(1.-uDark);col=mix(col,cc,m*.94);}
-      col=mix(col,uHor,smoothstep(.07,0.,h));if(h<0.)col=mix(uHor,vec3(.42,.5,.5),clamp(-h*3.,0.,.6));gl_FragColor=vec4(col,1.);}`;
+    // Himmel in linearem Licht: Verlauf vom dunstigen Horizont zum tieferen Zenit, Sonnenscheibe mit Hof, Wolken mit Licht- und Schattenseite, hohe Schleierwolken
+    const SKY_GL = `vec3 L(vec3 c){return pow(max(c,0.),vec3(2.2));}
+    vec3 skyBase(vec3 d,vec3 top,vec3 hor,vec3 sun,float dark){float h=clamp(d.y,0.,1.);float s=max(dot(d,sun),0.);
+      vec3 col=mix(hor,top,pow(h,.36));col=mix(col,top*vec3(.42,.52,.72),pow(h,1.5)*.7);
+      float cl=1.-dark;col+=vec3(1.,.8,.58)*pow(s,5.)*.09*cl*(1.-h);col+=vec3(1.,.9,.74)*pow(s,48.)*.3*cl;return col;}
+    vec4 skyCloud(vec3 d,vec3 sun,float t,float cov,float dark){float h=d.y;if(h<=0.)return vec4(0.);
+      vec2 uv=d.xz/(h+.07)*1.4+vec2(t*.003,t*.0015);float c=fbm(uv);float m=smoothstep(.52-cov*1.2,.74-cov,c)*smoothstep(0.,.14,h);
+      vec2 sd=normalize(sun.xz+1e-4)*.2;float c2=fbm3(uv+sd);float lit=clamp(.7+(c-c2)*3.,0.,1.);float thick=smoothstep(.56-cov,.92-cov,c);
+      float s=max(dot(d,sun),0.);
+      vec3 shade=mix(vec3(.6,.66,.76),vec3(.3,.33,.38),dark);vec3 bright=mix(vec3(1.2,1.18,1.13),vec3(.62,.64,.66),dark);
+      vec3 cc=mix(shade,bright,lit*(1.-thick*.4));cc+=vec3(1.,.9,.72)*pow(s,8.)*.5*(1.-dark)*(1.-thick);
+      // hohe Schleierwolken
+      vec2 u2=d.xz/(h+.12)*vec2(.5,1.6)+vec2(t*.0012,7.3);float ci=smoothstep(.5,.85,fbm3(u2))*smoothstep(.08,.35,h)*.22*(1.-dark);
+      float a=m*.96;vec3 col=mix(vec3(1.05,1.05,1.04),cc,a/(a+ci*(1.-a)+1e-4));return vec4(col,a+ci*(1.-a));}`;
+    const skyFrag = `uniform vec3 uTop,uHor,uSun;uniform float uTime,uCov,uDark,uEnv;varying vec3 vDir;${NOISE_GL}${SKY_GL}
+    void main(){vec3 d=normalize(vDir);float h=d.y;vec3 hor=L(uHor);vec3 col=skyBase(d,L(uTop),hor,uSun,uDark);
+      float s=max(dot(d,uSun),0.);
+      if(uEnv<.5)col+=vec3(1.,.95,.84)*(smoothstep(.99988,.99996,s)*40.+pow(s,1400.)*5.)*(1.-uDark*.96);
+      else col+=vec3(1.,.95,.84)*pow(s,300.)*2.*(1.-uDark);
+      vec4 c=skyCloud(d,uSun,uTime,uCov,uDark);col=mix(col,c.rgb,c.a);
+      col=mix(col,hor,smoothstep(.07,0.,h));if(h<0.)col=mix(hor,L(vec3(.34,.42,.4)),clamp(-h*3.,0.,.75));gl_FragColor=vec4(col,1.);
+      #include <tonemapping_fragment>
+      #include <encodings_fragment>
+    }`;
     const skyVert = `varying vec3 vDir;void main(){vDir=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`;
     const skyMat = new T.ShaderMaterial({
       side: T.BackSide,
       depthWrite: false,
       depthTest: false,
       fog: false,
-      uniforms: skyU,
+      uniforms: Object.assign({ uEnv: { value: 0 } }, skyU),
       vertexShader: skyVert,
       fragmentShader: skyFrag,
     });
     const sky = mesh(new T.SphereGeometry(8800, 32, 16), skyMat);
     sky.renderOrder = -10;
-    // Umgebungslicht für Spiegelungen aus dem Himmel
+    // Umgebungslicht und Spiegelungen aus dem Himmel: der Himmel wird einmal je Wetter in eine Umgebungskarte gerendert
+    const pmrem = new T.PMREMGenerator(renderer);
+    const envScene = new T.Scene();
+    envScene.add(
+      new T.Mesh(
+        new T.SphereGeometry(100, 32, 16),
+        new T.ShaderMaterial({
+          side: T.BackSide,
+          depthWrite: false,
+          depthTest: false,
+          fog: false,
+          uniforms: Object.assign({ uEnv: { value: 1 } }, skyU),
+          vertexShader: skyVert,
+          fragmentShader: skyFrag,
+        }),
+      ),
+    );
+    let envRT = null,
+      envKey = "";
+    const updEnv = (key) => {
+      if (key === envKey) return;
+      envKey = key;
+      try {
+        const rt = pmrem.fromScene(envScene, 0, 1, 500);
+        scene.environment = rt.texture;
+        if (envRT) envRT.dispose();
+        envRT = rt;
+      } catch (e) {}
+    };
 
     // Tiefenbild für die Wasserfarbe
     const DBOX = { minX: -9000, minZ: -9500, sx: 14000, sz: 12000 };
@@ -9230,17 +9499,35 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     dtex.magFilter = T.LinearFilter;
     dtex.generateMipmaps = false;
 
+    // Wellenbild als kachelbare Textur: R,G = Neigung der Wasseroberfläche (viele überlagerte Wellenzüge, Windrichtung bevorzugt), B = Schaumgeflecht
+    const WAVT=(()=>{const N=256,R=rng(4711),TAU=Math.PI*2;const mk=(n,kmin,kmax,pw,dirW)=>{const c=[];while(c.length<n){const kx=Math.round((R()*2-1)*kmax),ky=Math.round((R()*2-1)*kmax);const k=Math.hypot(kx,ky);if(k<kmin||k>kmax)continue;
+          const th=Math.atan2(ky,kx)-0.5;c.push([kx,ky,Math.pow(k,-pw)*(1-dirW+dirW*Math.cos(th)*Math.cos(th)),R()*TAU]);}return c;};
+      const A=mk(110,2,30,1.15,0.65),B=mk(46,3,18,0.6,0),C=mk(18,1,5,0.8,0);
+      const cs=new Float32Array(N),sn=new Float32Array(N);for(let i=0;i<N;i++){cs[i]=Math.cos(TAU*i/N);sn[i]=Math.sin(TAU*i/N);}
+      const gx=new Float32Array(N*N),gy=new Float32Array(N*N),fb=new Float32Array(N*N),fc=new Float32Array(N*N);
+      const add=(list,fn)=>{for(const [kx,ky,a,ph] of list){const cp=Math.cos(ph),sp=Math.sin(ph);for(let y=0;y<N;y++){const iy=((ky*y)%N+N)%N;for(let x=0;x<N;x++){const ix=((kx*x)%N+N)%N;
+            // cos/sin(2π(kx·x+ky·y)/N + ph) über Additionstheoreme aus der Tabelle
+            const c1=cs[ix]*cs[iy]-sn[ix]*sn[iy],s1=sn[ix]*cs[iy]+cs[ix]*sn[iy];fn(y*N+x,kx,ky,a,c1*cp-s1*sp,s1*cp+c1*sp);}}}};
+      add(A,(i,kx,ky,a,c,s_)=>{gx[i]-=a*kx*s_;gy[i]-=a*ky*s_;});add(B,(i,kx,ky,a,c)=>{fb[i]+=a*c;});add(C,(i,kx,ky,a,c)=>{fc[i]+=a*c;});
+      let sg=0,sf=0,sc=0;for(let i=0;i<N*N;i++){sg+=gx[i]*gx[i]+gy[i]*gy[i];sf+=fb[i]*fb[i];sc+=fc[i]*fc[i];}sg=Math.sqrt(sg/(N*N)/2);sf=Math.sqrt(sf/(N*N));sc=Math.sqrt(sc/(N*N));
+      const d=new Uint8Array(N*N*4),cl=v=>Math.max(0,Math.min(255,Math.round(v*255)));
+      for(let i=0;i<N*N;i++){d[i*4]=cl(0.5+gx[i]/sg/8);d[i*4+1]=cl(0.5+gy[i]/sg/8);const r=Math.max(0,1-Math.abs(fb[i]/sf)*1.5);d[i*4+2]=cl(r*r*(0.55+0.45*Math.max(-1,Math.min(1,fc[i]/sc))));d[i*4+3]=255;}
+      const t=new T.DataTexture(d,N,N,T.RGBAFormat);t.wrapS=t.wrapT=T.RepeatWrapping;t.minFilter=T.LinearMipmapLinearFilter;t.magFilter=T.LinearFilter;t.generateMipmaps=true;t.anisotropy=Math.min(8,renderer.capabilities.getMaxAnisotropy());t.needsUpdate=true;return t;})();
     // Wasser
     const waterMat = new T.ShaderMaterial({
       fog: false,
       uniforms: {
         uTime: time,
+        uWav: { value: WAVT },
+        uShip: { value: new T.Vector4(0, 0, 1, 0) },
         uCam: { value: new T.Vector3() },
         uSun: { value: SUN },
         uDepth: { value: dtex },
         uBox: { value: new T.Vector4(DBOX.minX, DBOX.minZ, DBOX.sx, DBOX.sz) },
         uAmp: { value: 1 },
         uSpec: { value: 1 },
+        uCov: skyU.uCov,
+        uDark: skyU.uDark,
         uFog: { value: FOG },
         uDens: denU,
         uDeep: { value: new T.Color(0x2f4849) },
@@ -9249,23 +9536,46 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         uHor: { value: new T.Color(0xcad4d9) },
       },
       vertexShader: `varying vec3 vW;void main(){vec4 w=modelMatrix*vec4(position,1.);vW=w.xyz;gl_Position=projectionMatrix*viewMatrix*w;}`,
-      fragmentShader: `uniform float uTime,uDens,uAmp,uSpec;uniform vec3 uCam,uSun,uFog,uDeep,uShallow,uTop,uHor;uniform sampler2D uDepth;uniform vec4 uBox;varying vec3 vW;${NOISE_GL}
+      fragmentShader: `uniform float uTime,uDens,uAmp,uSpec,uCov,uDark;uniform vec3 uCam,uSun,uFog,uDeep,uShallow,uTop,uHor;uniform sampler2D uDepth,uWav;uniform vec4 uBox,uShip;varying vec3 vW;${NOISE_GL}${SKY_GL}
+    // Strahl gegen Quader: Länge des Wegs im Quader (für Schatten und Spiegelbild der Fähre)
+    float bx(vec3 o,vec3 d,vec3 a,vec3 b){d+=vec3(1e-4);vec3 t1=(a-o)/d,t2=(b-o)/d;vec3 mn=min(t1,t2),mx=max(t1,t2);float tn=max(max(mn.x,mn.y),max(mn.z,0.));float tf=min(min(mx.x,mx.y),mx.z);return max(tf-tn,0.);}
+    vec3 sR(vec3 v){return vec3(v.x*uShip.z-v.z*uShip.w,v.y,v.x*uShip.w+v.z*uShip.z);}
+    float shipHit(vec3 o,vec3 d){return bx(o,d,vec3(-6.,-.5,-29.),vec3(6.,3.4,29.))+bx(o,d,vec3(-5.3,3.4,-16.),vec3(5.3,9.6,25.));}
     vec2 wv(vec2 p,vec2 d,float L,float A,float t){float k=6.28318/L;float ph=dot(d,p)*k-sqrt(9.81*k)*t;return d*(A*k*cos(ph));}
-    void main(){vec2 p=vW.xz;float dist=length(uCam-vW);float fade=clamp(1.-dist/900.,0.,1.);float t=uTime;
+    vec2 ng(vec2 q,float e){float n0=noise(q);return vec2(noise(q+vec2(e,0.))-n0,noise(q+vec2(0.,e))-n0)*2.;}
+    void main(){vec2 p=vW.xz;float dist=length(uCam-vW);float fade=clamp(1.-dist/900.,0.,1.);float near=clamp(1.-dist/220.,0.,1.);float t=uTime;
       vec2 g=wv(p,vec2(.958,.287),16.,.11,t)+wv(p,vec2(.614,.789),9.,.06,t)+wv(p,vec2(-.371,.928),25.,.12,t);
       g+=fade*(wv(p,vec2(.954,-.3),5.5,.03,t)+wv(p,vec2(-.894,.447),3.3,.016,t)+wv(p,vec2(.2,-.98),2.1,.008,t));
-      vec2 q=p*.3+vec2(t*.25,t*.18);float e=.5;
-      g+=vec2(noise(q+vec2(e,0.))-noise(q-vec2(e,0.)),noise(q+vec2(0.,e))-noise(q-vec2(0.,e)))*.13*fade;
+      // Windsee und Kräuselung aus der Wellentextur in vier Größen (61 m, 23 m, 7,5 m, 2,3 m), gegeneinander gedreht und verschieden schnell laufend
+      vec4 w1=texture2D(uWav,p*.0164+t*vec2(.011,.006));vec4 w2=texture2D(uWav,vec2(p.y,-p.x)*.0435+t*vec2(-.017,.023));
+      vec4 w3=texture2D(uWav,(p*mat2(.8,.6,-.6,.8))*.133+t*vec2(.05,-.034));vec4 w4=texture2D(uWav,vec2(-p.y,p.x)*.43+t*vec2(.09,.11));
+      vec2 d1=(w1.rg-.5)*8.,d2=(w2.rg-.5)*8.,d3=(w3.rg-.5)*8.,d4=(w4.rg-.5)*8.;d2=vec2(-d2.y,d2.x);d3=d3*mat2(.8,-.6,.6,.8);d4=vec2(d4.y,-d4.x);
+      // Böenfelder: die feine Kräuselung ist stellenweise kräftiger, stellenweise fast glatt
+      float gust=.45+1.1*texture2D(uWav,p*.0037+t*vec2(.004,.002)).b;
+      g+=d1*.05+d2*.055+(d3*.05*fade+d4*.04*near)*gust;
       g*=mix(.3,1.,clamp(1.-dist/3500.,0.,1.))*uAmp;
-      vec3 n=normalize(vec3(-g.x,1.,-g.y));vec3 v=normalize(uCam-vW);
-      float fres=.025+.975*pow(1.-max(dot(n,v),0.),5.);vec3 r=reflect(-v,n);r.y=abs(r.y);
-      vec3 sk=mix(uHor,uTop,pow(clamp(r.y,0.,1.),.5));
-      vec2 cuv=r.xz/(r.y+.07)*1.4+vec2(uTime*.003,uTime*.0015);float cl=smoothstep(.46,.76,fbm(cuv))*smoothstep(0.,.16,r.y);sk=mix(sk,vec3(.9,.91,.91),cl*.7);
-      float sh=texture2D(uDepth,(p-uBox.xy)/uBox.zw).r;vec3 base=mix(uDeep,uShallow,sh);
-      float crest=smoothstep(.16,.3,length(g))*fade*.25;
-      vec3 col=mix(base*(.78+.22*max(dot(n,uSun),0.)),sk,clamp(fres,0.,1.)*.92)+crest;
-      col+=vec3(1.,.95,.85)*pow(max(dot(r,uSun),0.),240.)*1.6*uSpec;
-      col=mix(col,uFog,1.-exp(-pow(uDens*dist,2.)));gl_FragColor=vec4(col,1.);}`,
+      vec3 n=normalize(vec3(-g.x,1.,-g.y));vec3 v=normalize(uCam-vW);float ndv=max(dot(n,v),0.);
+      float fres=.02+.98*pow(1.-ndv,5.);fres=min(fres,.9);
+      vec3 r=reflect(-v,n);r.y=abs(r.y);
+      vec3 sk=skyBase(r,L(uTop),L(uHor),uSun,uDark);float shd=0.;{float rh=max(r.y,.02);vec2 cu=r.xz/(rh+.07)*1.4+vec2(uTime*.003,uTime*.0015);float cm=smoothstep(.5-uCov*1.2,.8-uCov,fbm3(cu))*smoothstep(0.,.16,rh);sk=mix(sk,mix(vec3(.82,.84,.86),vec3(.42,.45,.48),uDark),cm*.32);}
+      // Fähre: Schlagschatten auf dem Wasser und verzerrtes Spiegelbild des Rumpfs
+      {vec2 q=p-uShip.xy;if(dot(q,q)<25600.){vec3 lo=sR(vec3(q.x,0.,q.y));shd=smoothstep(0.,3.,shipHit(lo,sR(uSun)))*(1.-uDark*.7);
+        float rf=smoothstep(0.,2.,shipHit(lo,sR(r)));sk=mix(sk,vec3(.5,.51,.5)*(1.-uDark*.45),rf*.9);}}
+      float sh=texture2D(uDepth,(p-uBox.xy)/uBox.zw).r;vec3 base=L(mix(uDeep,uShallow,sh));
+      // Licht, das durch die Wellenkämme scheint, und diffuser Anteil
+      float slope=length(g);float sun=max(dot(n,uSun),0.);
+      base*=(.55+.45*sun*(1.-shd));base+=(1.-shd)*L(vec3(.2,.42,.38))*smoothstep(.1,.4,slope)*.22*fade*(1.-uDark*.6);
+      vec3 col=mix(base,sk,fres);
+      // Schaumkrönchen bei steilen Wellen
+      col=mix(col,vec3(.8,.84,.84),smoothstep(.34,.62,slope)*fade*.5);
+      col=mix(col,vec3(.78,.82,.82),smoothstep(.5,.8,w3.b)*smoothstep(.75,1.25,gust)*fade*clamp(uAmp*.5-.15,0.,1.));
+      // Sonnenglitzern: in der Nähe scharfe Lichtpunkte, zur Ferne hin ein breiter Lichtpfad
+      float rs=max(dot(r,uSun),0.);float ex=mix(900.,60.,clamp(dist/1400.,0.,1.));
+      col+=vec3(1.,.93,.8)*(pow(rs,ex)*mix(9.,1.6,clamp(dist/1400.,0.,1.))+pow(rs,24.)*.12)*uSpec*(1.-shd);
+      col=mix(col,L(uFog),1.-exp(-pow(uDens*dist,2.)));gl_FragColor=vec4(col,1.);
+      #include <tonemapping_fragment>
+      #include <encodings_fragment>
+    }`,
     });
     const waterGeo = new T.PlaneGeometry(22000, 22000);
     waterGeo.rotateX(-Math.PI / 2);
@@ -9350,10 +9660,15 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       new T.ShaderMaterial({
         transparent: true,
         depthWrite: false,
-        uniforms: { uTime: time, uMul: { value: 1 } },
+        uniforms: { uTime: time, uMul: { value: 1 }, uWav: { value: WAVT } },
         vertexShader: `attribute float aA;attribute float aS;varying float vA;varying float vS;varying vec2 vP;void main(){vA=aA;vS=aS;vec4 w=modelMatrix*vec4(position,1.);vP=w.xz;gl_Position=projectionMatrix*viewMatrix*w;}`,
-        fragmentShader: `uniform float uTime,uMul;varying float vA;varying float vS;varying vec2 vP;${NOISE_GL}
-    void main(){float n=noise(vP*.45+uTime*.3)*.55+noise(vP*1.4-uTime*.25)*.3+noise(vP*4.-uTime*.4)*.15;float a=vA*uMul*(1.-vS*vS)*smoothstep(.22,.72,n);gl_FragColor=vec4(.92,.94,.94,a);}`,
+        fragmentShader: `uniform float uTime,uMul;uniform sampler2D uWav;varying float vA;varying float vS;varying vec2 vP;
+    // frischer Schaum fast geschlossen, älterer reißt zu einem feinen Geflecht auf
+    void main(){float f1=texture2D(uWav,vP*.085+uTime*vec2(.012,.007)).b;float f2=texture2D(uWav,vec2(vP.y,-vP.x)*.27-uTime*vec2(.02,.013)).b;float n=clamp(f1*.9+f2*.7,0.,1.);
+      float d=clamp(vA*uMul*(1.-vS*vS),0.,1.);float th=1.-d*1.15;float a=smoothstep(th,th+.4,n*.9+d*.3)*min(1.,d*3.)*(.5+.4*n);gl_FragColor=vec4(.84,.88,.88,a);
+      #include <tonemapping_fragment>
+      #include <encodings_fragment>
+    }`,
       });
     const MAXT = 100;
     const wakeGeo = new T.BufferGeometry();
@@ -9377,7 +9692,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     wake.frustumCulled = false;
 
     // Land, Deich, Molen
-    const GRASS = tex(TX.grass, 0xffffff, { roughness: 0.95 });
+    const GRASS = macro(tex(TX.grass, 0xd6d8c6, { roughness: 0.95 }), 0.035, 0.2, 0.3);
     const ext = (pts, h, mat, y0) => {
       const sh = new T.Shape(pts.map((p) => new T.Vector2(p[0], p[1])));
       const g = new T.ExtrudeGeometry(sh, { depth: h, bevelEnabled: false });
@@ -9513,9 +9828,9 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           new T.Vector2(-3.5, 8.2),
         ].reverse(),
       );
-      const DIKE = std(0xffffff, { map: TX.grass, roughness: 0.95, color: lin(0xb9d39a) });
-      const ROAD = std(0x6d6f70, { roughness: 0.9 }),
-        PATH = std(0x9a9284, { roughness: 0.95 });
+      const DIKE = std(0xffffff, { map: TX.grass, roughness: 0.95, color: lin(0xd0d6b4) });
+      const ROAD = grain(std(0x6d6f70, { roughness: 0.9 })),
+        PATH = grain(std(0x9a9284, { roughness: 0.95 }));
       const segs = [];
       const seg = (x1, n1, x2, n2, e1, e2) => {
         const L0 = Math.hypot(x2 - x1, n2 - n1);
@@ -9741,7 +10056,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       for (let i = 0; i < p.count; i++) uv.setXY(i, p.getX(i) / 2, (p.getZ(i) + p.getY(i)) / 2);
       return g;
     };
-    const WIN = std(0x26343e, { roughness: 0.25, metalness: 0.1 });
+    const WIN = std(0x26343e, { roughness: 0.08, metalness: 0.6, envMapIntensity: 1.1 });
+    const HFR = new T.BoxGeometry(1.28, 1.48, 0.1), HSILL = new T.BoxGeometry(1.42, 0.07, 0.2), HBV = new T.BoxGeometry(0.05, 1.3, 0.02), HBH = new T.BoxGeometry(1.1, 0.05, 0.02);
     const FRAME = std(0xf2f2ee, { roughness: 0.6 });
     const BRICK = tex(TX.brick),
       BRICKY = tex(TX.brickY),
@@ -9757,7 +10073,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         const nw = Math.max(1, Math.floor(w / 3));
         for (let i = 0; i < nw; i++) {
           const wx = -w / 2 + ((i + 0.5) * w) / nw;
-          mesh(winGeo, WIN, g, wx, h * 0.55, f * (d / 2 + 0.03));
+          {const zz=f*(d/2),wy=Math.max(1.55,h*0.5);mesh(HFR,FRAME,g,wx,wy,zz+f*0.02);mesh(winGeo,WIN,g,wx,wy,zz+f*0.03);mesh(HSILL,FRAME,g,wx,wy-0.74,zz+f*0.08);mesh(HBV,FRAME,g,wx,wy,zz+f*0.1);mesh(HBH,FRAME,g,wx,wy+0.22,zz+f*0.1);}
         }
       }
       g.position.set(x, gy === undefined ? groundY(x, n) : gy, -n);
@@ -9769,16 +10085,13 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     const makePeople = (list) => {
       const R = rng(list.length * 7 + 3);
       const N = list.length;
-      const legG = new T.BoxGeometry(0.14, 0.84, 0.16);
-      legG.translate(0, 0.42, 0);
-      const torsoG = new T.BoxGeometry(0.42, 0.62, 0.25);
-      torsoG.translate(0, 1.15, 0);
-      const armG = new T.BoxGeometry(0.1, 0.6, 0.11);
-      armG.translate(0, -0.3, 0);
-      const headG = new T.SphereGeometry(0.12, 10, 8);
-      headG.translate(0, 1.63, 0);
-      const shoeG = new T.BoxGeometry(0.15, 0.07, 0.26);
-      shoeG.translate(0, 0.035, 0.04);
+      const legG = HUM.leg(0.44),
+        torsoG = HUM.torso(1.17),
+        armG = HUM.arm(),
+        headG = HUM.head(1.63),
+        shoeG = HUM.shoe(0.045),
+        handG = HUM.hand(),
+        hairG = HUM.hair(1.63);
       const W = std(0xffffff, { roughness: 0.8 });
       const NB = list.filter((p) => p[4]).length;
       const wheelG = new T.TorusGeometry(0.33, 0.035, 6, 16);
@@ -9791,7 +10104,11 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         iShoe = new T.InstancedMesh(shoeG, std(0x1d1d1f, { roughness: 0.7 }), N * 2),
         iTor = new T.InstancedMesh(torsoG, W.clone(), N),
         iArm = new T.InstancedMesh(armG, W.clone(), N * 2),
-        iHead = new T.InstancedMesh(headG, std(0xe2b99c, { roughness: 0.7 }), N);
+        iHead = new T.InstancedMesh(headG, std(0xffffff, { roughness: 0.7 }), N),
+        iHand = new T.InstancedMesh(handG, std(0xffffff, { roughness: 0.7 }), N * 2),
+        iHair = new T.InstancedMesh(hairG, std(0xffffff, { roughness: 0.9 }), N);
+      const c3 = new T.Color(),
+        c4 = new T.Color();
       const CL = [
           0x2f4f8f, 0xc23b32, 0xe8d24a, 0x3a7d4f, 0x222222, 0xeeeeee, 0x8a5a9e, 0x1d6fa3, 0xd9792b, 0x6b6b6b,
           0xb24d7a, 0x3e6e8e,
@@ -9836,15 +10153,20 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           L.multiply(Q);
           iArm.setMatrixAt(i * 2 + k, M.clone().multiply(L));
           iArm.setColorAt(i * 2 + k, c1);
+          iHand.setMatrixAt(i * 2 + k, M.clone().multiply(L));
+          iHand.setColorAt(i * 2 + k, c3.set(HUM.SKIN[(i * 7 + 3) % HUM.SKIN.length]).convertSRGBToLinear());
         });
         iTor.setMatrixAt(i, M);
         iTor.setColorAt(i, c1);
         iHead.setMatrixAt(i, M);
+        iHead.setColorAt(i, c3);
+        iHair.setMatrixAt(i, M);
+        iHair.setColorAt(i, c4.set(HUM.HAIR[(i * 5 + 1) % HUM.HAIR.length]).convertSRGBToLinear());
       });
       if (!NB) iFr.setColorAt(0, c1);
       iWh.count = bi * 2;
       iFr.count = bi;
-      [iLeg, iShoe, iTor, iArm, iHead, iWh, iFr].forEach((m) => {
+      [iLeg, iShoe, iTor, iArm, iHead, iHand, iHair, iWh, iFr].forEach((m) => {
         m.castShadow = true;
         m.frustumCulled = false;
         scene.add(m);
@@ -10020,8 +10342,10 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       houses.forEach((h) => groups[h[5]].push(h));
       groups.forEach((list, gi) => {
         if (!list.length) return;
-        const wall = new T.InstancedMesh(box, std(0xffffff, { map: TEX[gi], roughness: 0.8 }), list.length);
-        const roof = new T.InstancedMesh(roofG, std(0xffffff, { roughness: 0.8 }), list.length);
+        const kit = gi !== 4;
+        const wall = new T.InstancedMesh(kit ? HK.wall : box, kit ? HK.wallMat(gi) : std(0xffffff, { map: TEX[gi], roughness: 0.8 }), list.length);
+        const roof = new T.InstancedMesh(kit ? HK.roof : roofG, kit ? HK.roofMat : std(0xffffff, { roughness: 0.8 }), list.length);
+        const gab = kit ? new T.InstancedMesh(HK.gable, wall.material, list.length) : null;
         const o = new T.Object3D();
         const col = new T.Color();
         list.forEach((h, i) => {
@@ -10035,13 +10359,19 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           o.scale.set(h[2], h[2] * (gi === 4 ? 0.4 : 0.75), h[3]);
           o.updateMatrix();
           roof.setMatrixAt(i, o.matrix);
+          if (gab) gab.setMatrixAt(i, o.matrix);
           col
-            .set(gi === 4 ? 0x3a3f44 : [0x8a3424, 0x9a3a2a, 0xa8452e, 0x3a3634, 0x7a3a2c][(R() * 5) | 0])
+            .set(gi === 4 ? 0x3a3f44 : [0xb8523a, 0xc45a3c, 0xcf6644, 0x5a5552, 0xa94c38][(R() * 5) | 0])
             .convertSRGBToLinear();
           roof.setColorAt(i, col);
         });
         wall.castShadow = roof.castShadow = true;
+        wall.receiveShadow = roof.receiveShadow = true;
         scene.add(wall, roof);
+        if (gab) {
+          gab.castShadow = true;
+          scene.add(gab);
+        }
       });
       {
         const ch = houses.filter((h, i) => h[5] !== 4 && i % 10 < 7);
@@ -10107,12 +10437,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         m.receiveShadow = true;
       }
       {
-        const crown = new T.IcosahedronGeometry(1, 1);
-        const ic = new T.InstancedMesh(
-          crown,
-          std(0x4b6a33, { roughness: 1, flatShading: true }),
-          trees.length,
-        );
+        const crown = CROWN;
+        const ic = new T.InstancedMesh(crown, std(0x4b6a33, LEAFO), trees.length);
         const o = new T.Object3D();
         trees.forEach((p, i) => {
           const s = 3 + R() * 2.5;
@@ -10278,9 +10604,9 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     };
     // Bäume und Büsche
     {
-      const crown = new T.IcosahedronGeometry(1, 1);
-      const TR = std(0x3e5a2f, { roughness: 1, flatShading: true }),
-        BU = std(0x56653a, { roughness: 1, flatShading: true });
+      const crown = CROWN;
+      const TR = std(0x3e5a2f, LEAFO),
+        BU = std(0x56653a, LEAFO);
       const R7 = rng(31);
       const trees = [],
         bushes = [];
@@ -10435,8 +10761,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     })();
     const KERB = std(0xb8b4ac, { roughness: 0.8 }),
       WLINE = std(0xf4f4f0, { roughness: 0.6 }),
-      ASPH2 = std(0x7d7d7a, { roughness: 0.95 }),
-      PAVE2 = std(0xa4a19a, { roughness: 0.9 });
+      ASPH2 = grain(std(0x7d7d7a, { roughness: 0.95 })),
+      PAVE2 = grain(std(0xa4a19a, { roughness: 0.9 }));
     const signTex = (w, h, draw) => {
       const c = document.createElement("canvas");
       c.width = w;
@@ -10529,9 +10855,9 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       dg.setIndex(DI);
       dg.computeVertexNormals();
       const uv = [];
-      for (let i = 0; i < DP.length / 3; i++) uv.push(DP[i * 3] / 5, DP[i * 3 + 2] / 5);
+      for (let i = 0; i < DP.length / 3; i++) uv.push(DP[i * 3], DP[i * 3 + 2]);
       dg.setAttribute("uv", new T.Float32BufferAttribute(uv, 2));
-      const dm = new T.Mesh(dg, std(0x6f9846, { map: TX.detail, roughness: 1, side: T.DoubleSide }));
+      const dm = new T.Mesh(dg, macro(std(0xc6cba8, { map: TX.grass, roughness: 1, side: T.DoubleSide }), 0.05, 0.22, 0.35));
       dm.receiveShadow = true;
       scene.add(dm);
     }
@@ -10861,7 +11187,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       });
       // Weg auf der westlichen Deichkrone: von der Brücke bis zum Deichtor, dann über den Hauptdeich hinunter zum Platz am Bahnübergang
       {
-        const PM = std(0x9a968e, { roughness: 0.95 });
+        const PM = grain(std(0x9a968e, { roughness: 0.95 }));
         const P = [],
           I = [],
           U = [];
@@ -11218,8 +11544,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         const FW = std(0x5a3e2c, { roughness: 0.9 });
         for (let x = -9; x <= 9; x += 2.25) mesh(new T.BoxGeometry(0.12, 1.1, 0.12), FW, g, x, 0.55, 11.2);
         [0.45, 0.9].forEach((y) => mesh(new T.BoxGeometry(18.2, 0.14, 0.05), FW, g, 0, y, 11.2));
-        const CR = new T.IcosahedronGeometry(1, 1),
-          TRc = std(0x3f6230, { roughness: 1, flatShading: true });
+        const CR = CROWN,
+          TRc = std(0x3f6230, LEAFO);
         [
           [-9, 0, 4],
           [-10, -8, 5],
@@ -11232,7 +11558,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           const t = mesh(CR, TRc, g, x, sz * 0.85, z);
           t.scale.set(sz * 1.1, sz, sz * 1.1);
         });
-        const PAV = std(0x9a7a6a, { roughness: 0.9 });
+        const PAV = grain(std(0x9a7a6a, { roughness: 0.9 }));
         {
           const m = mesh(new T.PlaneGeometry(10, 3.4), PAV, g, 0, 0.04, 10.0);
           m.rotation.x = -Math.PI / 2;
@@ -11256,10 +11582,10 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           const p = railPt(d);
           tr.push([p.x - p.ty * o, p.y + p.tx * o, 3 + R() * 2.5]);
         }
-        const crown = new T.IcosahedronGeometry(1, 1),
+        const crown = CROWN,
           trunk = new T.CylinderGeometry(0.16, 0.24, 1, 6);
         trunk.translate(0, 0.5, 0);
-        const ic = new T.InstancedMesh(crown, std(0x3c5a2c, { roughness: 1, flatShading: true }), tr.length),
+        const ic = new T.InstancedMesh(crown, std(0x3c5a2c, LEAFO), tr.length),
           it = new T.InstancedMesh(trunk, std(0x4a3a2c, { roughness: 1 }), tr.length);
         const o = new T.Object3D();
         const col = new T.Color();
@@ -11274,7 +11600,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           o.scale.set(s * 0.8, s, s * 0.8);
           o.updateMatrix();
           ic.setMatrixAt(i, o.matrix);
-          col.setHSL(0.27 + R() * 0.05, 0.35, 0.24 + R() * 0.08);
+          col.setHSL(0.27 + R() * 0.05, 0.4, 0.3 + R() * 0.1);
           ic.setColorAt(i, col);
         });
         ic.castShadow = true;
@@ -11311,11 +11637,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           const o = -(24 + R() * 1.5);
           bs.push([p.x - p.ty * o, p.y + p.tx * o, 1.2 + R() * 0.8]);
         }
-        const ic = new T.InstancedMesh(
-          new T.IcosahedronGeometry(1, 1),
-          std(0x3f6a2f, { roughness: 1, flatShading: true }),
-          bs.length,
-        );
+        const ic = new T.InstancedMesh(CROWN, std(0x3f6a2f, LEAFO), bs.length);
         const o = new T.Object3D();
         bs.forEach((q, i) => {
           o.position.set(q[0], ISL_TOP + q[2] * 0.8, -q[1]);
@@ -11528,14 +11850,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           mesh(new T.BoxGeometry(0.5, 0.05, 0.25), std(0x222222), g, x, 0.8, 4);
         });
         for (let i = 0; i < 5; i++) {
-          const t = mesh(
-            new T.IcosahedronGeometry(1, 1),
-            std(0x41622f, { roughness: 1, flatShading: true }),
-            g,
-            -16 + i * 8,
-            4.5,
-            -14 + (i % 2) * 28,
-          );
+          const t = mesh(CROWN, std(0x41622f, LEAFO), g, -16 + i * 8, 4.5, -14 + (i % 2) * 28);
           t.scale.set(3, 3.4, 3);
         }
       }
@@ -11726,8 +12041,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       };
       const scrub = [],
         hedge = [];
-      const VMAT = std(0xffffff, { roughness: 1, flatShading: true });
-      const bushG = new T.IcosahedronGeometry(1, 1);
+      const VMAT = std(0xffffff, LEAFO);
+      const bushG = CROWN;
       // Pflanzenbänder als senkrechte Streifen mit Halm-Textur (Alpha-Test): dicht wie auf dem Foto statt einzelner Kegel
       const plantTex = (kind, w, h) => {
         const m = signTex(w, h, (x, W, H) => {
@@ -12036,7 +12351,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       const R8 = rng(808);
       const COAT = std(0xffffff, { roughness: 0.85 }),
         DARK = std(0x1e1a17, { roughness: 0.8 }),
-        WOOL = std(0xffffff, { roughness: 1, flatShading: true });
+        WOOL = std(0xffffff, LEAFO);
       const cyl = (r1, r2, h, seg) => new T.CylinderGeometry(r1, r2, h, seg || 8);
       const part = (g, geo, mat, x, y, z, rz, ry, sx, sy, sz) => {
         const m = new T.Mesh(geo, mat);
@@ -12274,7 +12589,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         return std(0xffffff, { map: t, roughness: 0.85 });
       })();
       flatA(657, 15, rwT, 0, 0, 0.07);
-      const ASP = std(0x5f6163, { roughness: 0.9 }),
+      const ASP = grain(std(0x5f6163, { roughness: 0.9 })),
         YEL = std(0xe8c21c, { roughness: 0.6 }),
         GRS = std(0x6f9a46, { map: TX.detail, roughness: 1 });
       // Rollweg vom Vorfeld zur Bahn, Wendeflächen an den Enden, Vorfeld
@@ -12527,8 +12842,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       plane(-270, -104, -0.4, 0x2f8f4e);
       // Hecken und Büsche um das Gelände, Tankstelle
       {
-        const BU = std(0x56653a, { roughness: 1, flatShading: true });
-        const ic = new T.IcosahedronGeometry(1, 1);
+        const BU = std(0x56653a, LEAFO);
+        const ic = CROWN;
         const R = rng(77);
         for (let i = 0; i < 40; i++) {
           const x = -330 + R() * 120,
@@ -12996,8 +13311,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       {
         const BED = stdc(0x9b968c, { roughness: 0.9 }),
           GR2 = stdc(0x4d7a35, { roughness: 1 }),
-          TRM2 = stdc(0x41622f, { roughness: 1, flatShading: true }),
-          crown2 = new T.IcosahedronGeometry(1, 1),
+          TRM2 = stdc(0x41622f, LEAFO),
+          crown2 = CROWN,
           BEN2 = stdc(0x8a6a48, { roughness: 0.8 });
         [
           [-24, 12],
@@ -13595,8 +13910,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       });
       // Büsche und Bäume links neben dem Gleisfächer
       {
-        const cr = new T.IcosahedronGeometry(1, 1),
-          TM = stdc(0x557a33, { roughness: 1, flatShading: true });
+        const cr = CROWN,
+          TM = stdc(0x557a33, LEAFO);
         [
           [205, -84, 5.5],
           [225, -81, 5],
@@ -13729,8 +14044,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         });
       }
       // Bäume
-      const crown = new T.IcosahedronGeometry(1, 1),
-        TRM = stdc(0x3e5a2f, { roughness: 1, flatShading: true }),
+      const crown = CROWN,
+        TRM = stdc(0x3e5a2f, LEAFO),
         TRK = stdc(0x5a4632, { roughness: 1 });
       [
         [22, -24, 4.5],
@@ -13986,13 +14301,13 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         off += c.len + 0.3;
       });
       const len = off - 0.3;
-      const cab = IB.makeCabInterior();
+      const cab = dimEnv(IB.makeCabInterior());
       cab.visible = false;
       const coachIn = IB.makeCoachInterior();
       coachIn.visible = false;
       list[3].o.add(coachIn);
       lokA.add(cab);
-      const cabB = IB.makeCabInterior();
+      const cabB = dimEnv(IB.makeCabInterior());
       cabB.visible = false;
       lokB.add(cabB);
       const glassA = [];
@@ -14016,20 +14331,19 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         refl: std(0xdfe3e6, { metalness: 0.6, roughness: 0.3 }),
         top: std(cols ? cols[0] : 0x1b2747, { roughness: 0.75 }),
       };
-      const legGeo = new T.BoxGeometry(0.16, 0.84, 0.18);
-      legGeo.translate(0, -0.42, 0);
-      const armGeo = new T.BoxGeometry(0.12, 0.62, 0.13);
-      armGeo.translate(0, -0.31, 0);
+      const legGeo = HUM.leg(-0.42);
+      const armGeo = HUM.arm();
+      armGeo.scale(1.12, 1.06, 1.12);
       const legL = new T.Group(),
         legR = new T.Group();
       legL.position.set(-0.1, 0.92, 0);
       legR.position.set(0.1, 0.92, 0);
       mesh(legGeo, M.pants, legL);
       mesh(legGeo, M.pants, legR);
-      mesh(new T.BoxGeometry(0.17, 0.08, 0.28), M.shoe, legL, 0, -0.86, 0.04);
-      mesh(new T.BoxGeometry(0.17, 0.08, 0.28), M.shoe, legR, 0, -0.86, 0.04);
+      mesh(HUM.shoe(-0.855), M.shoe, legL);
+      mesh(HUM.shoe(-0.855), M.shoe, legR);
       g.add(legL, legR);
-      const torso = mesh(new T.BoxGeometry(0.44, 0.62, 0.24), cols ? M.top : M.navy, g, 0, 1.23, 0);
+      const torso = mesh(HUM.torso(0), cols ? M.top : M.navy, g, 0, 1.25, 0);
       mesh(new T.BoxGeometry(0.12, 0.2, 0.02), M.white, g, 0, 1.44, 0.125);
       const armL = new T.Group(),
         armR = new T.Group();
@@ -14037,15 +14351,16 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       armR.position.set(0.29, 1.5, 0);
       const aL = mesh(armGeo, cols ? M.top : M.navy, armL),
         aR = mesh(armGeo, cols ? M.top : M.navy, armR);
-      mesh(new T.BoxGeometry(0.1, 0.1, 0.1), M.skin, armL, 0, -0.66, 0);
-      mesh(new T.BoxGeometry(0.1, 0.1, 0.1), M.skin, armR, 0, -0.66, 0);
+      mesh(HUM.hand(), M.skin, armL, 0, -0.04, 0);
+      mesh(HUM.hand(), M.skin, armR, 0, -0.04, 0);
       g.add(armL, armR);
       const cuffs = [
         mesh(new T.BoxGeometry(0.13, 0.04, 0.14), M.gold, armL, 0, -0.56, 0),
         mesh(new T.BoxGeometry(0.13, 0.04, 0.14), M.gold, armR, 0, -0.56, 0),
       ];
-      mesh(new T.BoxGeometry(0.1, 0.08, 0.1), M.skin, g, 0, 1.58, 0);
-      mesh(new T.SphereGeometry(0.13, 12, 10), M.skin, g, 0, 1.72, 0);
+      mesh(HUM.head(1.72), M.skin, g);
+      const hairM = mesh(HUM.hair(1.72), std(cols ? HUM.HAIR[((cols[0] >> 3) + (cols[1] >> 5)) % HUM.HAIR.length] : 0x6b4a2c, { roughness: 0.9 }), g);
+      if (!cols) hairM.scale.set(1, 0.97, 1);
       const cap = new T.Group();
       g.add(cap);
       mesh(new T.CylinderGeometry(0.15, 0.13, 0.08, 14), M.white, cap, 0, 1.86, 0);
@@ -14058,8 +14373,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       mesh(new T.BoxGeometry(0.22, 0.02, 0.12), M.navy, capL, 0, 1.8, 0.14);
       const vest = new T.Group();
       g.add(vest);
-      mesh(new T.BoxGeometry(0.46, 0.5, 0.26), M.vest, vest, 0, 1.26, 0);
-      [1.1, 1.32].forEach((y) => mesh(new T.BoxGeometry(0.47, 0.035, 0.27), M.refl, vest, 0, y, 0));
+      {const vg=HUM.torso(0);vg.scale(1.08,0.86,1.12);mesh(vg, M.vest, vest, 0, 1.27, 0);}
+      [1.1, 1.32].forEach((y) => {const rg=new T.CylinderGeometry(0.2,0.2,0.035,12);rg.scale(1.1,1,0.72);mesh(rg, M.refl, vest, 0, y, 0);});
       if (cols) {
         cap.visible = false;
         capL.visible = false;
@@ -14295,12 +14610,15 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           uTop: skyU.uTop,
           uHor: skyU.uHor,
           uSun: skyU.uSun,
+          uCov: skyU.uCov,
+          uDark: skyU.uDark,
           uTime: time,
           uFog: { value: FOG },
           uDens: denU,
           uTint: { value: new T.Color(o.tint || 0x142129) },
           uFrame: { value: o.frame || 0 },
           uT: { value: o.transp ? 1 : 0 },
+          uA: { value: o.amin === undefined ? 0.05 : o.amin },
           uRad: { value: o.rad || 0.3 },
           uCor: { value: new T.Color(o.cor === undefined ? 0 : o.cor) },
           uCorOn: { value: o.cor === undefined ? 0 : 1 },
@@ -14310,15 +14628,18 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       m=modelMatrix*instanceMatrix;
       #endif
       vec4 w=m*vec4(position,1.);vW=w.xyz;vN=normalize(mat3(m)*normal);gl_Position=projectionMatrix*viewMatrix*w;}`,
-        fragmentShader: `uniform vec3 uTop,uHor,uSun,uFog,uTint;uniform float uTime,uDens,uFrame,uT,uRad,uCorOn;uniform vec3 uCor;varying vec3 vW;varying vec3 vN;varying vec2 vUv;${NOISE_GL}
-    void main(){vec3 n=normalize(vN);vec3 v=normalize(cameraPosition-vW);if(dot(n,v)<0.)n=-n;vec3 r=reflect(-v,n);vec3 sk;
-      if(r.y>0.){sk=mix(uHor,uTop,pow(r.y,.55));vec2 q=r.xz/(r.y+.07)*1.4+vec2(uTime*.003,uTime*.0015);float c=smoothstep(.46,.76,fbm(q))*smoothstep(0.,.16,r.y);sk=mix(sk,vec3(.93,.94,.94),c*.8);}
-      else sk=mix(uHor*.8,vec3(.18,.25,.26),clamp(-r.y*3.,0.,1.));
-      float f=.05+.95*pow(1.-max(dot(n,v),0.),4.);
-      vec3 col=mix(uTint,sk,clamp(f*.85+.22,0.,1.));col+=vec3(1.,.95,.85)*pow(max(dot(r,uSun),0.),300.)*2.;
-      float a=1.;if(uT>.5)a=clamp(.05+f*.55,0.,.6);
-      if(uFrame>0.){vec2 q=abs(vUv-.5)*2.;float rad=uRad;vec2 k=max(q-(1.-rad),0.);if(max(q.x,q.y)>1.-uFrame||length(k)>rad-uFrame*.8){col=vec3(.11,.12,.13);a=1.;}if(length(k)>rad){if(uCorOn>.5){col=uCor;a=1.;}else discard;}}
-      col=mix(col,uFog,1.-exp(-pow(uDens*length(cameraPosition-vW),2.)));gl_FragColor=vec4(col,a);}`,
+        fragmentShader: `uniform vec3 uTop,uHor,uSun,uFog,uTint;uniform float uTime,uDens,uFrame,uT,uRad,uCorOn,uCov,uDark,uA;uniform vec3 uCor;varying vec3 vW;varying vec3 vN;varying vec2 vUv;${NOISE_GL}${SKY_GL}
+    void main(){vec3 n=normalize(vN);vec3 v=normalize(cameraPosition-vW);if(dot(n,v)<0.)n=-n;vec3 r=reflect(-v,n);vec3 sk;vec3 hor=L(uHor);
+      if(r.y>0.){sk=skyBase(r,L(uTop),hor,uSun,uDark);vec2 cu=r.xz/(r.y+.07)*1.4+vec2(uTime*.003,uTime*.0015);float cm=smoothstep(.5-uCov*1.2,.8-uCov,fbm3(cu))*smoothstep(0.,.16,r.y);sk=mix(sk,mix(vec3(.95,.95,.93),vec3(.45,.48,.5),uDark),cm*.7);}
+      else sk=mix(hor*.7,L(vec3(.2,.27,.27)),clamp(-r.y*3.,0.,1.));
+      float f=.04+.96*pow(1.-max(dot(n,v),0.),5.);
+      vec3 col=mix(L(uTint),sk,clamp(f*.9+.16,0.,1.));col+=vec3(1.,.95,.85)*pow(max(dot(r,uSun),0.),400.)*6.*(1.-uDark);
+      float a=1.;if(uT>.5)a=clamp(uA+f*.55,0.,.8);
+      if(uFrame>0.){vec2 q=abs(vUv-.5)*2.;float rad=uRad;vec2 k=max(q-(1.-rad),0.);if(max(q.x,q.y)>1.-uFrame||length(k)>rad-uFrame*.8){col=L(vec3(.11,.12,.13));a=1.;}if(length(k)>rad){if(uCorOn>.5){col=L(uCor);a=1.;}else discard;}}
+      col=mix(col,L(uFog),1.-exp(-pow(uDens*length(cameraPosition-vW),2.)));gl_FragColor=vec4(col,a);
+      #include <tonemapping_fragment>
+      #include <encodings_fragment>
+    }`,
       });
     // Fähre Langeoog IV (nach Detailfotos)
     const shipRoot = new T.Group(),
@@ -14453,11 +14774,30 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
       });
     }
     // Ebene 1: Hauptdeck-Salon, bündig mit der Bordwand
-    sb(11.94, 2.6, 41, W, 0, 2.43, -5.5);
+    // Salons hohl gebaut: Wände aus Abschnitten mit Fensteröffnungen, innen Decke, Teppich, Sitzgruppen und Tische. So sieht man durch die getönten Scheiben hinein und hindurch
+    const SW1=[],SW2=[],FW2=[-3.65,-1.4,1.4,3.65].map(x=>[x,1.45,6.4,0.85]);
+    for(let q=12.6;q>=-24;q-=2.45){if(q<-7.6&&q>-14.6)continue;SW1.push([q,1.35,4.05,0.9]);}
+    for(let q=14.0;q>=-6.8;q-=2.1)SW2.push([q,1.5,6.25,1.05]);
+    const CEIL=std(0xf2f0e8,{roughness:.9,emissive:lin(0x45443c)}),CARP=std(0x2f4a66,{roughness:1});
+    const salon=(w,h,d,y0,sc,sideWin,frontWin)=>{const t=0.1,s0=sc-d/2,s1=sc+d/2;
+      const cut=(list,lo,hi,put)=>{const yb=list[0][2]-list[0][3]/2,yt=list[0][2]+list[0][3]/2;put(lo,hi,y0,yb);put(lo,hi,yt,y0+h);let p=lo;
+        list.slice().sort((a,b)=>a[0]-b[0]).forEach(q=>{const a=q[0]-q[1]/2;if(a>p+0.001)put(p,a,yb,yt);p=q[0]+q[1]/2;});if(hi>p+0.001)put(p,hi,yb,yt);};
+      [-1,1].forEach(sd=>{const x=sd*(w/2-t/2);cut(sideWin,s0,s1,(a,b,ya,yb)=>sb(t,yb-ya,b-a,W,x,ya,(a+b)/2));});
+      sb(w,h,t,W,0,y0,s0+t/2);
+      if(frontWin)cut(frontWin,-w/2,w/2,(a,b,ya,yb)=>sb(b-a,yb-ya,t,W,(a+b)/2,ya,s1-t/2));else sb(w,h,t,W,0,y0,s1-t/2);
+      sb(w-0.2,0.05,d-0.2,CEIL,0,y0+h-0.07,sc);sb(w-0.2,0.03,d-0.2,CARP,0,y0+0.01,sc);};
+    salon(11.94,2.6,41,2.43,-5.5,SW1,null);
+    salon(11.0,2.37,23.05,5.05,3.525,SW2,FW2);
+    {// Sitzgruppen: je zwei Bänke einander gegenüber, dazwischen ein Tisch
+      const bg=(()=>{const a=new T.BoxGeometry(1.9,0.14,0.5);a.translate(0,0.47,0);const b=new T.BoxGeometry(1.9,0.6,0.1);b.translate(0,0.8,-0.24);const c=new T.BoxGeometry(1.7,0.4,0.36);c.translate(0,0.2,0);return HUM.mg([a,b,c]);})();
+      const tg=(()=>{const a=new T.BoxGeometry(1.7,0.05,0.62);a.translate(0,0.74,0);const b=new T.BoxGeometry(0.1,0.72,0.1);b.translate(0,0.36,0);return HUM.mg([a,b]);})();
+      const seats=[],tabs=[];const rows=(y,a,b,skip)=>{for(let q=a;q+1.6<=b;q+=3.3){if(skip&&q+1.9>skip[0]&&q-0.3<skip[1])continue;[-3.9,-1.6,1.6,3.9].forEach(x=>{seats.push([x,y,q,0],[x,y,q+1.6,Math.PI]);tabs.push([x,y,q+0.8]);});}};
+      rows(2.46,-24.6,13.6,[-15.2,-7]);rows(5.08,-6.9,13.4,null);
+      const o=new T.Object3D();const put=(geo,mat,list)=>{const im=new T.InstancedMesh(geo,mat,list.length);list.forEach((p,i)=>{o.position.set(p[0],p[1],-p[2]);o.rotation.set(0,p[3]||0,0);o.updateMatrix();im.setMatrixAt(i,o.matrix);});tilt.add(im);};
+      put(bg,std(0x3a679c,{roughness:.9,emissive:lin(0x0b1622)}),seats);put(tg,std(0xb58a5a,{roughness:.6}),tabs);}
     sb(11.9, 0.04, 40.9, DECKG, 0, 5.03, -5.5);
     // Ebene 2: Obersalon
     // reicht nach Foto bis vorn unter die Brücke (kein offenes Deck), Front mit Fenstern und Wappen
-    sb(11.0, 2.37, 23.05, W, 0, 5.05, 3.525);
     sb(11.0, 0.03, 19, DECKG, 0, 7.42, 1.5);
     // Brückenmaße nach Foto: hohes Band unter niedrigen Fenstern, Dach direkt darüber (Dach 0,72 m tiefer als zuvor)
     const BD = 0.72,
@@ -14518,7 +14858,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     [-3.65, -1.4, 1.4, 3.65].forEach((x) => addWin(x, 6.4, 15.05, 1.45, 0.85, "z"));
     {
       const geo = new T.BoxGeometry(1, 1, 1);
-      const im = new T.InstancedMesh(geo, GLS, winList.length);
+      const im = new T.InstancedMesh(geo, glassMat({ frame: 0.07, transp: 1, amin: 0.32, tint: 0x1c2e38 }), winList.length);
+      im.renderOrder = 2;
       const o = new T.Object3D();
       winList.forEach((w, i) => {
         o.position.set(w[0], w[1], -w[2]);
@@ -14839,12 +15180,18 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           ppl.push([x, y, s]);
         }
       });
-      const body = new T.CylinderGeometry(0.19, 0.23, 1.12, 8);
-      body.translate(0, 0.56, 0);
-      const head = new T.SphereGeometry(0.13, 10, 8);
-      head.translate(0, 1.28, 0);
+      const tr = (g, x, y, z) => {
+        g.translate(x, y, z);
+        return g;
+      };
+      const body = HUM.mg([HUM.torso(1.17), tr(HUM.arm(), -0.27, 1.44, 0), tr(HUM.arm(), 0.27, 1.44, 0)]);
+      const head = HUM.mg([HUM.head(1.63), tr(HUM.hand(), -0.27, 1.44, 0), tr(HUM.hand(), 0.27, 1.44, 0)]);
+      const legs = HUM.mg([tr(HUM.leg(0.44), -0.1, 0, 0), tr(HUM.leg(0.44), 0.1, 0, 0), tr(HUM.shoe(0.045), -0.1, 0, 0), tr(HUM.shoe(0.045), 0.1, 0, 0)]);
       const ib1 = new T.InstancedMesh(body, std(0xffffff, { roughness: 0.8 }), ppl.length),
-        ib2 = new T.InstancedMesh(head, std(0xe0b79a, { roughness: 0.7 }), ppl.length);
+        ib2 = new T.InstancedMesh(head, std(0xffffff, { roughness: 0.7 }), ppl.length),
+        ib3 = new T.InstancedMesh(legs, std(0xffffff, { roughness: 0.85 }), ppl.length),
+        ib4 = new T.InstancedMesh(HUM.hair(1.63), std(0xffffff, { roughness: 0.9 }), ppl.length);
+      const PA8 = [0x23283a, 0x3a3f4a, 0x2f3e5c, 0x5a4a3a, 0x1d1f24, 0x6b6f73];
       const CL = [
         0x2f4f8f, 0xc23b32, 0xe8d24a, 0x3a7d4f, 0x222222, 0xeeeeee, 0x8a5a9e, 0x1d6fa3, 0xd9792b, 0x6b6b6b,
       ];
@@ -14857,10 +15204,15 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         o.updateMatrix();
         ib1.setMatrixAt(i, o.matrix);
         ib2.setMatrixAt(i, o.matrix);
+        ib3.setMatrixAt(i, o.matrix);
+        ib4.setMatrixAt(i, o.matrix);
         col.set(CL[(R8() * CL.length) | 0]).convertSRGBToLinear();
         ib1.setColorAt(i, col);
+        ib2.setColorAt(i, col.set(HUM.SKIN[(i * 7 + 3) % HUM.SKIN.length]).convertSRGBToLinear());
+        ib3.setColorAt(i, col.set(PA8[(i * 5 + 2) % PA8.length]).convertSRGBToLinear());
+        ib4.setColorAt(i, col.set(HUM.HAIR[(i * 5 + 1) % HUM.HAIR.length]).convertSRGBToLinear());
       });
-      tilt.add(ib1, ib2);
+      tilt.add(ib1, ib2, ib3, ib4);
     }
     // Flaggen, Namen
     sb(0.08, 3.6, 0.08, W, 0, 5.05, -27.3);
@@ -15991,8 +16343,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         BRICKD = tex(TX.brickD, 0xffffff, { roughness: 0.85 }),
         SLATS = tex(TX.slats, 0xffffff, { roughness: 0.7 }),
         COB = std(0xffffff, { map: TX.cobble, roughness: 0.95 });
-      const ASPH = std(0x5b5d5f, { roughness: 0.95 }),
-        PAVE = std(0x8e8c88, { roughness: 0.9 });
+      const ASPH = grain(std(0x5b5d5f, { roughness: 0.95 })),
+        PAVE = grain(std(0x8e8c88, { roughness: 0.9 }));
       const TEAL2 = std(0x35b3c9, { roughness: 0.45, metalness: 0.25 }),
         TEALD = std(0x1f8fa6, { roughness: 0.5, metalness: 0.25 }),
         STEEL2 = std(0x5d6266, { roughness: 0.5, metalness: 0.6 }),
@@ -16248,7 +16600,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           return std(0xffffff, { map: t, roughness: 0.9 });
         })();
         flat(78, 13.4, HB, 24.5, -7.3, ISL_TOP + 0.035);
-        const TER = std(0x6b6c6e, { roughness: 0.9 }),
+        const TER = grain(std(0x6b6c6e, { roughness: 0.9 })),
           STP = std(0x8d8e8f, { roughness: 0.85 });
         mesh(new T.BoxGeometry(70, 0.6, 3.6), TER, null, 26, ISL_TOP + 0.3, -(-12.2));
         for (let k = 0; k < 3; k++)
@@ -16262,7 +16614,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           );
         {
           const CO = std(0x8a4a2a, { roughness: 0.8, metalness: 0.3 }),
-            GR = std(0x9aa860, { roughness: 1, flatShading: true });
+            GR = std(0x9aa860, LEAFO);
           mesh(new T.BoxGeometry(18, 0.6, 1.6), CO, null, 36, ISL_TOP + 0.9, -(-12.9));
           for (let i = 0; i < 22; i++) {
             const g = mesh(
@@ -18343,36 +18695,45 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           return a;
         };
         // Fahrzeuge
+        const VW=(g,x,y,z,r,w)=>{const DK=std(0x131313,{roughness:.9}),RM=std(0xb9bdc0,{metalness:.8,roughness:.3});[[r,w,DK,20],[r*0.58,w+0.02,RM,16],[r*0.2,w+0.05,DK,10]].forEach(([rr,ww,m,sg])=>{const q=mesh(new T.CylinderGeometry(rr,rr,ww,sg),m,g,x,y,z);q.rotation.z=Math.PI/2;});};
+        // Lkw: Koffer auf Rahmen, Fahrerhaus mit Frontscheibe, Seitenfenstern, Kühlergrill, Stoßfänger, Spiegeln, Dachspoiler, Leuchten und Kotflügeln
         const truck = (x, n, rot, c, txt) => {
-          const g = new T.Group();
-          mesh(tbox(2.5, 2.8, 9, 2), std(c, { roughness: 0.5 }), g, 0, 2.0, -1);
-          mesh(new T.BoxGeometry(2.4, 2.3, 2.2), std(0xeeeeee, { roughness: 0.4 }), g, 0, 1.6, 4.6);
-          mesh(new T.BoxGeometry(2.3, 0.9, 0.1), WIN, g, 0, 2.1, 5.72);
-          [-1, 1].forEach((a) =>
-            [-3.5, -1.8, 4.2].forEach((b) => {
-              const w = mesh(new T.CylinderGeometry(0.5, 0.5, 0.35, 12), std(0x111111), g, a * 1.1, 0.5, b);
-              w.rotation.z = Math.PI / 2;
-            }),
-          );
+          const g = new T.Group();const DK=std(0x1c1e20,{roughness:.8}),CAB=std(0xeeeeee,{roughness:.35,metalness:.2}),GLx=std(0x1b252c,{roughness:.06,metalness:.75,envMapIntensity:1.1}),BC=std(c,{roughness:.5});
+          mesh(tbox(2.5, 2.8, 9, 2), BC, g, 0, 2.3, -1);
+          mesh(new T.BoxGeometry(2.52,0.08,9.02),std(0xd9dcdd,{metalness:.5,roughness:.4}),g,0,0.9,-1);mesh(new T.BoxGeometry(1.0,0.28,10.6),DK,g,0,0.72,0);
+          [-1,1].forEach(sd=>{mesh(new T.BoxGeometry(0.06,0.5,3.2),DK,g,sd*1.2,0.62,-0.2);mesh(new T.BoxGeometry(0.5,0.06,2.9),DK,g,sd*1.05,1.1,-2.65);mesh(new T.BoxGeometry(0.3,0.16,0.06),std(0xb3141a,{roughness:.3,emissive:0x300000}),g,sd*0.95,0.95,-5.52);});
+          mesh(new T.BoxGeometry(2.3,0.12,0.1),DK,g,0,0.5,-5.5);
+          {const tk=mesh(new T.CylinderGeometry(0.3,0.3,1.1,14),std(0xb9bdc0,{metalness:.7,roughness:.35}),g,1.0,0.62,2.2);tk.rotation.x=Math.PI/2;}
+          mesh(new T.BoxGeometry(2.4, 2.25, 2.2), CAB, g, 0, 1.75, 4.6);mesh(new T.BoxGeometry(2.3,0.5,1.5),BC,g,0,3.1,4.3);
+          {const ws=mesh(new T.BoxGeometry(2.14,0.95,0.06),GLx,g,0,2.2,5.705);ws.rotation.x=-0.08;}
+          [-1,1].forEach(sd=>{mesh(new T.BoxGeometry(0.06,0.78,1.15),GLx,g,sd*1.185,2.25,4.95);mesh(new T.BoxGeometry(0.1,0.42,0.22),DK,g,sd*1.42,2.3,5.55);mesh(new T.BoxGeometry(0.22,0.04,0.04),DK,g,sd*1.3,2.45,5.55);
+            mesh(new T.BoxGeometry(0.36,0.16,0.06),new T.MeshStandardMaterial({color:0xf4f1e6,emissive:0x5c5a50,roughness:.2}),g,sd*0.9,0.72,5.88);mesh(new T.BoxGeometry(0.5,0.08,1.3),DK,g,sd*1.05,1.12,4.2);mesh(new T.BoxGeometry(0.008,1.5,0.012),DK,g,sd*1.204,1.6,4.25);});
+          mesh(new T.BoxGeometry(1.9,0.62,0.06),DK,g,0,1.2,5.71);[0,1,2,3].forEach(k=>mesh(new T.BoxGeometry(1.8,0.03,0.03),std(0x8a8f93,{metalness:.6}),g,0,1.0+k*0.14,5.745));
+          mesh(new T.BoxGeometry(2.46,0.34,0.3),DK,g,0,0.68,5.75);mesh(new T.BoxGeometry(2.3,0.14,0.2),DK,g,0,2.83,5.78);mesh(new T.BoxGeometry(0.5,0.11,0.02),std(0xf2f2ee),g,0,0.68,5.91);
+          [-1, 1].forEach((a) => [-3.5, -1.8, 4.2].forEach((b) => VW(g, a * 1.08, 0.5, b, 0.5, 0.34)));
           if (txt) {
-            const s = mesh(new T.PlaneGeometry(7, 0.9), signM(txt, 96, "#ffffff"), g, 1.27, 2.6, -1);
+            const s = mesh(new T.PlaneGeometry(7, 0.9), signM(txt, 96, "#ffffff"), g, 1.27, 2.9, -1);
             s.rotation.y = Math.PI / 2;
           }
+          g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
           g.position.set(x, ISL_TOP, -n);
           g.rotation.y = rot || 0;
           scene.add(g);
         };
+        // Elektrokarren: Fahrerkabine mit Scheiben und Dach, Pritsche mit Bordwänden, Leuchten, Räder mit Felgen
         const ecart = (x, n, rot, c) => {
-          const g = new T.Group();
-          mesh(new T.BoxGeometry(1.3, 1.2, 2.4), std(c, { roughness: 0.5 }), g, 0, 0.95, 0);
-          mesh(new T.BoxGeometry(1.25, 0.6, 1.0), WIN, g, 0, 1.5, 0.6);
-          mesh(new T.BoxGeometry(1.4, 0.8, 1.6), std(0x6e6f70), g, 0, 0.75, -1.8);
-          [-1, 1].forEach((a) =>
-            [-1.8, 0.8].forEach((b) => {
-              const w = mesh(new T.CylinderGeometry(0.3, 0.3, 0.2, 10), std(0x111111), g, a * 0.65, 0.3, b);
-              w.rotation.z = Math.PI / 2;
-            }),
-          );
+          const g = new T.Group();const BC=std(c,{roughness:.45,metalness:.2}),DK=std(0x1c1e20,{roughness:.8}),GLx=std(0x1b252c,{roughness:.06,metalness:.75,envMapIntensity:1.1});
+          mesh(new T.BoxGeometry(1.0,0.14,3.9),DK,g,0,0.42,-0.55);
+          mesh(new T.BoxGeometry(1.3,0.62,1.5),BC,g,0,0.78,0.45);mesh(new T.BoxGeometry(1.26,0.06,1.25),BC,g,0,1.82,0.38);
+          [-1,1].forEach(sd=>{[[1.13,0.14],[-0.22,0]].forEach(([z,rx])=>{const p=mesh(new T.BoxGeometry(0.06,0.78,0.06),BC,g,sd*0.6,1.44,z);p.rotation.x=-rx;});mesh(new T.BoxGeometry(0.03,0.6,1.1),GLx,g,sd*0.615,1.42,0.45);
+            mesh(new T.BoxGeometry(0.2,0.1,0.05),new T.MeshStandardMaterial({color:0xf4f1e6,emissive:0x5c5a50,roughness:.2}),g,sd*0.45,0.82,1.215);mesh(new T.BoxGeometry(0.14,0.09,0.04),std(0xb3141a,{roughness:.3}),g,sd*0.55,0.62,-2.52);
+            mesh(new T.BoxGeometry(0.05,0.32,1.9),std(0x6e6f70,{roughness:.7}),g,sd*0.68,0.7,-1.5);});
+          {const ws=mesh(new T.BoxGeometry(1.14,0.7,0.04),GLx,g,0,1.44,1.16);ws.rotation.x=-0.14;}
+          mesh(new T.BoxGeometry(1.14,0.6,0.04),GLx,g,0,1.44,-0.24);mesh(new T.BoxGeometry(1.1,0.1,0.5),std(0x2a2d30),g,0,1.02,0.2);
+          mesh(new T.BoxGeometry(1.4,0.08,2.0),std(0x77787a,{roughness:.8}),g,0,0.52,-1.5);[-0.52,-2.48].forEach(z=>mesh(new T.BoxGeometry(1.4,0.32,0.05),std(0x6e6f70,{roughness:.7}),g,0,0.7,z));
+          mesh(new T.BoxGeometry(1.34,0.14,0.1),DK,g,0,0.5,1.24);
+          [-1, 1].forEach((a) => [-1.8, 0.8].forEach((b) => VW(g, a * 0.62, 0.3, b, 0.3, 0.2)));
+          g.traverse(o=>{if(o.isMesh)o.castShadow=true;});
           g.position.set(x, ISL_TOP, -n);
           g.rotation.y = rot || 0;
           scene.add(g);
@@ -18422,8 +18783,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           }
         };
         const treesAt = (list) => {
-          const crown = new T.IcosahedronGeometry(1, 1);
-          const TR = std(0x3e5a2f, { roughness: 1, flatShading: true }),
+          const crown = CROWN;
+          const TR = std(0x3e5a2f, LEAFO),
             ST = std(0x4a3a2c);
           const R = rng(list.length + 5);
           const ic = new T.InstancedMesh(crown, TR, list.length),
@@ -18495,7 +18856,14 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         {
           flat(17, 24, PAVE, 39.5, 25, ISL_TOP + 0.03);
           flat(3.2, 292, std(0xb9b4a8, { roughness: 0.95 }), 30.4, 184, ISL_TOP + 0.05);
-          flat(110, 285, std(0x8f8a5c, { map: TX.detail, roughness: 1 }), 88, 192, ISL_TOP + 0.015);
+          flat(
+            110,
+            285,
+            macro(std(0x7c8454, { map: TX.detail, roughness: 1 }), 0.05, 0.18, 0.25),
+            88,
+            192,
+            ISL_TOP + 0.015,
+          );
           const R = rng(4711),
             bs = [];
           for (let i = 0; i < 260; i++) {
@@ -18511,11 +18879,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
             for (let j = 0; j < 8; j++)
               bs.push([cx + (R() - 0.5) * 14, cn + (R() - 0.5) * 14, 1.4 + R() * 2.4]);
           }
-          const ic = new T.InstancedMesh(
-            new T.IcosahedronGeometry(1, 1),
-            std(0xffffff, { roughness: 1, flatShading: true }),
-            bs.length,
-          );
+          const ic = new T.InstancedMesh(CROWN, std(0xffffff, LEAFO), bs.length);
           const o = new T.Object3D(),
             col = new T.Color();
           bs.forEach((b, i) => {
@@ -18747,12 +19111,9 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           houses.forEach((h) => groups[h[5]].push(h));
           groups.forEach((list, gi) => {
             if (!list.length) return;
-            const wall = new T.InstancedMesh(
-              box,
-              std(0xffffff, { map: FAC[gi], roughness: 0.85 }),
-              list.length,
-            );
-            const roof = new T.InstancedMesh(roofG, std(0xffffff, { roughness: 0.8 }), list.length);
+            const wall = new T.InstancedMesh(HK.wall, HK.wallMat(gi + 4), list.length);
+            const roof = new T.InstancedMesh(HK.roof, HK.roofMat, list.length);
+            const gab = new T.InstancedMesh(HK.gable, wall.material, list.length);
             const o = new T.Object3D();
             const col = new T.Color();
             list.forEach((h, i) => {
@@ -18765,14 +19126,16 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
               o.scale.set(h[2], h[2] * 0.75, h[3]);
               o.updateMatrix();
               roof.setMatrixAt(i, o.matrix);
+              gab.setMatrixAt(i, o.matrix);
               col
-                .set([0x8a3424, 0x9a3a2a, 0x3a3634, 0x5a2d27, 0x7a3a2c][(R() * 5) | 0])
+                .set([0xb8523a, 0xc45a3c, 0x5a5552, 0x8a4a3e, 0xa94c38][(R() * 5) | 0])
                 .convertSRGBToLinear();
               roof.setColorAt(i, col);
             });
             wall.castShadow = roof.castShadow = true;
             wall.receiveShadow = true;
-            scene.add(wall, roof);
+            gab.castShadow = true;
+            scene.add(wall, roof, gab);
           });
         }
         {
@@ -18831,8 +19194,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
         }
         // Straßen als Asphaltbänder mit Gehweg
         {
-          const AS = std(0x4f5254, { roughness: 0.95 }),
-            SW = std(0xa7a49d, { roughness: 0.95 });
+          const AS = grain(std(0x4f5254, { roughness: 0.95 })),
+            SW = grain(std(0xa7a49d, { roughness: 0.95 }));
           const band = (x1, n1, x2, n2, w, mat, y) => {
             const L = Math.hypot(x2 - x1, n2 - n1);
             const g = new T.PlaneGeometry(w, L);
@@ -18877,12 +19240,8 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
           );
         }
         {
-          const crown = new T.IcosahedronGeometry(1, 1);
-          const ic = new T.InstancedMesh(
-              crown,
-              std(0x45632f, { roughness: 1, flatShading: true }),
-              trees.length,
-            ),
+          const crown = CROWN;
+          const ic = new T.InstancedMesh(crown, std(0x45632f, LEAFO), trees.length),
             is = new T.InstancedMesh(new T.CylinderGeometry(0.18, 0.25, 3, 6), std(0x4a3a2c), trees.length);
           const o = new T.Object3D();
           trees.forEach((p, i) => {
@@ -18919,6 +19278,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     });
 
     return {
+      updEnv,
       DAMCH,
       hemi,
       skyU,
@@ -19312,6 +19672,7 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
     g.sky.position.copy(cpos);
     g.water.position.set(Math.round(cpos.x / 50) * 50, dy, Math.round(cpos.z / 50) * 50);
     g.waterMat.uniforms.uCam.value.copy(cpos);
+    {const sr=g.shipRoot,ry=sr.rotation.y;g.waterMat.uniforms.uShip.value.set(sr.position.x,sr.position.z,Math.cos(ry),Math.sin(ry));}
     // Schattenbereich folgt dem Schiff (vorn etwas mehr)
     const fo = bridge ? 40 : nock ? 20 : 0;
     let fx = S.x + Math.sin(hr) * fo,
@@ -19412,11 +19773,37 @@ float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=
 
   let last = 0,
     t3 = 0;
+  // Bildrate halten: bleibt sie mehrere Sekunden unter etwa 27 Bildern, rendert die 3D-Ansicht schrittweise etwas gröber (nie feiner als das Gerät, nie unter 1)
+  const AQ = { t: 0, n: 0, low: 0, pr: Math.min(window.devicePixelRatio || 1, 1.6) };
   function frame(ts) {
     const rawDt = last ? Math.min(1, (ts - last) / 1000) : 0;
     const dtR = Math.min(0.1, last ? (ts - last) / 1000 : 0);
     last = ts;
     t3 += dtR;
+    if (
+      G &&
+      AQ.pr > 1 &&
+      (phase === "run" || phase === "rail") &&
+      pane !== "karte" &&
+      rawDt > 0 &&
+      rawDt < 0.5
+    ) {
+      AQ.t += rawDt;
+      AQ.n++;
+      if (AQ.t >= 3) {
+        const fps = AQ.n / AQ.t;
+        AQ.t = 0;
+        AQ.n = 0;
+        if (fps < 27) {
+          if (++AQ.low >= 2) {
+            AQ.pr = Math.max(1, AQ.pr - 0.2);
+            G.renderer.setPixelRatio(AQ.pr);
+            G.size = [0, 0];
+            AQ.low = 0;
+          }
+        } else AQ.low = 0;
+      }
+    }
     if (phase === "run" && S.releaseT > 0) {
       S.releaseT -= rawDt;
       if (S.releaseT <= 0) {
