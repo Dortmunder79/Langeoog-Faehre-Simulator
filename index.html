@@ -1765,7 +1765,7 @@ input {
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
       <p class="ver">
-        Version 11.11.2026 b · Fahrgäste am Bahnsteig Hafen stehen auf dem Bahnsteig
+        Version 12.11.2026 · Schwellen quer, Insel flach, klarere Lokscheiben, Instrumente mit Skalen und Zahlen
       </p>
       <p class="ver">
         Bahngeräusche: Aufnahmen von www.hoerspielbox.de · Funkrauschen: freesound_community (Pixabay) ·
@@ -6660,7 +6660,7 @@ document.querySelectorAll("img[data-hero]").forEach((i) => {
     return (
       ramp *
       (north * (12 + 20 * Math.pow(fbm2(x / 300, n / 210), 1.1)) +
-        (1 - north) * (1.2 + 6 * Math.pow(fbm2(x / 420, n / 300), 1.6)))
+        (1 - north) * (0.15 + 0.2 * fbm2(x / 420, n / 300)))
     );
   }
   const WAVES = [
@@ -8260,10 +8260,8 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
         c.width = c.height = 256;
         const x = c.getContext("2d"),
           Rs = rng(919);
-        x.fillStyle = "rgba(205,220,226,.035)";
-        x.fillRect(0, 0, 256, 256);
-        for (let i = 0; i < 60; i++) {
-          x.strokeStyle = `rgba(230,236,238,${0.03 + Rs() * 0.06})`;
+        for (let i = 0; i < 26; i++) {
+          x.strokeStyle = `rgba(230,236,238,${0.012 + Rs() * 0.025})`;
           x.lineWidth = 4 + Rs() * 14;
           const cx0 = Rs() * 256,
             cy0 = Rs() * 256,
@@ -8275,7 +8273,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
         }
         const g = x.createLinearGradient(0, 200, 0, 256);
         g.addColorStop(0, "rgba(200,190,170,0)");
-        g.addColorStop(1, "rgba(200,190,170,.12)");
+        g.addColorStop(1, "rgba(200,190,170,.05)");
         x.fillStyle = g;
         x.fillRect(0, 200, 256, 56);
         const t = new T.CanvasTexture(c);
@@ -8289,7 +8287,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
         roughness: 0.2,
         metalness: 0,
         side: T.DoubleSide,
-        envMapIntensity: 0.6,
+        envMapIntensity: 0.15,
       });
       const CRM = std(0xf0e5cc, { roughness: 0.72, side: T.DoubleSide, emissive: 0x1c1912 }),
         CRM2 = std(0xdccfb2, { roughness: 0.6, emissive: 0x141210 }),
@@ -8539,61 +8537,122 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
           return s / 2147483647;
         };
       })();
+      // Zifferblatt: Skala von min bis max über 270°, Haupt- und Nebenstriche, Zahlen, farbige Bereiche, Einheit und Beschriftung
+      const dialMat = (o) => {
+        const S = 256, c = document.createElement("canvas");
+        c.width = c.height = S;
+        const x = c.getContext("2d"), C = S / 2;
+        const g0 = x.createRadialGradient(C, C * 0.8, 10, C, C, C);
+        g0.addColorStop(0, "#fbfaf4");
+        g0.addColorStop(1, "#e6e2d4");
+        x.fillStyle = "#151515";
+        x.beginPath();
+        x.arc(C, C, C, 0, 7);
+        x.fill();
+        x.fillStyle = o.black ? "#16181a" : g0;
+        x.beginPath();
+        x.arc(C, C, C - 5, 0, 7);
+        x.fill();
+        const ink = o.black ? "#f2f0e8" : "#141414";
+        const ang = (v) => Math.PI * 0.75 + ((v - o.min) / (o.max - o.min)) * Math.PI * 1.5;
+        const arcBand = (a, b, col) => {
+          x.strokeStyle = col;
+          x.lineWidth = 11;
+          x.beginPath();
+          x.arc(C, C, C - 22, ang(a), ang(b));
+          x.stroke();
+        };
+        (o.bands || []).forEach((b) => arcBand(b[0], b[1], b[2]));
+        x.strokeStyle = ink;
+        x.fillStyle = ink;
+        const nMin = Math.round((o.max - o.min) / o.minor);
+        for (let k = 0; k <= nMin; k++) {
+          const v = o.min + k * o.minor,
+            a = ang(v),
+            maj = Math.abs(((v - o.min) / o.major) % 1) < 1e-6 || Math.abs((((v - o.min) / o.major) % 1) - 1) < 1e-6,
+            L = maj ? 20 : 10;
+          x.lineWidth = maj ? 4 : 2;
+          x.beginPath();
+          x.moveTo(C + Math.cos(a) * (C - 14 - L), C + Math.sin(a) * (C - 14 - L));
+          x.lineTo(C + Math.cos(a) * (C - 14), C + Math.sin(a) * (C - 14));
+          x.stroke();
+          if (maj) {
+            x.font = `bold ${o.fs || 26}px Arial`;
+            x.textAlign = "center";
+            x.textBaseline = "middle";
+            x.fillText(o.fmt ? o.fmt(v) : String(v), C + Math.cos(a) * (C - 54), C + Math.sin(a) * (C - 54));
+          }
+        }
+        x.textAlign = "center";
+        x.font = "bold 22px Arial";
+        x.fillText(o.unit || "", C, C + 46);
+        x.font = "15px Arial";
+        x.fillStyle = o.black ? "#b9b6aa" : "#4a4a4a";
+        (o.label || "").split("\n").forEach((t, i) => x.fillText(t, C, C - 40 + i * 17));
+        if (o.brand) {
+          x.font = "italic 13px Georgia";
+          x.fillText(o.brand, C, C + 74);
+        }
+        const t = new T.CanvasTexture(c);
+        t.encoding = T.sRGBEncoding;
+        t.anisotropy = 8;
+        return std(0xffffff, { map: t, roughness: 0.35, emissive: new T.Color(0x2a2925).convertSRGBToLinear(), emissiveMap: t });
+      };
+      const gAng = (o, v) => 1.25 * Math.PI - ((v - o.min) / (o.max - o.min)) * 1.5 * Math.PI;
+      const CHR = std(0xd2d5d6, { roughness: 0.22, metalness: 0.9 }),
+        SHINE = new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.1, depthWrite: false });
       const gauge = (u, v, r, mat, needle, dyn) => {
         const b = sm(new T.CylinderGeometry(r + 0.009, r + 0.011, 0.022, 22), RUB, PG, u, v, 0.011);
         b.rotation.x = Math.PI / 2;
-        sm(new T.CircleGeometry(r, 24), mat || DIAL, PG, u, v, 0.0235);
+        const cr = sm(new T.TorusGeometry(r + 0.004, 0.0035, 6, 28), CHR, PG, u, v, 0.023);
+        sm(new T.CircleGeometry(r, 32), mat || DIAL, PG, u, v, 0.0235);
+        // Glasreflex oben links
+        const sh = sm(new T.RingGeometry(r * 0.55, r * 0.86, 20, 1, Math.PI * 0.55, Math.PI * 0.45), SHINE, PG, u, v, 0.031);
+        sh.renderOrder = 4;
         const ng = new T.Group();
         ng.position.set(u, v, 0.026);
         (dyn ? PGd : PG).add(ng);
-        sm(box(r * 0.85, r * 0.08, 0.004), NEED, ng, r * 0.36, 0, 0);
-        sm(new T.CircleGeometry(r * 0.12, 10), NEED, ng, 0, 0, 0.002);
+        {const ns=new T.Shape([new T.Vector2(-r*0.18,-r*0.05),new T.Vector2(r*0.78,-r*0.012),new T.Vector2(r*0.86,0),new T.Vector2(r*0.78,r*0.012),new T.Vector2(-r*0.18,r*0.05)]);
+         sm(new T.ShapeGeometry(ns), mat && mat.userData && mat.userData.black ? std(0xf2f0e8) : std(0x111111, { roughness: 0.5 }), ng, 0, 0, 0);
+         if (mat && mat.userData && mat.userData.redTip) sm(new T.ShapeGeometry(new T.Shape([new T.Vector2(r*0.55,-r*0.022),new T.Vector2(r*0.86,0),new T.Vector2(r*0.55,r*0.022)])), std(0xc0261d), ng, 0, 0, 0.0005);}
+        sm(new T.CircleGeometry(r * 0.1, 14), NEED, ng, 0, 0, 0.002);
+        sm(new T.CircleGeometry(r * 0.045, 10), CHR, ng, 0, 0, 0.0028);
         ng.rotation.z = needle === undefined ? ((1.25 - R0() * 2.2) * Math.PI) / 2 + Math.PI / 2 : needle;
         return ng;
       };
-      for (let i = 0; i < 5; i++) gauge(-pw / 2 + 0.06 + i * 0.08, 0.22, 0.033);
-      for (let i = 0; i < 4; i++) gauge(-pw / 2 + 0.06 + i * 0.08, 0.115, 0.031);
-      gauge(pw / 2 - 0.085, 0.2, 0.06);
-      // Tacho groß, unten rechts, mit Skala 0–40 km/h
-      const tacho = cv(256, 256, (x, w, h) => {
-        x.fillStyle = "#f6f4ec";
-        x.beginPath();
-        x.arc(128, 128, 126, 0, 7);
-        x.fill();
-        x.fillStyle = "#111";
-        x.strokeStyle = "#111";
-        x.textAlign = "center";
-        x.textBaseline = "middle";
-        x.font = "bold 22px Arial";
-        for (let k = 0; k <= 40; k += 2) {
-          const a = Math.PI * 0.75 + (k / 40) * Math.PI * 1.5;
-          const L = k % 10 === 0 ? 22 : 11;
-          x.lineWidth = k % 10 === 0 ? 4 : 2;
-          x.beginPath();
-          x.moveTo(128 + Math.cos(a) * (116 - L), 128 + Math.sin(a) * (116 - L));
-          x.lineTo(128 + Math.cos(a) * 116, 128 + Math.sin(a) * 116);
-          x.stroke();
-          if (k % 10 === 0) x.fillText(String(k), 128 + Math.cos(a) * 76, 128 + Math.sin(a) * 76);
-        }
-        x.strokeStyle = "#c0261d";
-        x.lineWidth = 8;
-        x.beginPath();
-        x.arc(
-          128,
-          128,
-          108,
-          Math.PI * 0.75 + (25 / 40) * Math.PI * 1.5,
-          Math.PI * 0.75 + (40 / 40) * Math.PI * 1.5,
-        );
-        x.stroke();
-        x.font = "bold 18px Arial";
-        x.fillText("km/h", 128, 178);
+      // Druckluft, Motor und Elektrik (wie in der Schöma: Hauptluftbehälter, Hauptluftleitung, Bremszylinder, Öldruck, Kühlwasser, Kraftstoff, Batterie, Ladestrom, Getriebeöl)
+      const GS = [
+        { label: "HB", unit: "bar", min: 0, max: 10, major: 2, minor: 0.5, bands: [[8, 10, "#c0261d"]], val: 8.2 },
+        { label: "HL", unit: "bar", min: 0, max: 10, major: 2, minor: 0.5, bands: [[5, 5.2, "#c0261d"]], val: 5 },
+        { label: "C", unit: "bar", min: 0, max: 6, major: 1, minor: 0.25, val: 0.4 },
+        { label: "Motoröl", unit: "bar", min: 0, max: 6, major: 1, minor: 0.5, bands: [[0, 1, "#c0261d"]], val: 3.6 },
+        { label: "Kühlwasser", unit: "°C", min: 40, max: 120, major: 20, minor: 5, fs: 22, bands: [[100, 120, "#c0261d"], [70, 95, "#3a9a4a"]], val: 82 },
+        { label: "Kraftstoff", unit: "", min: 0, max: 4, major: 1, minor: 0.5, fmt: (v) => ["0", "¼", "½", "¾", "1"][v], bands: [[0, 0.5, "#c0261d"]], val: 2.7, black: 1 },
+        { label: "Batterie", unit: "V", min: 16, max: 32, major: 4, minor: 1, fs: 22, bands: [[24, 29, "#3a9a4a"]], val: 27.5, black: 1 },
+        { label: "Ladestrom", unit: "A", min: -30, max: 30, major: 15, minor: 5, fs: 20, val: 8, black: 1 },
+        { label: "Getriebeöl", unit: "°C", min: 0, max: 150, major: 50, minor: 10, fs: 22, bands: [[120, 150, "#c0261d"]], val: 74, black: 1 },
+      ];
+      GS.forEach((o, i) => {
+        const m = dialMat(o);
+        m.userData = { black: o.black };
+        const top = i < 5;
+        gauge(-pw / 2 + 0.06 + (top ? i : i - 5) * 0.08, top ? 0.22 : 0.115, top ? 0.033 : 0.031, m, gAng(o, o.val));
       });
+      {
+        const o = { label: "Motor\nx 100", unit: "1/min", min: 0, max: 25, major: 5, minor: 1, bands: [[21, 25, "#c0261d"]], val: 7, brand: "MWM" };
+        const m = dialMat(o);
+        m.userData = { redTip: 1 };
+        gauge(pw / 2 - 0.085, 0.2, 0.06, m, gAng(o, o.val));
+      }
+      // Tacho groß, unten rechts, mit Skala 0–40 km/h
+      const tachoO = { label: "", unit: "km/h", min: 0, max: 40, major: 5, minor: 1, fs: 24, bands: [[25, 40, "#c0261d"]], brand: "Hasler Bern" };
+      const tachoM = dialMat(tachoO);
+      tachoM.userData = { redTip: 1 };
       const spd = gauge(
         pw / 2 - 0.115,
         -0.1,
         0.1,
-        std(0xffffff, { map: tacho, roughness: 0.35 }),
+        tachoM,
         1.25 * Math.PI,
         true,
       );
@@ -9028,7 +9087,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
           const uv = geo.attributes.uv;
           for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 0.6, uv.getY(i) * 0.6);
           geo.translate(0, 0, -(s.len + 0.05) / 2);
-          lists.bal.push(place(geo, s, 0, -0.14));
+          lists.bal.push(place(geo, s, 0, -0.035));
         }
         [-0.53, 0.53].forEach((off) => {
           [
@@ -9061,12 +9120,12 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       add(lists.rail, std(0x6a5446, { roughness: 0.6, metalness: 0.5 }), true);
       add(lists.head, std(0xb9b6b0, { roughness: 0.25, metalness: 0.9 }));
       const n = Math.floor(L / 0.65);
-      const im = new T.InstancedMesh(box(1.8, 0.13, 0.22), std(0x5a4a3c, { roughness: 0.9 }), n);
+      const im = new T.InstancedMesh(box(1.8, 0.13, 0.22), std(0x4d4239, { roughness: 0.95 }), n);
       const o = new T.Object3D();
       for (let i = 0; i < n; i++) {
         const p = at(i * 0.65 + 0.3);
         o.position.set(p.x, p.y - 0.07, p.z);
-        o.rotation.set(0, Math.atan2(p.tx, p.tz) + Math.PI / 2, 0);
+        o.rotation.set(0, Math.atan2(p.tx, p.tz), 0);
         o.updateMatrix();
         im.setMatrixAt(i, o.matrix);
       }
