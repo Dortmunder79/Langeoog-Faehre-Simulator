@@ -1765,7 +1765,7 @@ input {
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
       <p class="ver">
-        Version 10.11.2026 c · Häuser, Autos und Menschen überarbeitet, Fähre mit durchsichtigen Fenstern und Salons
+        Version 11.11.2026 b · Fahrgäste am Bahnsteig Hafen stehen auf dem Bahnsteig
       </p>
       <p class="ver">
         Bahngeräusche: Aufnahmen von www.hoerspielbox.de · Funkrauschen: freesound_community (Pixabay) ·
@@ -7665,8 +7665,8 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       REDW.name = "glass";
       const LGL = new T.MeshStandardMaterial({
         color: 0x9db8c4,
-        roughness: 0.05,
-        metalness: 0.3,
+        roughness: 0.12,
+        metalness: 0.1,
         transparent: true,
         opacity: 0.26,
         depthWrite: false,
@@ -8166,6 +8166,131 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
         H0 = top - fl;
       const ST = new T.Group();
       g.add(ST);
+      // lackiertes Wandblech: Plattenstöße mit Nietreihen, Trittschutzleiste unten, Schmutz und Kratzer in Bodennähe, leicht fleckig (2 m × 2,4 m)
+      const wallTex = (() => {
+        const c = document.createElement("canvas");
+        c.width = 512;
+        c.height = 614;
+        const x = c.getContext("2d"),
+          Rw = rng(3301),
+          W = 512,
+          H = 614,
+          py = (m) => H - (m / 2.4) * H,
+          px = (m) => (m / 2) * W;
+        x.fillStyle = "#f0e5cc";
+        x.fillRect(0, 0, W, H);
+        for (let i = 0; i < 70; i++) {
+          x.fillStyle = `rgba(${Rw() < 0.5 ? "255,250,235" : "150,130,100"},${0.025 + Rw() * 0.04})`;
+          x.beginPath();
+          x.arc(Rw() * W, Rw() * H, 20 + Rw() * 70, 0, 7);
+          x.fill();
+        }
+        let g = x.createLinearGradient(0, py(0.75), 0, py(0.12));
+        g.addColorStop(0, "rgba(90,74,52,0)");
+        g.addColorStop(1, "rgba(90,74,52,.2)");
+        x.fillStyle = g;
+        x.fillRect(0, py(0.75), W, py(0.12) - py(0.75));
+        g = x.createLinearGradient(0, py(2.4), 0, py(2.05));
+        g.addColorStop(0, "rgba(70,60,45,.16)");
+        g.addColorStop(1, "rgba(70,60,45,0)");
+        x.fillStyle = g;
+        x.fillRect(0, 0, W, py(2.05));
+        const seam = (x0, y0, x1, y1) => {
+          x.strokeStyle = "rgba(95,82,62,.55)";
+          x.lineWidth = 1.6;
+          x.beginPath();
+          x.moveTo(x0, y0);
+          x.lineTo(x1, y1);
+          x.stroke();
+          x.strokeStyle = "rgba(255,255,248,.5)";
+          x.lineWidth = 1;
+          x.beginPath();
+          x.moveTo(x0 + (x0 === x1 ? 1.5 : 0), y0 + (y0 === y1 ? 1.5 : 0));
+          x.lineTo(x1 + (x0 === x1 ? 1.5 : 0), y1 + (y0 === y1 ? 1.5 : 0));
+          x.stroke();
+          const n = Math.hypot(x1 - x0, y1 - y0) / 13;
+          for (let i = 0; i <= n; i++) {
+            const qx = x0 + ((x1 - x0) * i) / n + (x0 === x1 ? 7 : 0),
+              qy = y0 + ((y1 - y0) * i) / n + (y0 === y1 ? 7 : 0);
+            x.fillStyle = "rgba(110,95,72,.55)";
+            x.beginPath();
+            x.arc(qx + 0.6, qy + 0.8, 2.3, 0, 7);
+            x.fill();
+            x.fillStyle = "rgba(255,252,240,.85)";
+            x.beginPath();
+            x.arc(qx - 0.3, qy - 0.4, 1.5, 0, 7);
+            x.fill();
+          }
+        };
+        [0, 0.96, 1.92].forEach((m) => seam(px(m) + 2, 0, px(m) + 2, py(0.12)));
+        seam(0, py(0.92), W, py(0.92));
+        seam(0, py(2.22), W, py(2.22));
+        x.fillStyle = "#55585a";
+        x.fillRect(0, py(0.12), W, H - py(0.12));
+        x.fillStyle = "rgba(255,255,255,.12)";
+        x.fillRect(0, py(0.12), W, 2);
+        for (let i = 0; i < 90; i++) {
+          x.strokeStyle = `rgba(${Rw() < 0.7 ? "60,52,40" : "255,255,250"},${0.08 + Rw() * 0.15})`;
+          x.lineWidth = 0.6 + Rw();
+          const sx = Rw() * W,
+            sy = py(0.12 + Rw() * Rw() * 0.6),
+            a = (Rw() - 0.5) * 0.6;
+          x.beginPath();
+          x.moveTo(sx, sy);
+          x.lineTo(sx + Math.cos(a) * (6 + Rw() * 26), sy + Math.sin(a) * (4 + Rw() * 8));
+          x.stroke();
+        }
+        for (let i = 0; i < 12; i++) {
+          x.fillStyle = `rgba(80,66,46,${0.04 + Rw() * 0.05})`;
+          const sx = Rw() * W;
+          x.fillRect(sx, py(1.75), 1.5 + Rw() * 2.5, py(0.95) - py(1.75));
+        }
+        const t = new T.CanvasTexture(c);
+        t.encoding = T.sRGBEncoding;
+        t.wrapS = T.RepeatWrapping;
+        t.wrapT = T.ClampToEdgeWrapping;
+        t.repeat.set(0.5, 1 / 2.4);
+        t.anisotropy = 8;
+        return t;
+      })();
+      const CRMW = std(0xffffff, { map: wallTex, roughness: 0.66, side: T.DoubleSide, emissive: 0x1c1912 });
+      // Scheiben mit ganz leichten Schlieren, damit man sie als Glas wahrnimmt
+      const smudge = (() => {
+        const c = document.createElement("canvas");
+        c.width = c.height = 256;
+        const x = c.getContext("2d"),
+          Rs = rng(919);
+        x.fillStyle = "rgba(205,220,226,.035)";
+        x.fillRect(0, 0, 256, 256);
+        for (let i = 0; i < 60; i++) {
+          x.strokeStyle = `rgba(230,236,238,${0.03 + Rs() * 0.06})`;
+          x.lineWidth = 4 + Rs() * 14;
+          const cx0 = Rs() * 256,
+            cy0 = Rs() * 256,
+            r = 30 + Rs() * 90,
+            a0 = Rs() * 6.3;
+          x.beginPath();
+          x.arc(cx0, cy0, r, a0, a0 + 0.6 + Rs() * 1.2);
+          x.stroke();
+        }
+        const g = x.createLinearGradient(0, 200, 0, 256);
+        g.addColorStop(0, "rgba(200,190,170,0)");
+        g.addColorStop(1, "rgba(200,190,170,.12)");
+        x.fillStyle = g;
+        x.fillRect(0, 200, 256, 56);
+        const t = new T.CanvasTexture(c);
+        t.encoding = T.sRGBEncoding;
+        return t;
+      })();
+      const GLI = new T.MeshStandardMaterial({
+        map: smudge,
+        transparent: true,
+        depthWrite: false,
+        roughness: 0.2,
+        metalness: 0,
+        side: T.DoubleSide,
+        envMapIntensity: 0.6,
+      });
       const CRM = std(0xf0e5cc, { roughness: 0.72, side: T.DoubleSide, emissive: 0x1c1912 }),
         CRM2 = std(0xdccfb2, { roughness: 0.6, emissive: 0x141210 }),
         RUB = std(0x151617, { roughness: 0.85 }),
@@ -8209,7 +8334,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
         const hold = new T.Group();
         sm(
           new T.ExtrudeGeometry(s, { depth: 0.03, bevelEnabled: false, curveSegments: 8 }),
-          CRM,
+          CRMW,
           hold,
           0,
           0,
@@ -8230,6 +8355,14 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
           const gg = new T.ExtrudeGeometry(o, { depth: 0.08, bevelEnabled: false, curveSegments: 8 });
           gg.translate(0, 0, -0.012);
           sm(gg, RUB, hold, 0, 0, 0);
+          if (!h.rad && h.h < 1.5) {
+            const gp = new T.Shape();
+            rrp(gp, h.u - h.w / 2, h.v - h.h / 2, h.w, h.h, h.r);
+            const pg = new T.ShapeGeometry(gp, 8),
+              pu = pg.attributes.uv;
+            for (let k = 0; k < pu.count; k++) pu.setXY(k, (pu.getX(k) - h.u) / h.w + 0.5, (pu.getY(k) - h.v) / h.h + 0.5);
+            sm(pg, GLI, hold, 0, 0, -0.03);
+          }
         });
         place(hold);
         ST.add(hold);
@@ -8271,6 +8404,13 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
         x.fillRect(0, 0, w, h);
         x.fillStyle = "#2a2c2e";
         for (let i = 0; i < 16; i++) x.fillRect(0, i * 8, w, 3);
+        const Rf = rng(515);
+        for (let i = 0; i < 40; i++) {
+          x.fillStyle = `rgba(${Rf() < 0.6 ? "120,112,98" : "20,20,22"},${0.05 + Rf() * 0.08})`;
+          x.beginPath();
+          x.arc(Rf() * w, Rf() * h, 4 + Rf() * 16, 0, 7);
+          x.fill();
+        }
       });
       rib.wrapS = rib.wrapT = T.RepeatWrapping;
       rib.repeat.set(3, 3);
@@ -8350,9 +8490,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
         opacity: 0.07,
         depthWrite: false,
       });
-      [-0.56, 0.56].forEach((z) => {
-        sm(box(0.01, 0.58, 0.78), GL, null, x1 + 0.06, 2.93, z);
-      });
+
       // Instrumentenpult rechts vor dem Fahrer
       const pz0 = 0.06,
         pz1 = 0.76,
@@ -8970,14 +9108,14 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       keep.forEach((o) => {
         const m = new T.Mesh(o.geometry, o.material);
         m.applyMatrix4(new T.Matrix4().multiplyMatrices(inv, o.matrixWorld));
-        m.castShadow = true;
+        m.castShadow = !(o.material && o.material.transparent);
         out.add(m);
       });
       by.forEach((list, mat) => {
         const m = new T.Mesh(mergeGeo(list), mat);
         m.name = mat.name || "";
-        m.castShadow = true;
-        m.receiveShadow = true;
+        m.castShadow = m.receiveShadow = !mat.transparent;
+        if (mat.transparent) m.renderOrder = 3;
         out.add(m);
       });
       liveObjs.forEach((o) => {
@@ -9078,7 +9216,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
         arm:()=>mg([cyl(0.052,0.041,0.56,0,-0.28,0,7),sph(0.058,1,1,1,0,0,0,8,6)]),                   // Ursprung an der Schulter
         hand:()=>sph(0.047,0.85,1.25,0.7,0,-0.6,0,7,5),
         head:y=>mg([sph(0.118,0.93,1.1,1,0,y,0,12,10),cyl(0.045,0.052,0.12,0,y-0.15,0,8),sph(0.022,1,1,1,0,y-0.01,0.116,6,4)]),
-        hair:y=>{const g=new T.SphereGeometry(0.128,12,6,0,Math.PI*2,0,Math.PI*0.56);g.scale(0.95,1.1,1.04);g.rotateX(-0.32);g.translate(0,y+0.012,-0.006);return g;},
+        hair:y=>{const s=new T.SphereGeometry(0.128,20,14).toNonIndexed(),P=s.attributes.position,Nn=s.attributes.normal,keep=[];const edge=zn=>zn>0?0.12+0.42*zn:0.12+0.62*zn;for(let i=0;i<P.count;i+=3){let ok=true;for(let k=0;k<3;k++){const yy=P.getY(i+k)/0.128,zz=P.getZ(i+k)/0.128;if(yy<edge(zz))ok=false;}if(ok)keep.push(i);}const pa=new Float32Array(keep.length*9),na=new Float32Array(keep.length*9);keep.forEach((i,j)=>{for(let k=0;k<9;k++){pa[j*9+k]=P.array[i*3+k];na[j*9+k]=Nn.array[i*3+k];}});const g=new T.BufferGeometry();g.setAttribute('position',new T.BufferAttribute(pa,3));g.setAttribute('normal',new T.BufferAttribute(na,3));g.scale(0.97,1.08,1.05);g.translate(0,y+0.012,-0.01);return g;},
         SKIN:[0xe8c0a4,0xddb092,0xf0cdb4,0xc99878,0xa87550,0xe2b99c,0x8a5a3c,0xeac6a8],
         HAIR:[0x2a2019,0x4a3423,0x6b4a2c,0xb08a4a,0xd8c08a,0x1a1a1c,0x8a8a88,0xd9d9d4,0x7a3a1e]};})();
     // ---- Inselhäuser: Wände mit gezeichneter Fassade (Klinker oder Putz, weiße Sprossenfenster mit Gardinen, Haustür, Sockel), Giebel, Ziegeldach mit Überstand und weißen Ortgangbrettern
@@ -10148,7 +10286,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
           iLeg.setMatrixAt(i * 2 + k, m);
           iLeg.setColorAt(i * 2 + k, c2);
           iShoe.setMatrixAt(i * 2 + k, m);
-          L.makeTranslation(sd * 0.27, 1.44, 0);
+          L.makeTranslation(sd * 0.222, 1.37, 0);
           Q.makeRotationX(-sd * step * 0.8);
           L.multiply(Q);
           iArm.setMatrixAt(i * 2 + k, M.clone().multiply(L));
@@ -14333,7 +14471,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       };
       const legGeo = HUM.leg(-0.42);
       const armGeo = HUM.arm();
-      armGeo.scale(1.12, 1.06, 1.12);
+      armGeo.scale(1.1, 1.14, 1.1);
       const legL = new T.Group(),
         legR = new T.Group();
       legL.position.set(-0.1, 0.92, 0);
@@ -14347,12 +14485,12 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       mesh(new T.BoxGeometry(0.12, 0.2, 0.02), M.white, g, 0, 1.44, 0.125);
       const armL = new T.Group(),
         armR = new T.Group();
-      armL.position.set(-0.29, 1.5, 0);
-      armR.position.set(0.29, 1.5, 0);
+      armL.position.set(-0.228, 1.44, 0);
+      armR.position.set(0.228, 1.44, 0);
       const aL = mesh(armGeo, cols ? M.top : M.navy, armL),
         aR = mesh(armGeo, cols ? M.top : M.navy, armR);
-      mesh(HUM.hand(), M.skin, armL, 0, -0.04, 0);
-      mesh(HUM.hand(), M.skin, armR, 0, -0.04, 0);
+      mesh(HUM.hand(), M.skin, armL, 0, -0.07, 0);
+      mesh(HUM.hand(), M.skin, armR, 0, -0.07, 0);
       g.add(armL, armR);
       const cuffs = [
         mesh(new T.BoxGeometry(0.13, 0.04, 0.14), M.gold, armL, 0, -0.56, 0),
@@ -15184,8 +15322,8 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
         g.translate(x, y, z);
         return g;
       };
-      const body = HUM.mg([HUM.torso(1.17), tr(HUM.arm(), -0.27, 1.44, 0), tr(HUM.arm(), 0.27, 1.44, 0)]);
-      const head = HUM.mg([HUM.head(1.63), tr(HUM.hand(), -0.27, 1.44, 0), tr(HUM.hand(), 0.27, 1.44, 0)]);
+      const body = HUM.mg([HUM.torso(1.17), tr(HUM.arm(), -0.222, 1.37, 0), tr(HUM.arm(), 0.222, 1.37, 0)]);
+      const head = HUM.mg([HUM.head(1.63), tr(HUM.hand(), -0.222, 1.37, 0), tr(HUM.hand(), 0.222, 1.37, 0)]);
       const legs = HUM.mg([tr(HUM.leg(0.44), -0.1, 0, 0), tr(HUM.leg(0.44), 0.1, 0, 0), tr(HUM.shoe(0.045), -0.1, 0, 0), tr(HUM.shoe(0.045), 0.1, 0, 0)]);
       const ib1 = new T.InstancedMesh(body, std(0xffffff, { roughness: 0.8 }), ppl.length),
         ib2 = new T.InstancedMesh(head, std(0xffffff, { roughness: 0.7 }), ppl.length),
@@ -18213,12 +18351,12 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
             const WL = std(0xf4f4f0, { roughness: 0.6 });
             ribbon(P0, P1, 1.95, 2.1, () => ISL_TOP + HPL + 0.005, WL, 3);
             ribbon(P0, P1, 5.9, 6.05, () => ISL_TOP + HPL + 0.005, WL, 3);
-            {
-              const p = railPt(P0);
-              const x0 = p.x - p.ty * 4,
-                n0 = p.y + p.tx * 4;
-              mesh(new T.BoxGeometry(5.1, HPL, 0.3), KM, null, x0, ISL_TOP + HPL / 2, -(n0 - 0.1));
-            }
+            // Stirnwände an beiden Bahnsteigenden, quer zum Gleis
+            [P0 + 0.14, P1 - 0.14].forEach((d) => {
+              const p = railPt(d);
+              const m = mesh(new T.BoxGeometry(5.12, HPL, 0.28), KM, null, p.x - p.ty * 4, ISL_TOP + HPL / 2, -(p.y + p.tx * 4));
+              m.rotation.y = Math.atan2(p.tx, -p.ty);
+            });
             // laut Foto kein Bahnsteigdach und kein Stationsschild
             const POST = std(0x8f9497, { metalness: 0.5 });
             // Wartehäuschen etwa in Bahnsteigmitte (nach Foto): Glaskasten mit weißen Rahmen, blaue Stahlstützen, steiles Satteldach, Giebel mit Begrüßung
@@ -18951,7 +19089,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
         bikes(-5245, 5640, 10, Math.PI / 2);
         bikes(-5245, 5652, 8, Math.PI / 2);
         crowd([
-          ...scatter(-5325.6, -5322.4, 5596, 5700, 30, 31).map((q) => [q[0], q[1], 0.6]),
+          ...scatter(-5325.6, -5322.4, 5596, 5700, 30, 31).map((q) => [q[0], q[1], HPL]),
           ...scatter(-5286, -5250, 5566, 5590, 20, 32),
           ...scatter(-5306, -5290, 5585, 5592, 8, 34),
           ...scatter(-5100, -4900, 5722, 5735, 10, 33),
@@ -19268,8 +19406,9 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
         return;
       }
       if (o.isMesh && o.material && !o.material.isShaderMaterial && !o.material.isMeshBasicMaterial) {
-        o.castShadow = true;
-        o.receiveShadow = true;
+        const tr = !Array.isArray(o.material) && o.material.transparent;
+        o.castShadow = !tr;
+        o.receiveShadow = !tr;
       }
     });
     interior.traverse((o) => {
