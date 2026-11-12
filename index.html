@@ -862,6 +862,26 @@ button {
 .grey {
   filter: grayscale(0.7) contrast(1.05);
 }
+.imp {
+  margin: 10px 0 2px;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+}
+.imp summary {
+  cursor: pointer;
+  display: inline-block;
+  padding: 6px 10px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.imp p {
+  margin: 6px 0;
+  line-height: 1.5;
+}
+.imp a {
+  color: inherit;
+}
 @media (prefers-reduced-motion: reduce) {
   .btn.ready {
     animation: none;
@@ -1765,12 +1785,30 @@ input {
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
       <p class="ver">
-        Version 12.11.2026 · Schwellen quer, Insel flach, klarere Lokscheiben, Instrumente mit Skalen und Zahlen
+        Version 12.11.2026 b · Brücke ohne alte Türen hinten, neues Titelbild, Impressum
       </p>
       <p class="ver">
         Bahngeräusche: Aufnahmen von www.hoerspielbox.de · Funkrauschen: freesound_community (Pixabay) ·
         Musik: „Golden Sea“ von good_b_music (Pixabay)
       </p>
+      <details class="imp">
+        <summary>Impressum</summary>
+        <p>
+          Angaben gemäß § 5 DDG<br />
+          Christian Stadler<br />
+          c/o gpaNRW<br />
+          Shamrockring 1<br />
+          44623 Herne
+        </p>
+        <p>
+          E-Mail: <a href="mailto:christian-stadler@gmx.net">christian-stadler@gmx.net</a><br />
+          Telefon: <a href="tel:+491755608597">0175 5608597</a>
+        </p>
+        <p>
+          Inselfähre Langeoog ist ein privates, nicht kommerzielles Spiel. Es steht in keiner Verbindung zur
+          Schifffahrt und Inselbahn der Gemeinde Langeoog.
+        </p>
+      </details>
     </div>
   </div>
 </div>
@@ -15801,9 +15839,6 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       [14.86, 12.52, 10.2].forEach((s) => ib(0.2, FH, 0.22, WOODL, sd * (HW - 0.13), FY0, s, 0.8));
       inPanes.push(pane(2.1, FH, sd * HW, FYC, 11.36, Math.PI / 2));
       ib(0.1, FH, 2.1, BEIGE, sd * (HW - 0.04), FY0, 9.1);
-      ib(0.08, 2.05, 0.95, DOORW, sd * (HW - 0.12), 7.45, 9.15);
-      ib(0.06, 0.5, 0.4, std(0x1a2731, { roughness: 0.2 }), sd * (HW - 0.17), 8.9, 9.15);
-      ib(0.12, 0.04, 0.18, std(0x9aa0a3, { metalness: 0.8, roughness: 0.3 }), sd * (HW - 0.2), 8.45, 9.45);
     });
     // Rückwand mit Tür und zwei Fenstern
     ib(IW, BY0 - 7.42, 0.1, BEIGE, 0, 7.42, 8.02);
@@ -16261,12 +16296,6 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
         m.renderOrder = 5;
         sb(gw + 0.1, 0.05, 0.18, W, X((xa + xb) / 2), y0 - 0.02, 14.9);
       }
-      // Tür mit Bullauge an der Außenwand des Steuerhauses
-      extOnly.push(sb(0.08, 2.05, 0.95, W, X(HW + 0.06), 7.45, 9.15));
-      const por = mesh(new T.CylinderGeometry(0.17, 0.17, 0.06, 20), GLS, tilt, X(HW + 0.11), 8.95, -9.15);
-      por.rotation.z = Math.PI / 2;
-      extOnly.push(por);
-      extOnly.push(sb(0.06, 0.04, 0.2, STEEL, X(HW + 0.12), 8.45, 9.45));
     });
 
     // Brückendach, Mast und alles darüber sowie die Decke innen um BD absenken
