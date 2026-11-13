@@ -1557,7 +1557,7 @@ input {
       <span class="ship-name">MS Langeoog IV</span><span class="route">Bensersiel → Langeoog</span>
     </div>
     <div class="clock" id="clock" aria-label="Uhrzeit">10:15</div>
-    <button class="icon-btn" id="tsBtn" aria-label="Zeitraffer">4×</button>
+    <button class="icon-btn" id="tsBtn" aria-label="Zeitraffer">Real</button>
     <button class="icon-btn" id="soundBtn" aria-pressed="true">Ton</button>
     <button class="icon-btn" id="pauseBtn">Pause</button>
   </header>
@@ -1785,7 +1785,7 @@ input {
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
       <p class="ver">
-        Version 12.11.2026 b · Brücke ohne alte Türen hinten, neues Titelbild, Impressum
+        Version 12.11.2026 c · Start im Zeitmodus „Real“, ruhigere Schienen und Wasser, Rampen setzen in der Filmszene auf
       </p>
       <p class="ver">
         Bahngeräusche: Aufnahmen von www.hoerspielbox.de · Funkrauschen: freesound_community (Pixabay) ·
@@ -1944,7 +1944,7 @@ document.querySelectorAll("img[data-hero]").forEach((i) => {
     ENV.dir === "LB" ? { x: BERTH_BS.x, y: BERTH_BS.y, h: 90 } : { x: BERTH.x, y: BERTH.y, h: 0 };
   const LIMIT = 2.65;
   const TS_STEPS = [2, 4, 8];
-  let TS = 4;
+  let TS = 2;
   const tsLabel = (v) => (v === 2 ? "Real" : v + "×");
 
   // ---------- Welt: x Ost, y Nord, Meter ----------
@@ -4202,7 +4202,7 @@ document.querySelectorAll("img[data-hero]").forEach((i) => {
       quay = V(-5270, Y0, 5585),
       platS = V(-5317, Y0, 5586),
       platA = V(-5322.4, Y0, 5586.8),
-      platE = V(-5322.4, YP, 5589.7);
+      platE = V(-5322.4, YP, 5588.85);
     const lerpCam = (a, b) => (f, u) => ({
       pos: a.clone().lerp(b, u),
       look: f.clone().add(new G.T.Vector3(0, 1.1, 0)),
@@ -9133,7 +9133,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
             [0.016, 0.075, 0.04],
             [0.055, 0.035, 0.093],
           ].forEach(([w, h, yy]) => lists.rail.push(place(box(w, h, s.len + 0.02), s, off, yy + h / 2)));
-          lists.head.push(place(box(0.045, 0.006, s.len + 0.02), s, off, 0.116));
+          lists.head.push(place(box(0.05, 0.008, s.len + 0.02), s, off, 0.1315));
         });
       }
       if (!BALLAST) { // Schotter: einzelne kantige Steine mit heller Ober- und dunkler Unterkante, dazu Relief
@@ -9156,7 +9156,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       };
       add(lists.bal, BALLAST);
       add(lists.rail, std(0x6a5446, { roughness: 0.6, metalness: 0.5 }), true);
-      add(lists.head, std(0xb9b6b0, { roughness: 0.25, metalness: 0.9 }));
+      add(lists.head, std(0xb9b6b0, { roughness: 0.25, metalness: 0.9, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }));
       const n = Math.floor(L / 0.65);
       const im = new T.InstancedMesh(box(1.8, 0.13, 0.22), std(0x4d4239, { roughness: 0.95 }), n);
       const o = new T.Object3D();
@@ -9778,16 +9778,16 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
     float shipHit(vec3 o,vec3 d){return bx(o,d,vec3(-6.,-.5,-29.),vec3(6.,3.4,29.))+bx(o,d,vec3(-5.3,3.4,-16.),vec3(5.3,9.6,25.));}
     vec2 wv(vec2 p,vec2 d,float L,float A,float t){float k=6.28318/L;float ph=dot(d,p)*k-sqrt(9.81*k)*t;return d*(A*k*cos(ph));}
     vec2 ng(vec2 q,float e){float n0=noise(q);return vec2(noise(q+vec2(e,0.))-n0,noise(q+vec2(0.,e))-n0)*2.;}
-    void main(){vec2 p=vW.xz;float dist=length(uCam-vW);float fade=clamp(1.-dist/900.,0.,1.);float near=clamp(1.-dist/220.,0.,1.);float t=uTime;
+    void main(){vec2 p=vW.xz;float dist=length(uCam-vW);float fade=clamp(1.-dist/900.,0.,1.);float near=clamp(1.-dist/120.,0.,1.);float mid=clamp(1.-dist/450.,0.,1.);float t=uTime;
       vec2 g=wv(p,vec2(.958,.287),16.,.11,t)+wv(p,vec2(.614,.789),9.,.06,t)+wv(p,vec2(-.371,.928),25.,.12,t);
-      g+=fade*(wv(p,vec2(.954,-.3),5.5,.03,t)+wv(p,vec2(-.894,.447),3.3,.016,t)+wv(p,vec2(.2,-.98),2.1,.008,t));
+      g+=fade*wv(p,vec2(.954,-.3),5.5,.03,t)+mid*wv(p,vec2(-.894,.447),3.3,.016,t)+near*wv(p,vec2(.2,-.98),2.1,.008,t);
       // Windsee und Kräuselung aus der Wellentextur in vier Größen (61 m, 23 m, 7,5 m, 2,3 m), gegeneinander gedreht und verschieden schnell laufend
       vec4 w1=texture2D(uWav,p*.0164+t*vec2(.011,.006));vec4 w2=texture2D(uWav,vec2(p.y,-p.x)*.0435+t*vec2(-.017,.023));
       vec4 w3=texture2D(uWav,(p*mat2(.8,.6,-.6,.8))*.133+t*vec2(.05,-.034));vec4 w4=texture2D(uWav,vec2(-p.y,p.x)*.43+t*vec2(.09,.11));
       vec2 d1=(w1.rg-.5)*8.,d2=(w2.rg-.5)*8.,d3=(w3.rg-.5)*8.,d4=(w4.rg-.5)*8.;d2=vec2(-d2.y,d2.x);d3=d3*mat2(.8,-.6,.6,.8);d4=vec2(d4.y,-d4.x);
       // Böenfelder: die feine Kräuselung ist stellenweise kräftiger, stellenweise fast glatt
       float gust=.45+1.1*texture2D(uWav,p*.0037+t*vec2(.004,.002)).b;
-      g+=d1*.05+d2*.055+(d3*.05*fade+d4*.04*near)*gust;
+      g+=d1*.05+d2*.055+(d3*.05*mid+d4*.04*near)*gust;
       g*=mix(.3,1.,clamp(1.-dist/3500.,0.,1.))*uAmp;
       vec3 n=normalize(vec3(-g.x,1.,-g.y));vec3 v=normalize(uCam-vW);float ndv=max(dot(n,v),0.);
       float fres=.02+.98*pow(1.-ndv,5.);fres=min(fres,.9);
@@ -9805,8 +9805,8 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       col=mix(col,vec3(.8,.84,.84),smoothstep(.34,.62,slope)*fade*.5);
       col=mix(col,vec3(.78,.82,.82),smoothstep(.5,.8,w3.b)*smoothstep(.75,1.25,gust)*fade*clamp(uAmp*.5-.15,0.,1.));
       // Sonnenglitzern: in der Nähe scharfe Lichtpunkte, zur Ferne hin ein breiter Lichtpfad
-      float rs=max(dot(r,uSun),0.);float ex=mix(900.,60.,clamp(dist/1400.,0.,1.));
-      col+=vec3(1.,.93,.8)*(pow(rs,ex)*mix(9.,1.6,clamp(dist/1400.,0.,1.))+pow(rs,24.)*.12)*uSpec*(1.-shd);
+      float rs=max(dot(r,uSun),0.);float ex=mix(320.,60.,clamp(dist/1400.,0.,1.));
+      col+=vec3(1.,.93,.8)*(pow(rs,ex)*mix(4.,1.6,clamp(dist/1400.,0.,1.))+pow(rs,24.)*.12)*uSpec*(1.-shd);
       col=mix(col,L(uFog),1.-exp(-pow(uDens*dist,2.)));gl_FragColor=vec4(col,1.);
       #include <tonemapping_fragment>
       #include <encodings_fragment>
@@ -14662,9 +14662,10 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       const g = new T.Group();
       const ST = std(0x7d8286, { roughness: 0.6, metalness: 0.4 }),
         RL3 = std(0xd9dde0, { metalness: 0.5, roughness: 0.35 });
-      const L0 = Math.hypot(10.5, 4.6 - ISL_TOP);
-      const ramp = mesh(new T.BoxGeometry(1.5, 0.2, L0), ST, g, 0, 0, 0);
-      ramp.rotation.x = -Math.atan2(4.6 - ISL_TOP, 10.5);
+      const L0 = Math.hypot(10.5, 4.6 - ISL_TOP),
+        RA = Math.atan2(4.6 - ISL_TOP, 10.5);
+      const ramp = mesh(new T.BoxGeometry(1.5, 0.2, L0 + 0.7), ST, g, 0, -0.35 * Math.sin(RA), -0.35 * Math.cos(RA));
+      ramp.rotation.x = -RA;
       for (let i = 0; i < 16; i++)
         mesh(
           new T.BoxGeometry(1.4, 0.06, 0.3),
@@ -14681,7 +14682,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       g.position.set(-5261.2, (4.6 + ISL_TOP) / 2, -5566.2);
       scene.add(g);
     }
-    const camR = new T.PerspectiveCamera(62, 1, 0.05, 9500);
+    const camR = new T.PerspectiveCamera(62, 1, 0.1, 9500);
     const rigR = new T.Group();
     rigR.add(camR);
     scene.add(rigR);
@@ -19834,7 +19835,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       const hv = heave + dy;
       if (DYN.bow) {
         const tgt = atB ? Math.asin(Math.max(-0.4, Math.min(0.4, (4.15 - (2.75 + hv)) / 13.5))) : -0.42;
-        DYN.bow.rotation.z += (tgt - DYN.bow.rotation.z) * Math.min(1, dtR * 0.45);
+        DYN.bow.rotation.z += (tgt - DYN.bow.rotation.z) * (phase === "cut" || phase === "cutwait" ? 1 : Math.min(1, dtR * 0.45));
       }
       {
         const op =
@@ -19846,7 +19847,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       }
       if (DYN.ped) {
         const tgt = atB ? Math.asin(Math.max(-0.4, Math.min(0.5, (4.5 - (2.5 + hv)) / 26.2))) : -0.08;
-        DYN.ped.rotation.z += (tgt - DYN.ped.rotation.z) * Math.min(1, dtR * 0.45);
+        DYN.ped.rotation.z += (tgt - DYN.ped.rotation.z) * (phase === "cut" || phase === "cutwait" ? 1 : Math.min(1, dtR * 0.45));
       }
     }
     {
@@ -19860,9 +19861,10 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       const upd = (o, low, hb) => {
         if (!o) return;
         const tb = low ? Math.asin(Math.max(-0.4, Math.min(0.4, (4.15 - (2.75 + hb)) / 13.5))) : -0.42;
-        o.bow.rotation.x += (tb - o.bow.rotation.x) * Math.min(1, dtR * 0.45);
+        const kr = phase === "cut" || phase === "cutwait" ? 1 : Math.min(1, dtR * 0.45);
+        o.bow.rotation.x += (tb - o.bow.rotation.x) * kr;
         const tp = low ? Math.asin(Math.max(-0.3, Math.min(0.4, (4.6 - (2.5 + hb)) / 39.7))) : -0.06;
-        o.ped.rotation.x += (tp - o.ped.rotation.x) * Math.min(1, dtR * 0.45);
+        o.ped.rotation.x += (tp - o.ped.rotation.x) * kr;
       };
       upd(LGDYN.a, l3b, dy);
       upd(LGDYN.b, nearL, heave + dy);
