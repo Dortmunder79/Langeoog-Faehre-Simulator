@@ -1785,7 +1785,7 @@ input {
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
       <p class="ver">
-        Version 12.11.2026 c · Start im Zeitmodus „Real“, ruhigere Schienen und Wasser, Rampen setzen in der Filmszene auf
+        Version 13.11.2026 · Personenwagen innen nach Foto: Lattenbänke, Kippfenster, Decke mit Holzleisten und Halbkugel-Leuchten
       </p>
       <p class="ver">
         Bahngeräusche: Aufnahmen von www.hoerspielbox.de · Funkrauschen: freesound_community (Pixabay) ·
@@ -7993,7 +7993,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       orange: 0xe2682a,
       dblau: 0x223f8f,
     };
-    K.makeCoach = (color) => {
+    K.makeCoach = (color, noBench) => {
       const g = new T.Group();
       const L = 11.6,
         W = 2.3,
@@ -8137,14 +8137,17 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       [-1, 1].forEach((e) => mesh(box(0.03, 0.08, W + 0.44), RAILC, g, e * (L / 2 + 1.1), B + H + 0.02, 0));
       // Inneneinrichtung schemenhaft: Holzbänke
       const WOOD = std(0xb98a52, { roughness: 0.55 }),
-        LEG = std(0x8c9093, { roughness: 0.4, metalness: 0.6 });
-      for (let i = -4; i <= 4; i++) {
+        LEG = std(0x8c9093, { roughness: 0.4, metalness: 0.6 }),
+        bgr = new T.Group();
+      g.add(bgr);
+      g.userData.benches = bgr;
+      for (let i = -4; i <= 4 && !noBench; i++) {
         const x0 = i * 1.25;
         [-1, 1].forEach((sd) => {
           const zc = sd * 0.68;
-          mesh(box(0.46, 0.06, 0.82), WOOD, g, x0, B + 0.46, zc);
-          mesh(box(0.06, 0.42, 0.06), LEG, g, x0, B + 0.22, zc);
-          const back = mesh(box(0.06, 0.5, 0.82), WOOD, g, x0 + (i % 2 ? 0.22 : -0.22), B + 0.75, zc);
+          mesh(box(0.46, 0.06, 0.82), WOOD, bgr, x0, B + 0.46, zc);
+          mesh(box(0.06, 0.42, 0.06), LEG, bgr, x0, B + 0.22, zc);
+          const back = mesh(box(0.06, 0.5, 0.82), WOOD, bgr, x0 + (i % 2 ? 0.22 : -0.22), B + 0.75, zc);
           back.rotation.z = (i % 2 ? 1 : -1) * 0.08;
         });
       }
@@ -8850,6 +8853,8 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
 
     // ---------- Wageninneres: cremefarbene Wände, Holzleisten an der Decke, Fenster wie außen ----------
     K.makeCoachInterior = () => {
+      // nach Foto: helle Wände, blaugrauer Boden, Lattenbänke aus Holz einander gegenüber, schwarze Fensterrahmen mit Kippfenstern,
+      // Decke mit erhöhtem Mittelfeld, Holzleisten und Rippen, Leuchten als Halbkugeln
       const g = new T.Group();
       const L = 11.6,
         W = 2.3,
@@ -8859,7 +8864,8 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
         fl = B + 0.06,
         top = B + H - 0.08,
         H0 = top - fl;
-      mesh(box(L - 0.1, 0.03, W - 0.12), std(0x8e9293, { roughness: 0.9 }), g, 0, fl, 0);
+      const FLOORC = std(0x7d8d96, { roughness: 0.7 });
+      mesh(box(L - 0.1, 0.03, W - 0.12), FLOORC, g, 0, fl, 0);
       // Fenster an derselben Stelle wie auf der Außenhaut
       const ws = [0.5, 1.15, 0.5, 0.5, 1.15, 0.5, 0.5, 1.15, 0.5, 0.5, 1.15, 0.5];
       const tot = ws.reduce((a, b) => a + b, 0);
@@ -8870,53 +8876,187 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
         holes.push([px - 0.05, B + 1.08 - fl, w, H - 1.3]);
         px += w + gap;
       });
-      const SIDEI = std(0xe9e3d2, { roughness: 0.75, side: T.DoubleSide });
+      const SIDEI = std(0xeee7d4, { roughness: 0.75, side: T.DoubleSide });
       [-1, 1].forEach((sd) =>
         wallWithHoles(g, L - 0.1, H0, holes, SIDEI, (h) => {
           h.position.set(0, fl, sd * zw);
           h.rotation.y = sd > 0 ? Math.PI : 0;
         }),
       );
-      // Fensterrahmen schwarz, abgerundet angedeutet
-      const FR = std(0x1b1b1b, { roughness: 0.5 });
+      // Fensterrahmen dunkel, kräftig; schmale Fenster mit Kippflügel oben (wie außen), einige gekippt
+      const FR = std(0x16181c, { roughness: 0.45 }),
+        GLI = new T.MeshStandardMaterial({ color: 0xbfd2da, roughness: 0.05, metalness: 0.2, transparent: true, opacity: 0.22, side: T.DoubleSide, depthWrite: false }),
+        frl = [];
+      let wi = 0;
       holes.forEach((hh) =>
         [-1, 1].forEach((sd) => {
           const x = -L / 2 + 0.05 + hh[0] + hh[2] / 2,
             y = fl + hh[1] + hh[3] / 2,
-            z = sd * (zw - 0.015);
-          mesh(box(hh[2] + 0.08, 0.05, 0.03), FR, g, x, y + hh[3] / 2 + 0.02, z);
-          mesh(box(hh[2] + 0.08, 0.05, 0.03), FR, g, x, y - hh[3] / 2 - 0.02, z);
-          mesh(box(0.05, hh[3], 0.03), FR, g, x - hh[2] / 2 - 0.02, y, z);
-          mesh(box(0.05, hh[3], 0.03), FR, g, x + hh[2] / 2 + 0.02, y, z);
+            z = sd * (zw - 0.02),
+            fw = 0.07,
+            add = (w, h, d, X, Y, Z) => { const q = box(w, h, d); q.translate(X, Y, Z); frl.push(q); };
+          add(hh[2] + 2 * fw, fw, 0.05, x, y + hh[3] / 2 + fw / 2 - 0.01, z);
+          add(hh[2] + 2 * fw, fw, 0.05, x, y - hh[3] / 2 - fw / 2 + 0.01, z);
+          add(fw, hh[3], 0.05, x - hh[2] / 2 - fw / 2 + 0.01, y, z);
+          add(fw, hh[3], 0.05, x + hh[2] / 2 + fw / 2 - 0.01, y, z);
+          // abgerundete Ecken angedeutet: kleine Schrägen innen
+          [[-1, 1], [1, 1], [-1, -1], [1, -1]].forEach(([cx, cy]) => {
+            const q = box(0.07, 0.025, 0.05);
+            q.rotateZ(cx * cy * -Math.PI / 4);
+            q.translate(x + cx * (hh[2] / 2 - 0.02), y + cy * (hh[3] / 2 - 0.02), z);
+            frl.push(q);
+          });
+          if (hh[2] < 0.8) {
+            const ky = y + hh[3] / 2 - hh[3] * 0.26;
+            add(hh[2], 0.045, 0.06, x, ky, z);
+            // Kippflügel: unten angeschlagen, kippt oben nach innen
+            const fg = new T.Group();
+            fg.position.set(x, ky + 0.02, z);
+            g.add(fg);
+            const hk = hh[3] * 0.26 - 0.03;
+            const open = wi % 3 === 1;
+            fg.rotation.x = (open ? 0.28 : 0.02) * -sd;
+            mesh(new T.PlaneGeometry(hh[2] - 0.04, hk), GLI, fg, 0, hk / 2, 0);
+            [[hh[2], 0.03, 0, hk], [0.03, hk, -hh[2] / 2 + 0.015, hk / 2], [0.03, hk, hh[2] / 2 - 0.015, hk / 2]].forEach(([w, h, X, Y]) =>
+              mesh(box(w, h, 0.03), FR, fg, X, Y, 0));
+            mesh(box(0.1, 0.025, 0.04), CHROME, fg, 0, hk - 0.03, -sd * 0.03);
+          }
+          wi++;
         }),
       );
-      // Stirnwände mit Tür und Fenster
-      [-1, 1].forEach((e) =>
+      mesh(mergeGeo(frl), FR, g, 0, 0, 0);
+      // Fensterbank aus Holz und helle Holzleiste unter den Fenstern
+      const WD = std(0x8f5a2e, { roughness: 0.45 }),
+        WDL = std(0xc68a4c, { roughness: 0.45 });
+      [-1, 1].forEach((sd) => {
+        mesh(box(L - 0.2, 0.035, 0.09), WD, g, 0, B + 1.06, sd * (zw - 0.05));
+        mesh(box(L - 0.2, 0.06, 0.02), WD, g, 0, fl + 0.12, sd * (zw - 0.012));
+      });
+      // Stirnwände mit Tür (Fenster zum Nachbarwagen), Holzrahmen, Bild an der Wand
+      [-1, 1].forEach((e) => {
         wallWithHoles(g, W - 0.12, H0, [[(W - 0.12) / 2 - 0.3, 1.0, 0.6, 0.8]], SIDEI, (h) => {
           h.position.set(e * (L / 2 - 0.06), fl, 0);
           h.rotation.y = e > 0 ? -Math.PI / 2 : Math.PI / 2;
-        }),
-      );
-      // gewölbte Decke mit Holzleisten und Leuchten
-      const ceil = new T.Mesh(
-        roofGeo(W - 0.12, 0.09, L - 0.12, 0.02),
-        std(0xefebe0, { roughness: 0.8, side: T.DoubleSide }),
-      );
-      ceil.position.y = top;
-      g.add(ceil);
-      const WD = std(0x9a6a3a, { roughness: 0.6 });
-      [-0.75, 0.75].forEach((z) => mesh(box(L - 0.2, 0.06, 0.07), WD, g, 0, top + 0.02, z));
-      for (let x = -4.8; x <= 4.8; x += 2.4)
-        mesh(
-          new T.CylinderGeometry(0.12, 0.12, 0.04, 14),
-          new T.MeshStandardMaterial({ color: 0xffffff, emissive: 0x777766 }),
-          g,
-          x,
-          top + 0.08,
-          0,
-        );
-      // Holzverkleidung unter den Fenstern
-      [-1, 1].forEach((sd) => mesh(box(L - 0.2, 0.04, 0.03), WD, g, 0, B + 1.04, sd * (zw - 0.02)));
+        });
+        const xe = e * (L / 2 - 0.08);
+        [[0.06, 1.95, 0.36], [0.06, 1.95, -0.36]].forEach(([w, h, z]) => mesh(box(0.03, h, w), WD, g, xe, fl + h / 2, z));
+        mesh(box(0.03, 0.06, 0.78), WD, g, xe, fl + 1.95, 0);
+        mesh(box(0.04, 0.04, 0.6), FR, g, xe, fl + 1.0, 0);
+        mesh(box(0.04, 0.04, 0.6), FR, g, xe, fl + 1.8, 0);
+        mesh(box(0.03, 0.3, 0.24), WD, g, xe, fl + 1.55, 0.7);
+        mesh(box(0.035, 0.24, 0.18), std(0xe8e2cf, { roughness: 0.7 }), g, xe, fl + 1.55, 0.7);
+      });
+      // Decke: seitlich gewölbt, erhöhtes Mittelfeld mit kleiner Stufe
+      {
+        const yc = top - 0.08, ys = top, yt = top + 0.07, zs = 0.8, prof = [];
+        for (let i = 0; i <= 8; i++) {
+          const t = i / 8;
+          prof.push([-zw + (zw - zs) * Math.sin((t * Math.PI) / 2), yc + (ys - yc) * (1 - Math.cos((t * Math.PI) / 2))]);
+        }
+        prof.push([-zs, yt], [zs, yt], [zs, ys]);
+        for (let i = 7; i >= 0; i--) prof.push([-prof[i][0], prof[i][1]]);
+        const n = prof.length, P = [], N = [], U = [], I = [];
+        prof.forEach(([z, y], i) => {
+          const a = prof[Math.max(0, i - 1)], c = prof[Math.min(n - 1, i + 1)];
+          const dz = c[0] - a[0], dy = c[1] - a[1], l = Math.hypot(dz, dy) || 1;
+          [-1, 1].forEach((sx) => {
+            P.push((sx * (L - 0.12)) / 2, y, z);
+            N.push(0, -dz / l, dy / l);
+            U.push(sx > 0 ? 1 : 0, i / (n - 1));
+          });
+        });
+        for (let i = 0; i < n - 1; i++) I.push(2 * i, 2 * i + 1, 2 * i + 2, 2 * i + 1, 2 * i + 3, 2 * i + 2);
+        const cg = new T.BufferGeometry();
+        cg.setAttribute("position", new T.Float32BufferAttribute(P, 3));
+        cg.setAttribute("normal", new T.Float32BufferAttribute(N, 3));
+        cg.setAttribute("uv", new T.Float32BufferAttribute(U, 2));
+        cg.setIndex(I);
+        cg.computeVertexNormals();
+        g.add(new T.Mesh(cg, std(0xf1ece0, { roughness: 0.85, side: T.DoubleSide })));
+        // Holzleisten längs: Gesims über den Fenstern, Kante der Wölbung, Kante des Mittelfelds
+        const wl = [];
+        const addw = (w, h, d, X, Y, Z, rx) => { const q = box(w, h, d); if (rx) q.rotateX(rx); q.translate(X, Y, Z); wl.push(q); };
+        [-1, 1].forEach((sd) => {
+          addw(L - 0.2, 0.06, 0.05, 0, yc - 0.02, sd * (zw - 0.03));
+          addw(L - 0.2, 0.04, 0.06, 0, ys - 0.01, sd * (zs + 0.02));
+          addw(L - 0.2, 0.03, 0.05, 0, yt - 0.02, sd * (zs - 0.03));
+        });
+        // Querrahmen über das Mittelfeld und Rippen die Wölbung hinab
+        for (let x = -4.8; x <= 4.81; x += 2.4) {
+          addw(0.07, 0.03, 2 * zs, x, yt - 0.025, 0);
+          [-1, 1].forEach((sd) => {
+            addw(0.07, ys - yc + 0.02, 0.03, x, (ys + yc) / 2, sd * (zw - 0.12), sd * 0.9);
+            addw(0.07, yt - ys, 0.03, x, (ys + yt) / 2, sd * zs);
+          });
+        }
+        mesh(mergeGeo(wl), WD, g, 0, 0, 0);
+        // Leuchten: Halbkugeln mit Chromring im Mittelfeld, dazu kleine Lüftungsgitter
+        const LAMP = new T.MeshStandardMaterial({ color: 0xfff7e6, emissive: 0xe6dcc4, roughness: 0.3 }),
+          lg = new T.SphereGeometry(0.13, 20, 8, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2);
+        [-3.6, -1.2, 1.2, 3.6].forEach((x) => {
+          mesh(lg, LAMP, g, x, yt - 0.01, 0);
+          const r = mesh(new T.TorusGeometry(0.13, 0.012, 6, 24), CHROME, g, x, yt - 0.012, 0);
+          r.rotation.x = Math.PI / 2;
+          mesh(box(0.16, 0.012, 0.12), std(0xd9d6cc, { roughness: 0.6 }), g, x + 0.75, yt - 0.006, 0);
+        });
+      }
+      // Lattenbänke: Sitz und Lehne aus einzelnen lackierten Brettern, Metallgestell, Haltegriff am Gang
+      {
+        const SL = std(0xcf8a4a, { roughness: 0.38 }),
+          MET = std(0xb4b9bd, { roughness: 0.35, metalness: 0.35 }),
+          HEAT = std(0x2b2e31, { roughness: 0.6 }),
+          BL = 0.86;
+        const mk = (aisle) => {
+          const wd = [], mt = [];
+          const add = (arr, w, h, d, X, Y, Z, rz) => { const q = box(w, h, d); if (rz) q.rotateZ(rz); q.translate(X, Y, Z); arr.push(q); };
+          // Sitz: sechs Bretter, vorn leicht höher
+          for (let k = 0; k < 6; k++) add(wd, 0.062, 0.022, BL, -0.17 + k * 0.074, 0.43 + k * 0.006, 0, -0.08);
+          // Lehne: neun Bretter, leicht nach hinten geneigt
+          for (let k = 0; k < 9; k++) { const yy = 0.52 + k * 0.064; add(wd, 0.02, 0.05, BL, -0.235 - (yy - 0.5) * 0.17, yy, 0, -0.17); }
+          // Gestell: Seitenwangen unter dem Sitz, Rohre hinter der Lehne, Fuß am Gang, Heizkasten an der Wand
+          [-1, 1].forEach((e) => {
+            const z = e * (BL / 2 - 0.03);
+            add(mt, 0.44, 0.03, 0.025, 0, 0.405, z);
+            add(mt, 0.025, 0.6, 0.025, -0.255 - 0.05, 0.75, z, -0.17);
+          });
+          add(mt, 0.035, 0.4, 0.035, 0.1, 0.2, aisle * (BL / 2 - 0.05));
+          add(mt, 0.3, 0.02, 0.06, 0.1, 0.01, aisle * (BL / 2 - 0.05));
+          // Haltegriff oben auf der Lehne am Gang
+          const t = new T.TorusGeometry(0.05, 0.011, 6, 12, Math.PI);
+          t.rotateY(Math.PI / 2);
+          t.translate(-0.335, 1.06, aisle * (BL / 2 - 0.09));
+          mt.push(t);
+          return [mergeGeo(wd), mergeGeo(mt)];
+        };
+        const Gs = { "-1": mk(-1), "1": mk(1) };
+        const heat = box(0.3, 0.2, 0.25);
+        const inst = { "-1": [], "1": [] };
+        for (let i = -4; i <= 4; i++) {
+          const x0 = i * 1.25, face = i % 2 ? -1 : 1; // Lehnen abwechselnd, so sitzen sich je zwei Bänke gegenüber
+          [-1, 1].forEach((sd) => {
+            const ry = face > 0 ? 0 : Math.PI;
+            const a = face > 0 ? -sd : sd;
+            inst[a].push([x0 + face * 0.02, sd * 0.66, ry]);
+          });
+        }
+        const o = new T.Object3D();
+        [-1, 1].forEach((a) => {
+          const [gw, gm] = Gs[a];
+          const list = inst[a];
+          const iw = new T.InstancedMesh(gw, SL, list.length), im = new T.InstancedMesh(gm, MET, list.length), ih = new T.InstancedMesh(heat, HEAT, list.length);
+          list.forEach(([x, z, ry], k) => {
+            o.position.set(x, fl, z);
+            o.rotation.set(0, ry, 0);
+            o.updateMatrix();
+            iw.setMatrixAt(k, o.matrix);
+            im.setMatrixAt(k, o.matrix);
+            o.position.set(x, fl + 0.11, z + Math.sign(z) * 0.22);
+            o.updateMatrix();
+            ih.setMatrixAt(k, o.matrix);
+          });
+          [iw, im, ih].forEach((m) => { m.castShadow = m.receiveShadow = true; g.add(m); });
+        });
+      }
       g.userData = { eye: new T.Vector3(-L / 2 + 0.6, B + 1.55, 0.05) };
       return g;
     };
@@ -14524,8 +14664,8 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       add(lokA, lokA.userData.len, "lok");
       const flat = IB.bake(IB.makeFlat());
       add(flat, flat.userData.len, "flat");
-      ["dblau", "pink", "orange", "orange", "pink", "gelb", "gruen"].forEach((c) => {
-        const o = IB.bake(IB.makeCoach(IB.COLORS[c]));
+      ["dblau", "pink", "orange", "orange", "pink", "gelb", "gruen"].forEach((c, ci) => {
+        const o = IB.bake(IB.makeCoach(IB.COLORS[c], ci === 1)); // im zweiten Wagen stehen die detaillierten Bänke des Innenraums
         add(o, o.userData.len, "coach");
       });
       const lokB = IB.bake(IB.makeLoco());
