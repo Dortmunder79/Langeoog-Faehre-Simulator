@@ -1791,7 +1791,7 @@ input {
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
       <p class="ver">
-        Version 14.11.2026 b · Startmenü sofort da, „Leinen los“ ohne Wartezeit, auf dem iPhone gleichmäßiger
+        Version 14.11.2026 c · Lok: Fensterrahmen ohne helle Reflexe, Vorbau von innen so rot wie von außen
       </p>
       <p class="ver">
         Bahngeräusche: Aufnahmen von www.hoerspielbox.de · Funkrauschen: freesound_community (Pixabay) ·
@@ -7205,7 +7205,8 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
     // ---------- Lok (Schöma CFL, rot) ----------
     K.makeLoco = (opts = {}) => {
       const g = new T.Group();
-      const RED = std(opts.color || 0xcb1f1c, { roughness: 0.32, metalness: 0.15 });
+      // Lack ohne Glanzschleier: aus dem Führerstand sieht man den Vorbau flach von oben, da färbte die Himmelsspiegelung das Rot rosa
+      const RED = new T.MeshPhongMaterial({ color: new T.Color(opts.color || 0xcb1f1c).convertSRGBToLinear(), specular: 0x0b0b0b, shininess: 22 });
       // Rahmen, Pufferbohlen, Kupplung, Radsätze
       mesh(box(6.2, 0.42, 1.7), BLACK, g, 0, 0.82, 0);
       mesh(box(6.5, 0.06, 2.42), BLACK, g, 0, 1.06, 0);
@@ -7365,7 +7366,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
         ].forEach(([a, b, w, h]) => x.strokeRect(a, b, w, h));
         return tex(c);
       })();
-      const HOOD = std(0xffffff, { map: hoodTex, roughness: 0.32, metalness: 0.15 });
+      const HOOD = new T.MeshPhongMaterial({ color: 0xffffff, map: hoodTex, specular: 0x0b0b0b, shininess: 22 });
       // Mittelführerhaus (nach Foto): Vorbau vorn und hinten, beide schließen direkt an das Führerhaus an, Oberseite leicht gewölbt, Stirnkante rund gezogen
       const hl = 3.35,
         hx = 1.45;
@@ -7724,9 +7725,9 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       const cabTex = cabTexF(false),
         cabTex2 = cabTexF(true);
       // Außenwände mit echten Fensteröffnungen (im Führerstand ausgeblendet: Name 'glass'), Scheiben durchsichtig
-      const CABW = std(0xffffff, { map: cabTex, roughness: 0.32, metalness: 0.15 });
+      const CABW = std(0xffffff, { map: cabTex, roughness: 0.62, metalness: 0, envMapIntensity: 0.2 });
       CABW.name = "glass";
-      const CABW2 = std(0xffffff, { map: cabTex2, roughness: 0.32, metalness: 0.15 });
+      const CABW2 = std(0xffffff, { map: cabTex2, roughness: 0.62, metalness: 0, envMapIntensity: 0.2 });
       CABW2.name = "glass";
       const REDW = RED.clone();
       REDW.name = "glass";
@@ -8362,6 +8363,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       const CRM = std(0xf0e5cc, { roughness: 0.72, side: T.DoubleSide, emissive: 0x1c1912 }),
         CRM2 = std(0xdccfb2, { roughness: 0.6, emissive: 0x141210 }),
         RUB = std(0x151617, { roughness: 0.85 }),
+        RUBF = std(0x111213, { roughness: 1, envMapIntensity: 0.02 }),
         TAN = std(0xc2a77c, { roughness: 0.5, metalness: 0.15 }),
         MET = std(0xa3a6a4, { roughness: 0.32, metalness: 0.65 }),
         DGR = std(0x34373a, { roughness: 0.85 }),
@@ -8411,18 +8413,19 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
         holes.forEach((h) => {
           const o = new T.Shape(),
             i = new T.Path();
-          const e = 0.045;
+          const e = 0.045,
+            q = 0.008;
           if (h.rad) {
             o.absarc(h.u, h.v, h.rad + e, 0, Math.PI * 2, false);
-            i.absarc(h.u, h.v, h.rad, 0, Math.PI * 2, true);
+            i.absarc(h.u, h.v, h.rad - q, 0, Math.PI * 2, true);
           } else {
             rrp(o, h.u - h.w / 2 - e, h.v - h.h / 2 - e, h.w + 2 * e, h.h + 2 * e, h.r + e);
-            rrp(i, h.u - h.w / 2, h.v - h.h / 2, h.w, h.h, h.r);
+            rrp(i, h.u - h.w / 2 + q, h.v - h.h / 2 + q, h.w - 2 * q, h.h - 2 * q, Math.max(0.005, h.r - q));
           }
           o.holes.push(i);
           const gg = new T.ExtrudeGeometry(o, { depth: 0.08, bevelEnabled: false, curveSegments: 8 });
           gg.translate(0, 0, -0.012);
-          sm(gg, RUB, hold, 0, 0, 0);
+          sm(gg, RUBF, hold, 0, 0, 0);
           if (!h.rad && h.h < 1.5) {
             const gp = new T.Shape();
             rrp(gp, h.u - h.w / 2, h.v - h.h / 2, h.w, h.h, h.r);
@@ -8463,7 +8466,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
           },
         );
         // Türfuge, Griff, Haltestange
-        sm(box(0.05, 0.66, 0.06), RUB, null, cx + 0.47, 2.73, sd * (zw + 0.0)); // Mittelsteg im großen Seitenfenster
+        sm(box(0.05, 0.66, 0.06), RUBF, null, cx + 0.47, 2.73, sd * (zw + 0.0)); // Mittelsteg im großen Seitenfenster
         sm(new T.CylinderGeometry(0.016, 0.016, 0.9, 8), CHROME, null, cx - 0.2, fl + 1.35, sd * (zw - 0.06));
       });
       // Boden mit Riffelgummi, Decke gewölbt mit Leuchte, Sonnenblende
