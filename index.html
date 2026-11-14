@@ -1785,7 +1785,7 @@ input {
       </ul>
       <button class="btn primary" id="startBtn">Leinen los</button>
       <p class="ver">
-        Version 13.11.2026 · Personenwagen innen nach Foto: Lattenbänke, Kippfenster, Decke mit Holzleisten und Halbkugel-Leuchten
+        Version 14.11.2026 · Läuft flüssiger: es wird nur gezeichnet, was im Blickfeld und nah genug ist; Handy-Grundeinstellungen
       </p>
       <p class="ver">
         Bahngeräusche: Aufnahmen von www.hoerspielbox.de · Funkrauschen: freesound_community (Pixabay) ·
@@ -6715,10 +6715,24 @@ document.querySelectorAll("img[data-hero]").forEach((i) => {
     return h * WAVE_MUL;
   }
 
+  const IS_MOB = (() => {
+    try {
+      return matchMedia("(pointer: coarse)").matches || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    } catch (e) {
+      return false;
+    }
+  })();
   const NOISE_GL = `
+${IS_MOB ? "#define MOBQ" : ""}
 float hash(vec2 p){vec3 p3=fract(vec3(p.xyx)*.1031);p3+=dot(p3,p3.yzx+33.33);return fract((p3.x+p3.y)*p3.z);}
 float noise(vec2 p){vec2 i=floor(p),f=fract(p);vec2 u=f*f*(3.-2.*f);return mix(mix(hash(i),hash(i+vec2(1.,0.)),u.x),mix(hash(i+vec2(0.,1.)),hash(i+vec2(1.,1.)),u.x),u.y);}
-float fbm(vec2 p){float v=0.,a=.5;for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=.5;}return v;}
+float fbm(vec2 p){float v=0.,a=.5;
+#ifdef MOBQ
+for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a*=.5;}v+=.09;
+#else
+for(int i=0;i<5;i++){v+=a*noise(p);p*=2.03;a*=.5;}
+#endif
+return v;}
 float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a*=.5;}return v;}`;
 
   // ----- Materialtexturen, prozedural gemalt -----
@@ -9384,10 +9398,17 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
     } catch (e) {
       return null;
     }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
+    const MOB = (window.__MOB = (() => {
+      try {
+        return matchMedia("(pointer: coarse)").matches || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+      } catch (e) {
+        return false;
+      }
+    })());
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MOB ? 1 : 1.6));
     renderer.outputEncoding = T.sRGBEncoding;
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = T.PCFSoftShadowMap;
+    renderer.shadowMap.type = MOB ? T.PCFShadowMap : T.PCFSoftShadowMap;
     // filmische Tonwertkurve: helle Flächen laufen weich aus statt auszubrennen; zur Hälfte über die Helligkeit gerechnet, damit kräftige Farben (rote Lok, Container) nicht ausbleichen
     if (!T.ShaderChunk.tonemapping_pars_fragment.includes("fTM("))
       T.ShaderChunk.tonemapping_pars_fragment = T.ShaderChunk.tonemapping_pars_fragment.replace(
@@ -9412,7 +9433,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
     const denU = { value: DENS };
     const sun = new T.DirectionalLight(lin(0xfff1dc), 2.5);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.mapSize.set(MOB ? 1024 : 2048, MOB ? 1024 : 2048);
     {
       const c = sun.shadow.camera;
       c.left = -75;
@@ -9765,12 +9786,24 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       float cl=1.-dark;col+=vec3(1.,.8,.58)*pow(s,5.)*.09*cl*(1.-h);col+=vec3(1.,.9,.74)*pow(s,48.)*.3*cl;return col;}
     vec4 skyCloud(vec3 d,vec3 sun,float t,float cov,float dark){float h=d.y;if(h<=0.)return vec4(0.);
       vec2 uv=d.xz/(h+.07)*1.4+vec2(t*.003,t*.0015);float c=fbm(uv);float m=smoothstep(.52-cov*1.2,.74-cov,c)*smoothstep(0.,.14,h);
-      vec2 sd=normalize(sun.xz+1e-4)*.2;float c2=fbm3(uv+sd);float lit=clamp(.7+(c-c2)*3.,0.,1.);float thick=smoothstep(.56-cov,.92-cov,c);
+      vec2 sd=normalize(sun.xz+1e-4)*.2;
+#ifdef MOBQ
+float c2=c+.02-.04*dot(normalize(sun.xz+1e-4),fract(uv)-.5);
+#else
+float c2=fbm3(uv+sd);
+#endif
+float lit=clamp(.7+(c-c2)*3.,0.,1.);float thick=smoothstep(.56-cov,.92-cov,c);
       float s=max(dot(d,sun),0.);
       vec3 shade=mix(vec3(.6,.66,.76),vec3(.3,.33,.38),dark);vec3 bright=mix(vec3(1.2,1.18,1.13),vec3(.62,.64,.66),dark);
       vec3 cc=mix(shade,bright,lit*(1.-thick*.4));cc+=vec3(1.,.9,.72)*pow(s,8.)*.5*(1.-dark)*(1.-thick);
       // hohe Schleierwolken
-      vec2 u2=d.xz/(h+.12)*vec2(.5,1.6)+vec2(t*.0012,7.3);float ci=smoothstep(.5,.85,fbm3(u2))*smoothstep(.08,.35,h)*.22*(1.-dark);
+      vec2 u2=d.xz/(h+.12)*vec2(.5,1.6)+vec2(t*.0012,7.3);
+#ifdef MOBQ
+float ci=0.;
+#else
+float ci=smoothstep(.5,.85,fbm3(u2))*smoothstep(.08,.35,h)*.22*(1.-dark);
+#endif
+
       float a=m*.96;vec3 col=mix(vec3(1.05,1.05,1.04),cc,a/(a+ci*(1.-a)+1e-4));return vec4(col,a+ci*(1.-a));}`;
     const skyFrag = `uniform vec3 uTop,uHor,uSun;uniform float uTime,uCov,uDark,uEnv;varying vec3 vDir;${NOISE_GL}${SKY_GL}
     void main(){vec3 d=normalize(vDir);float h=d.y;vec3 hor=L(uHor);vec3 col=skyBase(d,L(uTop),hor,uSun,uDark);
@@ -9932,7 +9965,13 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       vec3 n=normalize(vec3(-g.x,1.,-g.y));vec3 v=normalize(uCam-vW);float ndv=max(dot(n,v),0.);
       float fres=.02+.98*pow(1.-ndv,5.);fres=min(fres,.9);
       vec3 r=reflect(-v,n);r.y=abs(r.y);
-      vec3 sk=skyBase(r,L(uTop),L(uHor),uSun,uDark);float shd=0.;{float rh=max(r.y,.02);vec2 cu=r.xz/(rh+.07)*1.4+vec2(uTime*.003,uTime*.0015);float cm=smoothstep(.5-uCov*1.2,.8-uCov,fbm3(cu))*smoothstep(0.,.16,rh);sk=mix(sk,mix(vec3(.82,.84,.86),vec3(.42,.45,.48),uDark),cm*.32);}
+      vec3 sk=skyBase(r,L(uTop),L(uHor),uSun,uDark);float shd=0.;{float rh=max(r.y,.02);vec2 cu=r.xz/(rh+.07)*1.4+vec2(uTime*.003,uTime*.0015);
+#ifdef MOBQ
+float cm=smoothstep(.5-uCov*1.2,.8-uCov,noise(cu)*.85+.08)*smoothstep(0.,.16,rh);
+#else
+float cm=smoothstep(.5-uCov*1.2,.8-uCov,fbm3(cu))*smoothstep(0.,.16,rh);
+#endif
+sk=mix(sk,mix(vec3(.82,.84,.86),vec3(.42,.45,.48),uDark),cm*.32);}
       // Fähre: Schlagschatten auf dem Wasser und verzerrtes Spiegelbild des Rumpfs
       {vec2 q=p-uShip.xy;if(dot(q,q)<25600.){vec3 lo=sR(vec3(q.x,0.,q.y));shd=smoothstep(0.,3.,shipHit(lo,sR(uSun)))*(1.-uDark*.7);
         float rf=smoothstep(0.,2.,shipHit(lo,sR(r)));sk=mix(sk,vec3(.5,.51,.5)*(1.-uDark*.45),rf*.9);}}
@@ -10006,6 +10045,49 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
       );
       mud.receiveShadow = true;
       mud.name = "mud";
+      // in 12 × 8 Kacheln teilen; alle teilen sich dieselben Eckpunkte, jede Kachel hat ihre eigene Hüllkugel
+      if (mud.parent) {
+        const TXn = 12,
+          TNn = 8,
+          row = nx + 1,
+          pa = g.attributes.position;
+        for (let a = 0; a < TXn; a++)
+          for (let b = 0; b < TNn; b++) {
+            const i0 = Math.floor((a * nx) / TXn),
+              i1 = Math.floor(((a + 1) * nx) / TXn),
+              j0 = Math.floor((b * nn) / TNn),
+              j1 = Math.floor(((b + 1) * nn) / TNn);
+            const I = new Uint32Array((i1 - i0) * (j1 - j0) * 6);
+            let k = 0;
+            const bb = new T.Box3(),
+              vv = new T.Vector3();
+            for (let j = j0; j < j1; j++)
+              for (let i = i0; i < i1; i++) {
+                const p = j * row + i;
+                I[k++] = p;
+                I[k++] = p + row;
+                I[k++] = p + 1;
+                I[k++] = p + row;
+                I[k++] = p + row + 1;
+                I[k++] = p + 1;
+              }
+            for (let j = j0; j <= j1; j++)
+              for (let i = i0; i <= i1; i++) bb.expandByPoint(vv.fromBufferAttribute(pa, j * row + i));
+            const tg = new T.BufferGeometry();
+            for (const key in g.attributes) tg.attributes[key] = g.attributes[key];
+            tg.setIndex(new T.BufferAttribute(I, 1));
+            tg.boundingSphere = bb.getBoundingSphere(new T.Sphere());
+            tg.boundingBox = bb;
+            const tm = new T.Mesh(tg, mud.material);
+            tm.receiveShadow = mud.receiveShadow;
+            tm.castShadow = mud.castShadow;
+            tm.name = "mud";
+            tm.position.copy(mud.position);
+            tm.rotation.copy(mud.rotation);
+            mud.parent.add(tm);
+          }
+        mud.parent.remove(mud);
+      }
       const MM = new T.MeshStandardMaterial({ color: lin(0x5f5a4c), roughness: 0.5 });
       [
         [X0 - 15000, X0, N0 - 20000, 3000],
@@ -20096,6 +20178,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
         if (c) c.visible = l.getWorldPosition(lp).distanceTo(cp) < 45;
       });
     }
+    PERF.update(g, cam);
     g.renderer.render(g.scene, cam);
   }
 
@@ -20140,10 +20223,489 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
     cv.addEventListener("pointercancel", end);
   }
 
+  // ---------- Leistung: nur zeichnen, was man sehen kann
+  // 1) Instanzen (Autos, Bäume, Zäune, Gräser …) werden in Kacheln von 220 m zerlegt, jede mit eigener Hüllkugel,
+  //    damit Blickfeld- und Schattenprüfung greifen (vorher wurden alle Instanzen immer gezeichnet, auch hinter der Kamera).
+  // 2) Kleine Dinge werden ab einer Entfernung nicht mehr gezeichnet (je kleiner, desto früher; im Nebel ohnehin kaum sichtbar).
+  //    Gesteuert über Ebenen (layers), nicht über .visible, damit die Spiellogik unberührt bleibt.
+  const PERF = {
+    Q: window.__MOB ? 0.65 : 1,
+    frames: 0,
+    list: [],
+    inst: [],
+    idx: 0,
+    full: true,
+    lastScan: 0,
+    cp: null,
+    lastCp: null,
+    lastCam: null,
+    tmp: null,
+    maxD(r) {
+      const q = this.Q;
+      return r < 0.25 ? 70 * q : r < 0.8 ? 170 * q : r < 2.5 ? 480 * q : r < 8 ? 1300 * q : r < 30 ? 3200 * q : Infinity;
+    },
+    proxy(g) {
+      const p = new THREE.BufferGeometry();
+      p.index = g.index;
+      for (const k in g.attributes) p.attributes[k] = g.attributes[k];
+      p.groups = g.groups;
+      p.drawRange = g.drawRange;
+      return p;
+    },
+    chunk(im) {
+      const T = THREE,
+        g = im.geometry;
+      if (!g.boundingSphere) g.computeBoundingSphere();
+      const gs = g.boundingSphere,
+        n = im.count,
+        M = new T.Matrix4(),
+        P = new T.Vector3(),
+        Qn = new T.Quaternion(),
+        S = new T.Vector3();
+      (im.userData.pfC || []).forEach((c) => {
+        im.remove(c);
+        const i = this.list.indexOf(c);
+        if (i >= 0) this.list.splice(i, 1);
+      });
+      const cells = new Map(),
+        pts = new Array(n),
+        rad = new Float32Array(n);
+      let rmax = 0;
+      for (let i = 0; i < n; i++) {
+        im.getMatrixAt(i, M);
+        M.decompose(P, Qn, S);
+        const r = gs.radius * Math.max(Math.abs(S.x), Math.abs(S.y), Math.abs(S.z));
+        rad[i] = r;
+        rmax = Math.max(rmax, r);
+        pts[i] = gs.center.clone().applyMatrix4(M);
+        const key = Math.floor(pts[i].x / 300) + "," + Math.floor(pts[i].z / 300);
+        let c = cells.get(key);
+        if (!c) cells.set(key, (c = []));
+        c.push(i);
+      }
+      const out = [];
+      cells.forEach((ids) => {
+        const c = new T.InstancedMesh(this.proxy(g), im.material, ids.length);
+        const ctr = new T.Vector3();
+        ids.forEach((i, k) => {
+          im.getMatrixAt(i, M);
+          c.setMatrixAt(k, M);
+          ctr.add(pts[i]);
+        });
+        ctr.multiplyScalar(1 / ids.length);
+        let R = 0;
+        ids.forEach((i) => (R = Math.max(R, ctr.distanceTo(pts[i]) + rad[i])));
+        c.geometry.boundingSphere = new T.Sphere(ctr, R);
+        if (im.instanceColor) {
+          const a = new Float32Array(ids.length * 3),
+            src = im.instanceColor.array;
+          ids.forEach((i, k) => {
+            a[3 * k] = src[3 * i];
+            a[3 * k + 1] = src[3 * i + 1];
+            a[3 * k + 2] = src[3 * i + 2];
+          });
+          c.instanceColor = new T.InstancedBufferAttribute(a, 3);
+        }
+        c.castShadow = im.castShadow;
+        c.receiveShadow = im.receiveShadow;
+        c.renderOrder = im.renderOrder;
+        c.customDepthMaterial = im.customDepthMaterial;
+        c.customDistanceMaterial = im.customDistanceMaterial;
+        c.onBeforeRender = im.onBeforeRender;
+        c.frustumCulled = true;
+        c.userData.pfR = rmax;
+        c.userData.pfChunk = true;
+        im.add(c);
+        out.push(c);
+        this.list.push(c);
+      });
+      im.userData.pfC = out;
+      im.userData.pfV = im.instanceMatrix.version;
+      im.userData.pfCV = im.instanceColor ? im.instanceColor.version : -1;
+      im.userData.pfN = im.count;
+      im.layers.set(31);
+    },
+    unchunk(im) {
+      (im.userData.pfC || []).forEach((c) => {
+        im.remove(c);
+        const i = this.list.indexOf(c);
+        if (i >= 0) this.list.splice(i, 1);
+      });
+      im.userData.pfC = null;
+      im.userData.pfDyn = true;
+      im.layers.set(0);
+    },
+    // gleichbleibende Teile einer Baugruppe (Schiff, Insel, Hafen …) je Material und Kachel zu einem Körper zusammenfassen.
+    // Ändert das Spiel später ein Teil (bewegt, versteckt, anderes Material, verformt), wird es sofort wieder einzeln gezeichnet
+    // und der Sammelkörper ohne dieses Teil neu gebaut.
+    MG: [],
+    eligible(o) {
+      if (!o.isMesh || o.isInstancedMesh || o.isSkinnedMesh || o.userData.pfChunk || o.userData.pfMerged) return false;
+      const m = o.material,
+        g = o.geometry;
+      if (!m || Array.isArray(m) || m.transparent || m.alphaTest > 0 || m.depthWrite === false) return false;
+      if (o.renderOrder || o.frustumCulled === false || o.layers.mask !== 1 || o.customDepthMaterial || o.customDistanceMaterial) return false;
+      if (o.onBeforeRender !== THREE.Object3D.prototype.onBeforeRender) return false;
+      if (!g || !g.isBufferGeometry || !g.attributes.position || !g.attributes.normal) return false;
+      if (Object.keys(g.morphAttributes || {}).length || m.isShaderMaterial || m.isRawShaderMaterial) return false;
+      return true;
+    },
+    snap(o) {
+      const mt = o.isMesh && o.material && !Array.isArray(o.material) ? o.material : null;
+      const s = { o, mt, mc: mt ? this.mstate(mt) : null, par: o.parent, v: o.visible, p: [o.position.x, o.position.y, o.position.z, o.quaternion.x, o.quaternion.y, o.quaternion.z, o.quaternion.w, o.scale.x, o.scale.y, o.scale.z], m: o.material, g: o.geometry, pv: o.geometry && o.geometry.attributes && o.geometry.attributes.position ? o.geometry.attributes.position.version : -1, me: o.matrixAutoUpdate ? null : o.matrix.elements.slice(), cs: [] };
+      return s;
+    },
+    mstate(m) {
+      const c = m.color,
+        e = m.emissive;
+      return [c ? c.r : 0, c ? c.g : 0, c ? c.b : 0, e ? e.r : 0, e ? e.g : 0, e ? e.b : 0, m.emissiveIntensity, m.opacity, m.visible, m.map, m.version];
+    },
+    changed(s) {
+      const o = s.o,
+        p = s.p;
+      const m = s.mt;
+      if (m) {
+        const b = s.mc,
+          c = m.color,
+          e = m.emissive;
+        if ((c && (c.r !== b[0] || c.g !== b[1] || c.b !== b[2])) || (e && (e.r !== b[3] || e.g !== b[4] || e.b !== b[5]))) return true;
+        if (m.emissiveIntensity !== b[6] || m.opacity !== b[7] || m.visible !== b[8] || m.map !== b[9] || m.version !== b[10]) return true;
+      }
+      if (o.parent !== s.par || o.visible !== s.v || o.material !== s.m || o.geometry !== s.g) return true;
+      if (o.position.x !== p[0] || o.position.y !== p[1] || o.position.z !== p[2]) return true;
+      const q = o.quaternion;
+      if (q.x !== p[3] || q.y !== p[4] || q.z !== p[5] || q.w !== p[6]) return true;
+      if (o.scale.x !== p[7] || o.scale.y !== p[8] || o.scale.z !== p[9]) return true;
+      if (s.pv >= 0 && o.geometry.attributes.position && o.geometry.attributes.position.version !== s.pv) return true;
+      if (s.me) {
+        const e = o.matrix.elements;
+        for (let i = 0; i < 16; i++) if (e[i] !== s.me[i]) return true;
+      }
+      return false;
+    },
+    mergeList(list, inv) {
+      const T = THREE,
+        M = new T.Matrix4(),
+        NM = new T.Matrix3(),
+        v = new T.Vector3(),
+        WHITE = new T.Color(1, 1, 1);
+      let nv = 0,
+        ni = 0;
+      const useUv = !!list[0].o.geometry.attributes.uv,
+        useCol = true;
+      list.forEach((c) => {
+        const g = c.o.geometry;
+        nv += g.attributes.position.count;
+        ni += g.index ? g.index.count : g.attributes.position.count;
+      });
+      const P = new Float32Array(nv * 3),
+        N = new Float32Array(nv * 3),
+        U = useUv ? new Float32Array(nv * 2) : null,
+        C = useCol ? new Float32Array(nv * 3).fill(1) : null,
+        I = nv > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
+      let vo = 0,
+        io = 0;
+      list.forEach((c) => {
+        const o = c.o,
+          g = o.geometry,
+          pa = g.attributes.position,
+          na = g.attributes.normal,
+          ua = g.attributes.uv,
+          ca = g.attributes.color,
+          cnt = pa.count;
+        const mc = o.material.color || WHITE;
+        M.multiplyMatrices(inv, o.matrixWorld);
+        NM.getNormalMatrix(M);
+        const flip = M.determinant() < 0;
+        for (let i = 0; i < cnt; i++) {
+          v.fromBufferAttribute(pa, i).applyMatrix4(M);
+          P[(vo + i) * 3] = v.x;
+          P[(vo + i) * 3 + 1] = v.y;
+          P[(vo + i) * 3 + 2] = v.z;
+          v.fromBufferAttribute(na, i).applyMatrix3(NM).normalize();
+          N[(vo + i) * 3] = v.x;
+          N[(vo + i) * 3 + 1] = v.y;
+          N[(vo + i) * 3 + 2] = v.z;
+          if (U && ua) {
+            U[(vo + i) * 2] = ua.getX(i);
+            U[(vo + i) * 2 + 1] = ua.getY(i);
+          }
+          if (C) {
+            const vc = o.material.vertexColors && ca;
+            C[(vo + i) * 3] = mc.r * (vc ? ca.getX(i) : 1);
+            C[(vo + i) * 3 + 1] = mc.g * (vc ? ca.getY(i) : 1);
+            C[(vo + i) * 3 + 2] = mc.b * (vc && ca.itemSize > 2 ? ca.getZ(i) : 1);
+          }
+        }
+        if (g.index) {
+          const ix = g.index;
+          for (let t = 0; t < ix.count; t += 3) {
+            const a = ix.getX(t), b = ix.getX(t + 1), d = ix.getX(t + 2);
+            I[io++] = vo + a;
+            I[io++] = vo + (flip ? d : b);
+            I[io++] = vo + (flip ? b : d);
+          }
+        } else
+          for (let t = 0; t < cnt; t += 3) {
+            I[io++] = vo + t;
+            I[io++] = vo + (flip ? t + 2 : t + 1);
+            I[io++] = vo + (flip ? t + 1 : t + 2);
+          }
+        vo += cnt;
+      });
+      const geo = new T.BufferGeometry();
+      geo.setAttribute("position", new T.BufferAttribute(P, 3));
+      geo.setAttribute("normal", new T.BufferAttribute(N, 3));
+      if (U) geo.setAttribute("uv", new T.BufferAttribute(U, 2));
+      if (C) geo.setAttribute("color", new T.BufferAttribute(C, 3));
+      geo.setIndex(new T.BufferAttribute(I, 1));
+      geo.computeBoundingSphere();
+      return geo;
+    },
+    buildChunk(rt, ch) {
+      if (ch.mesh) {
+        const li = this.list.indexOf(ch.mesh);
+        if (li >= 0) this.list.splice(li, 1);
+        rt.root.remove(ch.mesh);
+        ch.mesh.geometry.dispose();
+        ch.mesh = null;
+      }
+      const list = ch.cands.filter((c) => !c.live);
+      if (list.length < 2) {
+        list.forEach((c) => {
+          c.live = true;
+          c.o.layers.set(0);
+        });
+        return;
+      }
+      const geo = this.mergeList(list, rt.inv);
+      const m = new THREE.Mesh(geo, ch.mat);
+      m.castShadow = list[0].o.castShadow;
+      m.receiveShadow = list[0].o.receiveShadow;
+      m.userData.pfMerged = m.userData.pfS = true;
+      m.userData.pfR = list.reduce((a, c) => Math.max(a, c.r || 0), 0);
+      rt.root.add(m);
+      ch.mesh = m;
+      this.list.push(m);
+      list.forEach((c) => c.o.layers.set(31));
+    },
+    MATS: new Map(),
+    sig(m) {
+      const t = (x) => (x ? x.uuid : "");
+      return [m.type, t(m.map), t(m.normalMap), t(m.roughnessMap), t(m.metalnessMap), t(m.emissiveMap), t(m.aoMap), t(m.bumpMap), t(m.envMap), t(m.lightMap), m.roughness, m.metalness, m.side, m.emissive ? m.emissive.getHexString() : "", m.emissiveIntensity, m.envMapIntensity, m.flatShading, m.fog, m.wireframe, m.shininess, m.polygonOffset, m.polygonOffsetFactor, m.polygonOffsetUnits, m.normalScale ? m.normalScale.x + "," + m.normalScale.y : "", m.onBeforeCompile ? String(m.onBeforeCompile).length + ":" + (m.customProgramCacheKey ? m.customProgramCacheKey() : "") : "", m.name].join("|");
+    },
+    matFor(m) {
+      const k = this.sig(m);
+      let r = this.MATS.get(k);
+      if (!r) {
+        r = m.clone();
+        if (r.color) r.color.setRGB(1, 1, 1);
+        r.vertexColors = true;
+        r.onBeforeCompile = m.onBeforeCompile;
+        if (m.customProgramCacheKey !== THREE.Material.prototype.customProgramCacheKey) r.customProgramCacheKey = m.customProgramCacheKey;
+        r.userData = m.userData;
+        this.MATS.set(k, r);
+      }
+      return [k, r];
+    },
+    mergeRoot(root) {
+      root.userData.pfRoot = true;
+      root.updateMatrixWorld(true);
+      const inv = new THREE.Matrix4().copy(root.matrixWorld).invert(),
+        rel = new THREE.Matrix4(),
+        cands = [];
+      const walk = (o, vis) => {
+        o.children.forEach((c) => {
+          const cv = vis && c.visible;
+          if (cv && this.eligible(c)) cands.push(c);
+          if (!c.isInstancedMesh) walk(c, cv);
+        });
+      };
+      walk(root, true);
+      if (cands.length < 12) return;
+      const rt = { root, inv, nodes: new Map(), chunks: new Map() };
+      cands.forEach((o) => {
+        const g = o.geometry;
+        rel.multiplyMatrices(inv, o.matrixWorld);
+        const x = rel.elements[12],
+          z = rel.elements[14];
+        const [sk, smat] = this.matFor(o.material);
+        const key = sk + "|" + (g.attributes.uv ? 1 : 0) + (o.castShadow ? 1 : 0) + (o.receiveShadow ? 1 : 0) + "|" + Math.floor(x / 150) + "," + Math.floor(z / 150);
+        let ch = rt.chunks.get(key);
+        if (!ch) rt.chunks.set(key, (ch = { cands: [], mesh: null, mat: smat }));
+        if (!g.boundingSphere) g.computeBoundingSphere();
+        const c = { o, live: false, ch, r: g.boundingSphere.radius * o.matrixWorld.getMaxScaleOnAxis() };
+        ch.cands.push(c);
+        o.userData.pfS = true;
+        for (let q = o; q && q !== root; q = q.parent) {
+          let s = rt.nodes.get(q);
+          if (!s) rt.nodes.set(q, (s = this.snap(q)));
+          s.cs.push(c);
+        }
+      });
+      rt.list = Array.from(rt.nodes.values());
+      rt.chunks.forEach((ch) => this.buildChunk(rt, ch));
+      this.MG.push(rt);
+    },
+    watch() {
+      for (let r = 0; r < this.MG.length; r++) {
+        const rt = this.MG[r],
+          L = rt.list;
+        let dirty = null,
+          reroot = null;
+        // je Bild ein Viertel der Teile prüfen
+        const nL = L.length,
+          kL = Math.ceil(nL / 4);
+        if (rt.wi === undefined) rt.wi = 0;
+        for (let j = 0; j < kL; j++) {
+          rt.wi = (rt.wi + 1) % nL;
+          const s = L[rt.wi];
+          if (s.dead || !this.changed(s)) continue;
+          s.dead = true;
+          // bewegt sich eine ganze Baugruppe (Schiff schaukelt, Rampe klappt), wird sie selbst zur Wurzel neuer Sammelkörper
+          if (!s.o.isMesh && s.o.parent === s.par && !s.o.userData.pfRoot && s.cs.filter((c) => !c.live).length >= 4) (reroot || (reroot = [])).push(s.o);
+          s.cs.forEach((c) => {
+            if (c.live) return;
+            c.live = true;
+            c.o.layers.set(0);
+            (dirty || (dirty = new Set())).add(c.ch);
+          });
+        }
+        if (dirty) {
+          rt.root.updateMatrixWorld(true);
+          rt.inv.copy(rt.root.matrixWorld).invert();
+          dirty.forEach((ch) => this.buildChunk(rt, ch));
+        }
+        if (reroot)
+          reroot
+            .filter((o) => !reroot.some((q) => q !== o && (() => { for (let p = o.parent; p; p = p.parent) if (p === q) return true; return false; })()))
+            .forEach((o) => {
+              try {
+                this.mergeRoot(o);
+              } catch (e) {}
+            });
+      }
+    },
+    scan(scene) {
+      if (!this.merged) {
+        this.merged = true;
+        scene.children.forEach((c) => {
+          if (c.isMesh && !c.children.length) return;
+          try {
+            this.mergeRoot(c);
+          } catch (e) {
+            console.warn("Zusammenfassen übersprungen", e);
+          }
+        });
+      }
+      scene.traverse((o) => {
+        if (!o.isMesh || o.userData.pfS || o.userData.pfChunk) return;
+        o.userData.pfS = true;
+        if (o.isInstancedMesh) {
+          if (o.layers.mask !== 1 || o.count < 1) return;
+          this.inst.push(o);
+          o.userData.pfRb = 0;
+          try {
+            this.chunk(o);
+          } catch (e) {
+            this.unchunk(o);
+          }
+          return;
+        }
+        if (o.layers.mask !== 1 || o.frustumCulled === false || o.isSkinnedMesh) return;
+        const g = o.geometry;
+        if (!g || !g.attributes || !g.attributes.position) return;
+        if (!g.boundingSphere) g.computeBoundingSphere();
+        if (!g.boundingSphere || !isFinite(g.boundingSphere.radius)) return;
+        o.updateWorldMatrix(true, false);
+        const r = g.boundingSphere.radius * o.matrixWorld.getMaxScaleOnAxis();
+        if (r >= 30) return;
+        o.userData.pfR = r;
+        this.list.push(o);
+      });
+    },
+    test(o) {
+      const v = this.tmp;
+      let R, rd;
+      if (o.userData.pfChunk || o.userData.pfMerged) {
+        const bs = o.geometry.boundingSphere;
+        v.copy(bs.center).applyMatrix4(o.matrixWorld);
+        R = bs.radius;
+        rd = o.userData.pfR;
+      } else {
+        v.copy(o.geometry.boundingSphere.center).applyMatrix4(o.matrixWorld);
+        R = rd = o.userData.pfR;
+      }
+      const vis = v.distanceTo(this.cp) - R < this.maxD(rd);
+      o.layers.set(vis ? 0 : 31);
+    },
+    update(g, cam) {
+      if (!this.tmp) {
+        this.tmp = new THREE.Vector3();
+        this.cp = new THREE.Vector3();
+        this.lastCp = new THREE.Vector3(1e9, 0, 0);
+      }
+      this.frames++;
+      // auf dem Handy die Schattenkarte nur jedes zweite Bild neu rechnen
+      if (window.__MOB) {
+        g.renderer.shadowMap.autoUpdate = false;
+        g.renderer.shadowMap.needsUpdate = this.frames % 2 === 0 || this.full;
+      }
+      if (this.frames < 3) return;
+      if (this.frames - this.lastScan > 240 || this.lastScan === 0) {
+        this.lastScan = this.frames;
+        this.scan(g.scene);
+        this.full = true;
+      }
+      this.watch();
+      // geänderte Instanzen neu zerlegen; was sich ständig ändert, bleibt ungeteilt
+      for (let i = 0; i < this.inst.length; i++) {
+        const im = this.inst[i];
+        if (im.userData.pfDyn || !im.userData.pfC) continue;
+        if (im.instanceMatrix.version !== im.userData.pfV || im.count !== im.userData.pfN || (im.instanceColor ? im.instanceColor.version : -1) !== im.userData.pfCV) {
+          if (++im.userData.pfRb > 4) this.unchunk(im);
+          else {
+            try {
+              this.chunk(im);
+            } catch (e) {
+              this.unchunk(im);
+            }
+            this.full = true;
+          }
+        }
+      }
+      cam.getWorldPosition(this.cp);
+      if (cam !== this.lastCam || this.cp.distanceTo(this.lastCp) > 40) this.full = true;
+      const L = this.list,
+        n = L.length;
+      if (!n) return;
+      if (this.full) {
+        for (let i = 0; i < n; i++) this.test(L[i]);
+        this.full = false;
+        this.lastCam = cam;
+        this.lastCp.copy(this.cp);
+      } else {
+        const k = Math.ceil(n / 8);
+        for (let j = 0; j < k; j++) {
+          this.idx = (this.idx + 1) % n;
+          this.test(L[this.idx]);
+        }
+      }
+    },
+  };
+
+  window.__PERF = PERF;
   let last = 0,
     t3 = 0;
   // Bildrate halten: bleibt sie mehrere Sekunden unter etwa 27 Bildern, rendert die 3D-Ansicht schrittweise etwas gröber (nie feiner als das Gerät, nie unter 1)
-  const AQ = { t: 0, n: 0, low: 0, pr: Math.min(window.devicePixelRatio || 1, 1.6) };
+  const AQ = {
+    t: 0,
+    n: 0,
+    low: 0,
+    done: false,
+    pr: Math.min(window.devicePixelRatio || 1, window.__MOB ? 1 : 1.6),
+    min: window.__MOB ? 0.7 : 1,
+  };
   function frame(ts) {
     const rawDt = last ? Math.min(1, (ts - last) / 1000) : 0;
     const dtR = Math.min(0.1, last ? (ts - last) / 1000 : 0);
@@ -20151,7 +20713,7 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
     t3 += dtR;
     if (
       G &&
-      AQ.pr > 1 &&
+      !AQ.done &&
       (phase === "run" || phase === "rail") &&
       pane !== "karte" &&
       rawDt > 0 &&
@@ -20165,10 +20727,20 @@ float fbm3(vec2 p){float v=0.,a=.53;for(int i=0;i<3;i++){v+=a*noise(p);p*=2.03;a
         AQ.n = 0;
         if (fps < 27) {
           if (++AQ.low >= 2) {
-            AQ.pr = Math.max(1, AQ.pr - 0.2);
-            G.renderer.setPixelRatio(AQ.pr);
-            G.size = [0, 0];
             AQ.low = 0;
+            if (AQ.pr > AQ.min + 0.01) {
+              AQ.pr = Math.max(AQ.min, AQ.pr - 0.15);
+              G.renderer.setPixelRatio(AQ.pr);
+              G.size = [0, 0];
+            } else if (PERF.Q > 0.42) {
+              PERF.Q *= 0.8;
+              PERF.full = true;
+            } else if (!AQ.noSh) {
+              AQ.noSh = true;
+              G.scene.traverse((o) => {
+                if (o.isLight && o.castShadow) o.castShadow = false;
+              });
+            } else AQ.done = true;
           }
         } else AQ.low = 0;
       }
